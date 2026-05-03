@@ -9,6 +9,7 @@ import {
   Edit02Icon,
   PauseIcon,
   PlayIcon,
+  Settings02Icon,
 } from '@hugeicons/core-free-icons'
 import { Input } from '@/components/ui/input'
 import {
@@ -121,6 +122,12 @@ export function MonitorDetailPage() {
           <TagsRow monitor={monitor} />
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link to={`/admin/monitors/${monitor.id}/edit`} className="gap-2">
+              <HugeiconsIcon icon={Settings02Icon} className="h-4 w-4" />
+              Edit
+            </Link>
+          </Button>
           <Button
             variant="outline"
             onClick={() => togglePause.mutate(!monitor.paused)}

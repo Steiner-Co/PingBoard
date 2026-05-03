@@ -1,0 +1,727 @@
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { ArrowLeft01Icon, Tick02Icon } from '@hugeicons/core-free-icons'
+import { ALLOWED_INTERVALS_SECONDS } from '@pingboard/shared'
+
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { api } from '@/lib/api'
+import { cn } from '@/lib/utils'
+import type { Heartbeat, Incident, Monitor, NotificationChannel } from '@/types'
+import { TagInput } from '@/pages/MonitorWizardPage'
+
+interface DetailResponse {
+  monitor: Monitor
+  heartbeats: Heartbeat[]
+  incidents: Incident[]
+  channelIds: string[]
+}
+
+const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'] as const
+const DNS_RECORD_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS'] as const
+
+export function MonitorEditPage() {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
+  const detail = useQuery({
+    queryKey: ['monitor', id],
+    queryFn: () => api.get<DetailResponse>(`/api/admin/monitors/${id}`),
+    enabled: !!id,
+  })
+
+  const channelsQuery = useQuery({
+    queryKey: ['channels'],
+    queryFn: () => api.get<{ channels: NotificationChannel[] }>('/api/admin/channels'),
+  })
+
+  // ─────────── Form state ───────────
+  const [name, setName] = useState('')
+  const [target, setTarget] = useState('')
+  const [intervalSeconds, setIntervalSeconds] = useState(60)
+  const [timeoutSeconds, setTimeoutSeconds] = useState(10)
+  const [retryCount, setRetryCount] = useState(1)
+  const [tags, setTags] = useState<string[]>([])
+  const [channelIds, setChannelIds] = useState<string[]>([])
+  const [config, setConfig] = useState<Record<string, unknown>>({})
+  const [headersText, setHeadersText] = useState('')
+  const [headersError, setHeadersError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  // Hydrate from server response
+  useEffect(() => {
+    if (!detail.data) return
+    const m = detail.data.monitor
+    setName(m.name)
+    setTarget(m.target)
+    setIntervalSeconds(m.intervalSeconds)
+    setTimeoutSeconds(m.timeoutSeconds)
+    setRetryCount(m.retryCount)
+    setTags(m.tags)
+    setChannelIds(detail.data.channelIds)
+    setConfig({ ...m.config })
+    if (m.type === 'http') {
+      const headers = (m.config as { headers?: Record<string, string> }).headers
+      setHeadersText(headers ? JSON.stringify(headers, null, 2) : '')
+    }
+    setError(null)
+    setHeadersError(null)
+  }, [detail.data])
+
+  const save = useMutation({
+    mutationFn: (payload: object) => api.patch(`/api/admin/monitors/${id}`, payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['monitor', id] })
+      void queryClient.invalidateQueries({ queryKey: ['monitors'] })
+      navigate(`/admin/monitors/${id}`)
+    },
+    onError: (err) => setError(err instanceof Error ? err.message : 'Failed'),
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    if (!name.trim()) return setError('Name is required')
+    if (!target.trim()) return setError('Target is required')
+
+    const builtConfig = buildConfigPayload(detail.data!.monitor.type, config)
+    if ('error' in builtConfig) return setError(builtConfig.error)
+
+    if (detail.data!.monitor.type === 'http') {
+      const headers = parseHeaders(headersText)
+      if ('error' in headers) {
+        setHeadersError(headers.error)
+        return
+      }
+      setHeadersError(null)
+      builtConfig.value.headers = headers.value
+    }
+
+    save.mutate({
+      name: name.trim(),
+      target: target.trim(),
+      intervalSeconds,
+      timeoutSeconds,
+      retryCount,
+      tags,
+      channelIds,
+      config: builtConfig.value,
+    })
+  }
+
+  if (detail.isLoading) {
+    return <div className="px-4 lg:px-6 text-muted-foreground">Loading…</div>
+  }
+  if (detail.isError || !detail.data) {
+    return <div className="px-4 lg:px-6 text-muted-foreground">Failed to load monitor.</div>
+  }
+
+  const monitor = detail.data.monitor
+
+  return (
+    <form onSubmit={handleSubmit} className="px-4 lg:px-6 max-w-3xl flex flex-col gap-6">
+      <Button variant="ghost" size="sm" asChild className="self-start -ml-3">
+        <Link to={`/admin/monitors/${id}`} className="gap-2">
+          <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
+          Back to monitor
+        </Link>
+      </Button>
+
+      <header>
+        <h1 className="text-3xl font-semibold tracking-tight">Edit {monitor.name}</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Type (<span className="uppercase font-medium">{monitor.type}</span>) cannot
+          be changed. Delete and recreate the monitor to switch types.
+        </p>
+      </header>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>General</CardTitle>
+          <CardDescription>Identity and scheduling.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="edit-name">Name</Label>
+            <Input id="edit-name" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-target">Target</Label>
+            <Input
+              id="edit-target"
+              value={target}
+              onChange={(e) => setTarget(e.target.value)}
+              className="font-mono text-xs"
+            />
+            <p className="text-xs text-muted-foreground">
+              {monitor.type === 'http' && 'Full URL, including protocol.'}
+              {monitor.type === 'tcp' && 'Format: host:port (or set port below and use bare host).'}
+              {monitor.type === 'ping' && 'Hostname or IP address.'}
+              {monitor.type === 'dns' && 'Hostname to resolve.'}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="edit-interval">Check interval</Label>
+              <Select
+                value={String(intervalSeconds)}
+                onValueChange={(v) => setIntervalSeconds(Number(v))}
+              >
+                <SelectTrigger id="edit-interval">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALLOWED_INTERVALS_SECONDS.map((s) => (
+                    <SelectItem key={s} value={String(s)}>
+                      {formatInterval(s)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-timeout">Timeout (seconds)</Label>
+              <Input
+                id="edit-timeout"
+                type="number"
+                min={1}
+                max={60}
+                value={timeoutSeconds}
+                onChange={(e) => setTimeoutSeconds(Number(e.target.value))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-retry">Retries before down</Label>
+              <Input
+                id="edit-retry"
+                type="number"
+                min={0}
+                max={5}
+                value={retryCount}
+                onChange={(e) => setRetryCount(Number(e.target.value))}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-tags">Tags</Label>
+            <TagInput value={tags} onChange={setTags} id="edit-tags" />
+          </div>
+        </CardContent>
+      </Card>
+
+      {monitor.type === 'http' && (
+        <HttpConfig
+          config={config}
+          setConfig={setConfig}
+          headersText={headersText}
+          setHeadersText={setHeadersText}
+          headersError={headersError}
+        />
+      )}
+      {monitor.type === 'tcp' && <TcpConfig config={config} setConfig={setConfig} />}
+      {monitor.type === 'dns' && <DnsConfig config={config} setConfig={setConfig} />}
+
+      <ChannelsCard
+        channels={channelsQuery.data?.channels ?? []}
+        loading={channelsQuery.isLoading}
+        selected={channelIds}
+        setSelected={setChannelIds}
+      />
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      <div className="flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => navigate(`/admin/monitors/${id}`)}
+        >
+          Cancel
+        </Button>
+        <Button type="submit" disabled={save.isPending}>
+          {save.isPending ? 'Saving…' : 'Save changes'}
+          <HugeiconsIcon icon={Tick02Icon} className="h-4 w-4" />
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+// ─────────────────────────── HTTP config ───────────────────────────
+
+function HttpConfig({
+  config,
+  setConfig,
+  headersText,
+  setHeadersText,
+  headersError,
+}: {
+  config: Record<string, unknown>
+  setConfig: (next: Record<string, unknown>) => void
+  headersText: string
+  setHeadersText: (next: string) => void
+  headersError: string | null
+}) {
+  const set = <K extends string>(key: K, value: unknown) =>
+    setConfig({ ...config, [key]: value })
+  const c = config as {
+    method?: string
+    body?: string
+    expectedStatusCodes?: number[]
+    expectedKeyword?: string
+    expectedJsonPath?: { path: string; equals: unknown }
+    followRedirects?: boolean
+    verifyTls?: boolean
+  }
+  const codesText = useMemo(
+    () => (c.expectedStatusCodes ?? []).join(', '),
+    [c.expectedStatusCodes],
+  )
+  const jsonPath = c.expectedJsonPath?.path ?? ''
+  const jsonEquals =
+    c.expectedJsonPath?.equals !== undefined
+      ? JSON.stringify(c.expectedJsonPath.equals)
+      : ''
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>HTTP options</CardTitle>
+        <CardDescription>
+          Optional. The check passes when the response matches every assertion below.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="http-method">Method</Label>
+            <Select
+              value={c.method ?? 'GET'}
+              onValueChange={(v) => set('method', v)}
+            >
+              <SelectTrigger id="http-method">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {HTTP_METHODS.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {m}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="http-codes">Expected status codes</Label>
+            <Input
+              id="http-codes"
+              value={codesText}
+              onChange={(e) => {
+                const parsed = e.target.value
+                  .split(',')
+                  .map((s) => Number(s.trim()))
+                  .filter((n) => Number.isFinite(n) && n > 0)
+                set('expectedStatusCodes', parsed.length ? parsed : undefined)
+              }}
+              placeholder="200, 201, 204"
+            />
+            <p className="text-xs text-muted-foreground">
+              Comma-separated. Leave blank to accept any 2xx.
+            </p>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="http-headers">Request headers (JSON)</Label>
+          <textarea
+            id="http-headers"
+            value={headersText}
+            onChange={(e) => setHeadersText(e.target.value)}
+            placeholder='{"Authorization": "Bearer …"}'
+            rows={4}
+            className="w-full rounded-md border border-input bg-input/20 px-2 py-1.5 text-xs font-mono outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+          />
+          {headersError && <p className="text-xs text-destructive">{headersError}</p>}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="http-body">Request body</Label>
+          <textarea
+            id="http-body"
+            value={c.body ?? ''}
+            onChange={(e) => set('body', e.target.value || undefined)}
+            placeholder="Optional"
+            rows={3}
+            className="w-full rounded-md border border-input bg-input/20 px-2 py-1.5 text-xs font-mono outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="http-keyword">Body must contain</Label>
+          <Input
+            id="http-keyword"
+            value={c.expectedKeyword ?? ''}
+            onChange={(e) => set('expectedKeyword', e.target.value || undefined)}
+            placeholder="e.g. ok"
+          />
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="http-json-path">JSON path</Label>
+            <Input
+              id="http-json-path"
+              value={jsonPath}
+              onChange={(e) => {
+                const next = e.target.value
+                if (!next) {
+                  set('expectedJsonPath', undefined)
+                } else {
+                  set('expectedJsonPath', {
+                    path: next,
+                    equals: c.expectedJsonPath?.equals ?? null,
+                  })
+                }
+              }}
+              placeholder="status.healthy"
+              className="font-mono text-xs"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="http-json-equals">Equals (JSON value)</Label>
+            <Input
+              id="http-json-equals"
+              value={jsonEquals}
+              onChange={(e) => {
+                const raw = e.target.value
+                if (!c.expectedJsonPath?.path) return
+                let parsed: unknown = raw
+                try {
+                  parsed = raw ? JSON.parse(raw) : null
+                } catch {
+                  // Keep as string while user is mid-typing
+                  parsed = raw
+                }
+                set('expectedJsonPath', {
+                  path: c.expectedJsonPath!.path,
+                  equals: parsed,
+                })
+              }}
+              placeholder='true / "ok" / 200'
+              className="font-mono text-xs"
+              disabled={!c.expectedJsonPath?.path}
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <CheckboxField
+            id="http-follow"
+            checked={c.followRedirects ?? true}
+            onChange={(v) => set('followRedirects', v)}
+            label="Follow redirects (3xx → next URL)"
+          />
+          <CheckboxField
+            id="http-tls"
+            checked={c.verifyTls ?? true}
+            onChange={(v) => set('verifyTls', v)}
+            label="Verify TLS certificate"
+          />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ─────────────────────────── TCP config ───────────────────────────
+
+function TcpConfig({
+  config,
+  setConfig,
+}: {
+  config: Record<string, unknown>
+  setConfig: (next: Record<string, unknown>) => void
+}) {
+  const port = (config as { port?: number }).port
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>TCP options</CardTitle>
+        <CardDescription>
+          Used when the target is a bare hostname; ignored if the target already
+          includes a port.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2 max-w-xs">
+          <Label htmlFor="tcp-port">Port</Label>
+          <Input
+            id="tcp-port"
+            type="number"
+            min={1}
+            max={65535}
+            value={port ?? ''}
+            onChange={(e) =>
+              setConfig({
+                ...config,
+                port: e.target.value ? Number(e.target.value) : undefined,
+              })
+            }
+          />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ─────────────────────────── DNS config ───────────────────────────
+
+function DnsConfig({
+  config,
+  setConfig,
+}: {
+  config: Record<string, unknown>
+  setConfig: (next: Record<string, unknown>) => void
+}) {
+  const c = config as {
+    recordType?: string
+    expectedValue?: string
+    resolver?: string
+  }
+  const set = <K extends string>(key: K, value: unknown) =>
+    setConfig({ ...config, [key]: value })
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>DNS options</CardTitle>
+        <CardDescription>
+          Resolve a record and (optionally) check a value within the response.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="space-y-2">
+            <Label htmlFor="dns-type">Record type</Label>
+            <Select
+              value={c.recordType ?? 'A'}
+              onValueChange={(v) => set('recordType', v)}
+            >
+              <SelectTrigger id="dns-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DNS_RECORD_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="dns-resolver">Custom resolver</Label>
+            <Input
+              id="dns-resolver"
+              value={c.resolver ?? ''}
+              onChange={(e) => set('resolver', e.target.value || undefined)}
+              placeholder="e.g. 1.1.1.1"
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="dns-expected">Expected value</Label>
+          <Input
+            id="dns-expected"
+            value={c.expectedValue ?? ''}
+            onChange={(e) => set('expectedValue', e.target.value || undefined)}
+            placeholder="Substring to match in any returned record"
+          />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ─────────────────────────── Channels ───────────────────────────
+
+function ChannelsCard({
+  channels,
+  loading,
+  selected,
+  setSelected,
+}: {
+  channels: NotificationChannel[]
+  loading: boolean
+  selected: string[]
+  setSelected: (next: string[]) => void
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Notification channels</CardTitle>
+        <CardDescription>
+          Channels here are notified on every down → up transition.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : channels.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No channels yet. Add some from the Channels page first.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {channels.map((c) => {
+              const checked = selected.includes(c.id)
+              return (
+                <label
+                  key={c.id}
+                  className={cn(
+                    'flex items-center gap-3 rounded-md border p-3 cursor-pointer transition-colors',
+                    checked ? 'bg-accent border-primary' : 'hover:bg-accent/50',
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() =>
+                      setSelected(
+                        checked
+                          ? selected.filter((id) => id !== c.id)
+                          : [...selected, c.id],
+                      )
+                    }
+                    className="h-4 w-4"
+                  />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">{c.name}</div>
+                    <div className="text-xs text-muted-foreground uppercase">{c.type}</div>
+                  </div>
+                </label>
+              )
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function CheckboxField({
+  id,
+  checked,
+  onChange,
+  label,
+}: {
+  id: string
+  checked: boolean
+  onChange: (v: boolean) => void
+  label: string
+}) {
+  return (
+    <label htmlFor={id} className="flex items-center gap-2 text-sm">
+      <input
+        id={id}
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-4 w-4 rounded border-input"
+      />
+      {label}
+    </label>
+  )
+}
+
+// ─────────────────────────── Helpers ───────────────────────────
+
+function formatInterval(seconds: number): string {
+  if (seconds < 60) return `Every ${seconds}s`
+  if (seconds < 3600) return `Every ${seconds / 60}m`
+  return `Every ${seconds / 3600}h`
+}
+
+function parseHeaders(text: string): { value: Record<string, string> | undefined } | { error: string } {
+  if (!text.trim()) return { value: undefined }
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    return { error: 'Headers must be valid JSON' }
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return { error: 'Headers must be a JSON object' }
+  }
+  const out: Record<string, string> = {}
+  for (const [k, v] of Object.entries(parsed)) {
+    if (typeof v !== 'string') return { error: `Header "${k}" must be a string` }
+    out[k] = v
+  }
+  return { value: out }
+}
+
+function buildConfigPayload(
+  type: string,
+  config: Record<string, unknown>,
+):
+  | { value: Record<string, unknown> }
+  | { error: string } {
+  const out: Record<string, unknown> = {}
+
+  if (type === 'http') {
+    const c = config as Record<string, unknown>
+    if (c.method) out.method = c.method
+    if (c.body) out.body = c.body
+    if (Array.isArray(c.expectedStatusCodes) && c.expectedStatusCodes.length > 0) {
+      out.expectedStatusCodes = c.expectedStatusCodes
+    }
+    if (typeof c.expectedKeyword === 'string' && c.expectedKeyword) {
+      out.expectedKeyword = c.expectedKeyword
+    }
+    if (
+      c.expectedJsonPath &&
+      typeof (c.expectedJsonPath as { path?: unknown }).path === 'string' &&
+      (c.expectedJsonPath as { path: string }).path
+    ) {
+      out.expectedJsonPath = c.expectedJsonPath
+    }
+    if (typeof c.followRedirects === 'boolean') out.followRedirects = c.followRedirects
+    if (typeof c.verifyTls === 'boolean') out.verifyTls = c.verifyTls
+    return { value: out }
+  }
+
+  if (type === 'tcp') {
+    const port = (config as { port?: unknown }).port
+    if (port != null) {
+      const n = Number(port)
+      if (!Number.isInteger(n) || n < 1 || n > 65535) {
+        return { error: 'TCP port must be an integer 1-65535' }
+      }
+      out.port = n
+    }
+    return { value: out }
+  }
+
+  if (type === 'dns') {
+    const c = config as { recordType?: unknown; expectedValue?: unknown; resolver?: unknown }
+    out.recordType = c.recordType ?? 'A'
+    if (typeof c.expectedValue === 'string' && c.expectedValue) {
+      out.expectedValue = c.expectedValue
+    }
+    if (typeof c.resolver === 'string' && c.resolver) {
+      out.resolver = c.resolver
+    }
+    return { value: out }
+  }
+
+  // ping etc — no config
+  return { value: out }
+}

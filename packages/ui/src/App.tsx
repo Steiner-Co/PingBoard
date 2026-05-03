@@ -7,6 +7,7 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { IncidentsPage } from '@/pages/IncidentsPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { MonitorDetailPage } from '@/pages/MonitorDetailPage'
+import { MonitorEditPage } from '@/pages/MonitorEditPage'
 import { MonitorWizardPage } from '@/pages/MonitorWizardPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { SetupPage } from '@/pages/SetupPage'
@@ -58,6 +59,7 @@ function Router() {
         <Route index element={<DashboardPage />} />
         <Route path="monitors/new" element={<MonitorWizardPage />} />
         <Route path="monitors/:id" element={<MonitorDetailPage />} />
+        <Route path="monitors/:id/edit" element={<MonitorEditPage />} />
         <Route path="channels" element={<ChannelsPage />} />
         <Route path="incidents" element={<IncidentsPage />} />
         <Route path="pages" element={<StatusPagesPage />} />

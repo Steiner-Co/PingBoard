@@ -15,6 +15,7 @@ const ROUTE_TITLES: Record<string, string> = {
 
 function titleForPath(pathname: string): string {
   if (ROUTE_TITLES[pathname]) return ROUTE_TITLES[pathname]
+  if (/^\/admin\/monitors\/[^/]+\/edit$/.test(pathname)) return 'Edit monitor'
   if (pathname.startsWith('/admin/monitors/')) return 'Monitor'
   if (pathname.startsWith('/admin/monitors')) return 'Monitors'
   return 'Dashboard'
