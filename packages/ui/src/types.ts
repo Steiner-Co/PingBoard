@@ -54,7 +54,7 @@ export interface StatusPage {
   title: string
   description: string | null
   theme: Theme
-  passwordHash: string | null
+  passwordSet: boolean
   customDomain: string | null
   createdAt: string
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSSE } from '@/lib/sse'
 import { cn, formatRelative } from '@/lib/utils'
@@ -16,15 +17,27 @@ interface PublicMonitor {
   recent: Array<{ checkedAt: string; status: 'up' | 'down' | 'degraded'; responseTimeMs: number | null }>
 }
 
+class GateError extends Error {
+  constructor(public kind: 'password' | 'not-found' | 'other') {
+    super(kind)
+  }
+}
+
+async function fetchPublic(slug: string): Promise<PublicData> {
+  const res = await fetch(`/api/public/${slug}`, { credentials: 'include' })
+  if (res.status === 401) throw new GateError('password')
+  if (res.status === 404) throw new GateError('not-found')
+  if (!res.ok) throw new GateError('other')
+  return (await res.json()) as PublicData
+}
+
 export function PublicStatusPage({ slug }: { slug: string }) {
   const queryClient = useQueryClient()
   const query = useQuery({
     queryKey: ['public', slug],
-    queryFn: () => fetch(`/api/public/${slug}`).then((r) => {
-      if (!r.ok) throw new Error('Not found')
-      return r.json() as Promise<PublicData>
-    }),
+    queryFn: () => fetchPublic(slug),
     refetchInterval: 30_000,
+    retry: (count, err) => !(err instanceof GateError) && count < 2,
   })
 
   useSSE(`/api/public/${slug}/sse`, {
@@ -35,6 +48,16 @@ export function PublicStatusPage({ slug }: { slug: string }) {
 
   if (query.isLoading) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading…</div>
+  }
+  if (query.error instanceof GateError && query.error.kind === 'password') {
+    return (
+      <PasswordGate
+        slug={slug}
+        onAuthenticated={() =>
+          queryClient.invalidateQueries({ queryKey: ['public', slug] })
+        }
+      />
+    )
   }
   if (query.isError) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Status page not found.</div>
@@ -125,6 +148,77 @@ function MonitorRow({ monitor }: { monitor: PublicMonitor }) {
         </div>
       </div>
       <UptimeBar recent={monitor.recent} />
+    </div>
+  )
+}
+
+function PasswordGate({
+  slug,
+  onAuthenticated,
+}: {
+  slug: string
+  onAuthenticated: () => void
+}) {
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!password) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/public/${slug}/auth`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ password }),
+      })
+      if (res.status === 401) {
+        setError('Incorrect password')
+        return
+      }
+      if (!res.ok) {
+        setError('Something went wrong. Try again.')
+        return
+      }
+      setPassword('')
+      onAuthenticated()
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background px-6">
+      <form
+        onSubmit={submit}
+        className="w-full max-w-sm rounded-xl border bg-card p-6 shadow-sm space-y-4"
+      >
+        <div className="space-y-1">
+          <h1 className="text-lg font-semibold tracking-tight">Protected status page</h1>
+          <p className="text-sm text-muted-foreground">
+            Enter the password to view this page.
+          </p>
+        </div>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          placeholder="Password"
+          autoFocus
+        />
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        <button
+          type="submit"
+          disabled={!password || submitting}
+          className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+        >
+          {submitting ? 'Checking…' : 'Continue'}
+        </button>
+      </form>
     </div>
   )
 }

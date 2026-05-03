@@ -15,6 +15,15 @@ import {
 import { ALLOWED_INTERVALS_SECONDS, RESERVED_SLUGS } from '@pingboard/shared'
 import { Scheduler, sendTest } from '@pingboard/core'
 import { error, json, noContent } from '../lib/responses'
+import { revokeTokensForPage } from '../lib/page-auth'
+
+type StatusPageRow = typeof statusPages.$inferSelect
+type PublicStatusPage = Omit<StatusPageRow, 'passwordHash'> & { passwordSet: boolean }
+
+function publicPage(p: StatusPageRow): PublicStatusPage {
+  const { passwordHash, ...rest } = p
+  return { ...rest, passwordSet: !!passwordHash }
+}
 
 interface AdminDeps {
   db: DB
@@ -293,7 +302,7 @@ export async function resolveIncident(id: string, deps: AdminDeps): Promise<Resp
 
 export async function listStatusPages(deps: AdminDeps): Promise<Response> {
   const rows = await deps.db.select().from(statusPages)
-  return json({ pages: rows })
+  return json({ pages: rows.map(publicPage) })
 }
 
 export async function getStatusPage(id: string, deps: AdminDeps): Promise<Response> {
@@ -303,7 +312,16 @@ export async function getStatusPage(id: string, deps: AdminDeps): Promise<Respon
     .select()
     .from(statusPageMonitors)
     .where(eq(statusPageMonitors.statusPageId, id))
-  return json({ page, monitors: linked })
+  return json({ page: publicPage(page), monitors: linked })
+}
+
+async function resolvePassword(value: unknown): Promise<string | null | undefined> {
+  if (value === undefined) return undefined
+  if (value === null) return null
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  if (trimmed === '') return null
+  return await Bun.password.hash(trimmed)
 }
 
 export async function createStatusPage(req: Request, deps: AdminDeps): Promise<Response> {
@@ -317,13 +335,14 @@ export async function createStatusPage(req: Request, deps: AdminDeps): Promise<R
     return error(400, `"${slug}" is a reserved slug`)
   }
   const id = crypto.randomUUID()
+  const passwordHash = await resolvePassword(body.password)
   const page: NewStatusPage = {
     id,
     slug,
     title: String(body.title ?? slug),
     description: body.description ? String(body.description) : null,
     theme: (body.theme as 'light' | 'dark' | 'auto') ?? 'auto',
-    passwordHash: null,
+    passwordHash: passwordHash ?? null,
     customDomain: null,
   }
   try {
@@ -348,7 +367,9 @@ export async function createStatusPage(req: Request, deps: AdminDeps): Promise<R
       })),
     )
   }
-  return json({ page }, { status: 201 })
+  const [created] = await deps.db.select().from(statusPages).where(eq(statusPages.id, id))
+  if (!created) return error(500, 'Failed to read created page')
+  return json({ page: publicPage(created) }, { status: 201 })
 }
 
 export async function updateStatusPage(
@@ -358,14 +379,27 @@ export async function updateStatusPage(
 ): Promise<Response> {
   const body = await safeJson(req)
   if (!body) return error(400, 'Invalid JSON body')
-  await deps.db
-    .update(statusPages)
-    .set({
-      title: body.title as string,
-      description: (body.description as string | null) ?? null,
-      theme: (body.theme as 'light' | 'dark' | 'auto') ?? 'auto',
-    })
-    .where(eq(statusPages.id, id))
+
+  const set: Partial<typeof statusPages.$inferInsert> = {}
+  if ('title' in body) set.title = String(body.title)
+  if ('description' in body) {
+    set.description = body.description == null ? null : String(body.description)
+  }
+  if ('theme' in body) set.theme = (body.theme as 'light' | 'dark' | 'auto') ?? 'auto'
+
+  if ('password' in body) {
+    const hashed = await resolvePassword(body.password)
+    if (hashed !== undefined) {
+      set.passwordHash = hashed
+      // Removing or rotating the password should invalidate any cookies
+      // already issued, so visitors are forced through the new gate.
+      revokeTokensForPage(id)
+    }
+  }
+
+  if (Object.keys(set).length > 0) {
+    await deps.db.update(statusPages).set(set).where(eq(statusPages.id, id))
+  }
 
   if (Array.isArray(body.monitors)) {
     await deps.db
@@ -388,11 +422,12 @@ export async function updateStatusPage(
   }
   const [updated] = await deps.db.select().from(statusPages).where(eq(statusPages.id, id))
   if (!updated) return error(404, 'Status page not found')
-  return json({ page: updated })
+  return json({ page: publicPage(updated) })
 }
 
 export async function deleteStatusPage(id: string, deps: AdminDeps): Promise<Response> {
   await deps.db.delete(statusPages).where(eq(statusPages.id, id))
+  revokeTokensForPage(id)
   return noContent()
 }
 

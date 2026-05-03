@@ -44,7 +44,11 @@ import {
   updateMonitor,
   updateStatusPage,
 } from './routes/admin'
-import { getStatusPagePublic, streamStatusPagePublic } from './routes/public'
+import {
+  authStatusPagePublic,
+  getStatusPagePublic,
+  streamStatusPagePublic,
+} from './routes/public'
 import { changePassword, getSettings, updateSettings } from './routes/settings'
 import { requireAuth } from './middleware/auth'
 import { error } from './lib/responses'
@@ -83,7 +87,7 @@ async function main() {
   const secureCookies = (config.baseUrl ?? '').startsWith('https://')
   const authDeps = { db, secureCookies }
   const adminDeps = { db, scheduler }
-  const publicDeps = { db }
+  const publicDeps = { db, secureCookies }
 
   const server = Bun.serve({
     port: config.port,
@@ -202,11 +206,15 @@ async function main() {
 
           const sseMatch = path.match(/^\/api\/public\/([\w-]+)\/sse$/)
           if (sseMatch?.[1] && method === 'GET')
-            return streamStatusPagePublic(sseMatch[1], publicDeps)
+            return streamStatusPagePublic(sseMatch[1], req, publicDeps)
+
+          const authMatch = path.match(/^\/api\/public\/([\w-]+)\/auth$/)
+          if (authMatch?.[1] && method === 'POST')
+            return authStatusPagePublic(authMatch[1], req, publicDeps)
 
           const pageMatch = path.match(/^\/api\/public\/([\w-]+)$/)
           if (pageMatch?.[1] && method === 'GET')
-            return getStatusPagePublic(pageMatch[1], publicDeps)
+            return getStatusPagePublic(pageMatch[1], req, publicDeps)
 
           return error(404, 'Not found')
         }

@@ -6,15 +6,28 @@ import {
   statusPageMonitors,
   statusPages,
 } from '@pingboard/db'
-import { error, json } from '../lib/responses'
+import { parseCookies, serializeCookie } from '../lib/cookies'
+import { issueToken, pageCookieName, verifyToken } from '../lib/page-auth'
+import { error, json, noContent } from '../lib/responses'
 import { createSseResponse } from '../lib/sse'
 
 interface PublicDeps {
   db: DB
+  secureCookies: boolean
+}
+
+const TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60
+
+function isAuthorized(req: Request, page: { id: string; passwordHash: string | null }): boolean {
+  if (!page.passwordHash) return true
+  const cookies = parseCookies(req.headers.get('cookie'))
+  const token = cookies[pageCookieName(page.id)]
+  return verifyToken(page.id, token)
 }
 
 export async function getStatusPagePublic(
   slug: string,
+  req: Request,
   deps: PublicDeps,
 ): Promise<Response> {
   const [page] = await deps.db
@@ -22,6 +35,13 @@ export async function getStatusPagePublic(
     .from(statusPages)
     .where(eq(statusPages.slug, slug))
   if (!page) return error(404, 'Status page not found')
+
+  if (!isAuthorized(req, page)) {
+    return json(
+      { error: 'Password required', requiresPassword: true },
+      { status: 401 },
+    )
+  }
 
   const linked = await deps.db
     .select({
@@ -90,28 +110,73 @@ export async function getStatusPagePublic(
   })
 }
 
-export function streamStatusPagePublic(
+export async function streamStatusPagePublic(
   slug: string,
+  req: Request,
   deps: PublicDeps,
-): Response {
-  // The SSE stream emits all heartbeats; client filters by monitor id.
-  // Filter at the source by looking up which monitors belong to this page.
-  let allowed: Set<string> | null = null
-  void deps.db
+): Promise<Response> {
+  const [page] = await deps.db
+    .select()
+    .from(statusPages)
+    .where(eq(statusPages.slug, slug))
+  if (!page) return error(404, 'Status page not found')
+
+  if (!isAuthorized(req, page)) {
+    return json(
+      { error: 'Password required', requiresPassword: true },
+      { status: 401 },
+    )
+  }
+
+  const monitorRows = await deps.db
     .select({ monitorId: statusPageMonitors.monitorId })
     .from(statusPageMonitors)
-    .innerJoin(statusPages, eq(statusPages.id, statusPageMonitors.statusPageId))
-    .where(eq(statusPages.slug, slug))
-    .then((rows) => {
-      allowed = new Set(rows.map((r) => r.monitorId))
-    })
+    .where(eq(statusPageMonitors.statusPageId, page.id))
+  const allowed = new Set(monitorRows.map((r) => r.monitorId))
 
   return createSseResponse({
     filter: (_event, payload) => {
       const monitorId = (payload as { monitorId?: string }).monitorId
       if (!monitorId) return false
-      if (!allowed) return false
       return allowed.has(monitorId)
     },
   })
+}
+
+export async function authStatusPagePublic(
+  slug: string,
+  req: Request,
+  deps: PublicDeps,
+): Promise<Response> {
+  const [page] = await deps.db
+    .select()
+    .from(statusPages)
+    .where(eq(statusPages.slug, slug))
+  if (!page) return error(404, 'Status page not found')
+  if (!page.passwordHash) {
+    // Page is public — nothing to do, but return success so the client can
+    // proceed without a special case.
+    return json({ ok: true })
+  }
+
+  let body: { password?: unknown }
+  try {
+    body = (await req.json()) as { password?: unknown }
+  } catch {
+    return error(400, 'Invalid JSON body')
+  }
+  const password = typeof body.password === 'string' ? body.password : ''
+  if (!password) return error(400, 'Password required')
+
+  const ok = await Bun.password.verify(password, page.passwordHash)
+  if (!ok) return error(401, 'Incorrect password')
+
+  const token = issueToken(page.id)
+  const cookie = serializeCookie(pageCookieName(page.id), token, {
+    maxAge: TOKEN_TTL_SECONDS,
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: deps.secureCookies,
+  })
+  return noContent({ 'set-cookie': cookie })
 }

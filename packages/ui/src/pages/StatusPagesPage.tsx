@@ -1,7 +1,13 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { LinkSquare02Icon, PlusSignIcon, Delete02Icon } from '@hugeicons/core-free-icons'
+import {
+  LinkSquare02Icon,
+  LockPasswordIcon,
+  PlusSignIcon,
+  Delete02Icon,
+} from '@hugeicons/core-free-icons'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -12,6 +18,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -21,6 +34,7 @@ import type { Monitor, StatusPage } from '@/types'
 export function StatusPagesPage() {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
+  const [passwordTarget, setPasswordTarget] = useState<StatusPage | null>(null)
 
   const pages = useQuery({
     queryKey: ['pages'],
@@ -30,6 +44,15 @@ export function StatusPagesPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/api/admin/pages/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['pages'] }),
+  })
+
+  const updatePassword = useMutation({
+    mutationFn: ({ id, password }: { id: string; password: string | null }) =>
+      api.patch(`/api/admin/pages/${id}`, { password }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['pages'] })
+      setPasswordTarget(null)
+    },
   })
 
   return (
@@ -61,7 +84,21 @@ export function StatusPagesPage() {
               <TableBody>
                 {pages.data.pages.map((p) => (
                   <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.title}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {p.title}
+                        {p.passwordSet && (
+                          <Badge variant="secondary" className="gap-1">
+                            <HugeiconsIcon
+                              icon={LockPasswordIcon}
+                              className="h-3 w-3"
+                              strokeWidth={2}
+                            />
+                            Password
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="font-mono text-xs">/{p.slug}</TableCell>
                     <TableCell className="capitalize text-muted-foreground text-sm">
                       {p.theme}
@@ -73,17 +110,49 @@ export function StatusPagesPage() {
                           View
                         </a>
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          if (confirm(`Delete status page "${p.title}"?`)) {
-                            deleteMutation.mutate(p.id)
-                          }
-                        }}
-                      >
-                        <HugeiconsIcon icon={Delete02Icon} className="h-3 w-3" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="ghost">
+                            …
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onSelect={() => setPasswordTarget(p)}>
+                            <HugeiconsIcon
+                              icon={LockPasswordIcon}
+                              className="h-3.5 w-3.5"
+                            />
+                            {p.passwordSet ? 'Change password' : 'Set password'}
+                          </DropdownMenuItem>
+                          {p.passwordSet && (
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                if (
+                                  confirm(
+                                    `Remove password protection from "${p.title}"? Anyone with the URL will be able to view it.`,
+                                  )
+                                ) {
+                                  updatePassword.mutate({ id: p.id, password: null })
+                                }
+                              }}
+                            >
+                              Remove password
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onSelect={() => {
+                              if (confirm(`Delete status page "${p.title}"?`)) {
+                                deleteMutation.mutate(p.id)
+                              }
+                            }}
+                          >
+                            <HugeiconsIcon icon={Delete02Icon} className="h-3.5 w-3.5" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -98,7 +167,80 @@ export function StatusPagesPage() {
       </Card>
 
       <PageDialog open={open} onClose={() => setOpen(false)} />
+      <PasswordDialog
+        page={passwordTarget}
+        onClose={() => setPasswordTarget(null)}
+        onSubmit={(password) =>
+          passwordTarget &&
+          updatePassword.mutate({ id: passwordTarget.id, password })
+        }
+        pending={updatePassword.isPending}
+      />
     </div>
+  )
+}
+
+function PasswordDialog({
+  page,
+  onClose,
+  onSubmit,
+  pending,
+}: {
+  page: StatusPage | null
+  onClose: () => void
+  onSubmit: (password: string) => void
+  pending: boolean
+}) {
+  const [password, setPassword] = useState('')
+  const open = !!page
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) {
+          setPassword('')
+          onClose()
+        }
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {page?.passwordSet ? 'Change password' : 'Set password'}
+          </DialogTitle>
+          <DialogDescription>
+            Visitors will need this password to view{' '}
+            <span className="font-mono">/{page?.slug}</span>. Cookies are issued
+            for 30 days.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (password.trim()) onSubmit(password.trim())
+          }}
+          className="space-y-2"
+        >
+          <Label htmlFor="page-password">New password</Label>
+          <Input
+            id="page-password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoFocus
+          />
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!password.trim() || pending}>
+              {pending ? 'Saving…' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -107,6 +249,7 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [slug, setSlug] = useState('')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [password, setPassword] = useState('')
   const [selected, setSelected] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
 
@@ -119,6 +262,7 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
     setSlug('')
     setTitle('')
     setDescription('')
+    setPassword('')
     setSelected([])
     setError(null)
   }
@@ -139,6 +283,7 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
       title: title.trim() || slug,
       description: description.trim() || null,
       theme: 'auto',
+      password: password.trim() || null,
       monitors: selected.map((id, i) => ({ monitorId: id, sortOrder: i })),
     })
   }
@@ -165,6 +310,17 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
           <div className="space-y-2">
             <Label htmlFor="page-desc">Description</Label>
             <Input id="page-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="page-password">Password (optional)</Label>
+            <Input
+              id="page-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Leave blank for a public page"
+              autoComplete="new-password"
+            />
           </div>
           <div className="space-y-2">
             <Label>Monitors to show</Label>
