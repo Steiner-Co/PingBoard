@@ -12,6 +12,11 @@ export const emailDriver: ChannelDriver<EmailChannelConfig> = {
       <p>${body}</p>
       ${url ? `<p><a href="${url}">View in PingBoard</a></p>` : ''}
     `
+    if (!config.smtpFrom) {
+      throw new Error(
+        'SMTP "from" address is required. Set it on the channel or as a default in Settings.',
+      )
+    }
     await transporter.sendMail({
       from: config.smtpFrom,
       to: config.to,
@@ -28,10 +33,19 @@ export const emailDriver: ChannelDriver<EmailChannelConfig> = {
 }
 
 function createTransporter(config: EmailChannelConfig) {
+  if (!config.smtpHost || !config.smtpPort) {
+    throw new Error(
+      'SMTP host and port are required. Set them on the channel or as defaults in Settings.',
+    )
+  }
+  const auth =
+    config.smtpUser && config.smtpPass
+      ? { user: config.smtpUser, pass: config.smtpPass }
+      : undefined
   return nodemailer.createTransport({
     host: config.smtpHost,
     port: config.smtpPort,
     secure: config.smtpSecure ?? config.smtpPort === 465,
-    auth: { user: config.smtpUser, pass: config.smtpPass },
+    auth,
   })
 }

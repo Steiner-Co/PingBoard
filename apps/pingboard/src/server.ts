@@ -42,6 +42,7 @@ import {
   updateStatusPage,
 } from './routes/admin'
 import { getStatusPagePublic, streamStatusPagePublic } from './routes/public'
+import { changePassword, getSettings, updateSettings } from './routes/settings'
 import { requireAuth } from './middleware/auth'
 import { error } from './lib/responses'
 import { createSseResponse } from './lib/sse'
@@ -144,6 +145,20 @@ async function main() {
           )
           if (channelTestMatch?.[1] && method === 'POST') {
             return testChannel(channelTestMatch[1], adminDeps)
+          }
+
+          // Settings
+          if (path === '/api/admin/settings' && method === 'GET')
+            return getSettings({ db })
+          if (
+            path === '/api/admin/settings' &&
+            (method === 'PATCH' || method === 'PUT')
+          )
+            return updateSettings(req, { db })
+
+          // Account
+          if (path === '/api/admin/account/password' && method === 'POST') {
+            return changePassword(req, { db, userId: auth.user.userId })
           }
 
           // Status pages

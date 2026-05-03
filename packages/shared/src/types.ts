@@ -50,11 +50,13 @@ export type MonitorConfig =
 
 export interface EmailChannelConfig {
   to: string
-  smtpHost: string
-  smtpPort: number
-  smtpUser: string
-  smtpPass: string
-  smtpFrom: string
+  // SMTP fields are optional; missing values fall back to instance-wide
+  // defaults configured in Settings.
+  smtpHost?: string
+  smtpPort?: number
+  smtpUser?: string
+  smtpPass?: string
+  smtpFrom?: string
   smtpSecure?: boolean
 }
 

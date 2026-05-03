@@ -226,7 +226,7 @@ export async function testChannel(id: string, deps: AdminDeps): Promise<Response
     .where(eq(notificationChannels.id, id))
   if (!channel) return error(404, 'Channel not found')
   try {
-    await sendTest({ type: channel.type, config: channel.config })
+    await sendTest(deps.db, { type: channel.type, config: channel.config })
     return json({ ok: true })
   } catch (err) {
     return error(400, err instanceof Error ? err.message : 'Test failed')

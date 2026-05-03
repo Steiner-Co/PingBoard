@@ -266,6 +266,14 @@ function ConfigFields({
   if (type === 'email') {
     return (
       <>
+        <div className="space-y-2">
+          <Label htmlFor="ch-to">Send alerts to</Label>
+          <Input id="ch-to" value={config.to ?? ''} onChange={set('to')} placeholder="you@your.org" />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          SMTP fields below are optional — leave blank to use the defaults
+          configured in Settings.
+        </p>
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-2">
             <Label htmlFor="ch-host">SMTP host</Label>
@@ -286,15 +294,9 @@ function ConfigFields({
             <Input id="ch-pass" type="password" value={config.smtpPass ?? ''} onChange={set('smtpPass')} />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-2">
-            <Label htmlFor="ch-from">From</Label>
-            <Input id="ch-from" value={config.smtpFrom ?? ''} onChange={set('smtpFrom')} placeholder="alerts@your.org" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="ch-to">To</Label>
-            <Input id="ch-to" value={config.to ?? ''} onChange={set('to')} placeholder="you@your.org" />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="ch-from">From</Label>
+          <Input id="ch-from" value={config.smtpFrom ?? ''} onChange={set('smtpFrom')} placeholder="alerts@your.org" />
         </div>
       </>
     )
@@ -321,20 +323,16 @@ function buildConfig(
     return { value: { serverUrl: config.serverUrl.trim(), topic: config.topic.trim() } }
   }
   if (type === 'email') {
-    const required = ['smtpHost', 'smtpPort', 'smtpUser', 'smtpPass', 'smtpFrom', 'to']
-    for (const k of required) {
-      if (!config[k]?.trim()) return { error: `${k} required` }
-    }
-    return {
-      value: {
-        smtpHost: config.smtpHost,
-        smtpPort: Number(config.smtpPort),
-        smtpUser: config.smtpUser,
-        smtpPass: config.smtpPass,
-        smtpFrom: config.smtpFrom,
-        to: config.to,
-      },
-    }
+    if (!config.to?.trim()) return { error: 'Recipient address required' }
+    const value: Record<string, unknown> = { to: config.to.trim() }
+    // Only persist SMTP fields the user filled in; the rest fall back to
+    // instance-wide defaults at send time.
+    if (config.smtpHost?.trim()) value.smtpHost = config.smtpHost.trim()
+    if (config.smtpPort?.trim()) value.smtpPort = Number(config.smtpPort)
+    if (config.smtpUser?.trim()) value.smtpUser = config.smtpUser.trim()
+    if (config.smtpPass?.trim()) value.smtpPass = config.smtpPass
+    if (config.smtpFrom?.trim()) value.smtpFrom = config.smtpFrom.trim()
+    return { value }
   }
   return { error: 'Unknown type' }
 }

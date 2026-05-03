@@ -6,6 +6,8 @@ export const DEFAULT_STATUS_PAGE_CHART_DAYS = 30
 
 export const ALLOWED_INTERVALS_SECONDS = [10, 30, 60, 300, 900, 3600] as const
 
+export const ALLOWED_RETENTION_DAYS = [7, 30, 60, 90, 180, 365] as const
+
 export const RESERVED_SLUGS = [
   'admin',
   'api',

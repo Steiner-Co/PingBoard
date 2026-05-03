@@ -1,11 +1,13 @@
 import { eq, inArray } from 'drizzle-orm'
 import type { DB } from '@pingboard/db'
 import {
+  getSmtpDefaults,
   incidents,
   monitorChannels,
   monitors,
   notificationChannels,
 } from '@pingboard/db'
+import type { EmailChannelConfig } from '@pingboard/shared'
 import { events } from '../events'
 import type { ChannelDriver, IncidentStatus, NotificationPayload } from './types'
 import { emailDriver } from './email'
@@ -48,11 +50,32 @@ export function startNotifier(db: DB, opts: NotifierOptions): { stop: () => void
 }
 
 export async function sendTest(
+  db: DB,
   channel: { type: string; config: unknown },
 ): Promise<void> {
   const driver = drivers[channel.type]
   if (!driver) throw new Error(`Unknown channel type: ${channel.type}`)
-  await driver.testConfig(channel.config as never)
+  const effective =
+    channel.type === 'email'
+      ? await mergeEmailConfig(db, channel.config as EmailChannelConfig)
+      : channel.config
+  await driver.testConfig(effective as never)
+}
+
+async function mergeEmailConfig(
+  db: DB,
+  channelConfig: EmailChannelConfig,
+): Promise<EmailChannelConfig> {
+  const defaults = await getSmtpDefaults(db)
+  return {
+    to: channelConfig.to,
+    smtpHost: channelConfig.smtpHost ?? defaults.host ?? undefined,
+    smtpPort: channelConfig.smtpPort ?? defaults.port ?? undefined,
+    smtpUser: channelConfig.smtpUser ?? defaults.user ?? undefined,
+    smtpPass: channelConfig.smtpPass ?? defaults.pass ?? undefined,
+    smtpFrom: channelConfig.smtpFrom ?? defaults.from ?? undefined,
+    smtpSecure: channelConfig.smtpSecure ?? defaults.secure ?? undefined,
+  }
 }
 
 async function dispatch(
@@ -93,7 +116,11 @@ async function dispatch(
         const driver = drivers[c.type]
         if (!driver) return
         try {
-          await driver.send(c.config as never, payload)
+          const effective =
+            c.type === 'email'
+              ? await mergeEmailConfig(db, c.config as EmailChannelConfig)
+              : c.config
+          await driver.send(effective as never, payload)
         } catch (err) {
           console.error(`Channel ${c.id} (${c.type}) failed:`, err)
         }

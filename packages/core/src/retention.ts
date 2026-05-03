@@ -1,6 +1,6 @@
 import { and, gte, lt, sql } from 'drizzle-orm'
 import type { DB } from '@pingboard/db'
-import { dailyStats, heartbeats } from '@pingboard/db'
+import { dailyStats, getRetentionDays, heartbeats } from '@pingboard/db'
 import { DEFAULT_RETENTION_DAYS } from '@pingboard/shared'
 
 /**
@@ -51,16 +51,17 @@ export async function runRetention(
   return { aggregatedDays: rows.length, deletedRows: deleted.length }
 }
 
-export function startRetentionJob(
-  db: DB,
-  retentionDays = DEFAULT_RETENTION_DAYS,
-): { stop: () => void } {
+export function startRetentionJob(db: DB): { stop: () => void } {
   const ONE_DAY_MS = 24 * 60 * 60 * 1000
-  const handle = setInterval(() => {
-    runRetention(db, retentionDays).catch((err) =>
-      console.error('Retention job failed:', err),
-    )
-  }, ONE_DAY_MS)
+  const tick = async () => {
+    try {
+      const days = await getRetentionDays(db)
+      await runRetention(db, days)
+    } catch (err) {
+      console.error('Retention job failed:', err)
+    }
+  }
+  const handle = setInterval(() => void tick(), ONE_DAY_MS)
   return { stop: () => clearInterval(handle) }
 }
 
