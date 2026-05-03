@@ -2,12 +2,14 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import type { Monitor } from '@pingboard/db'
 import { checkTcp } from './tcp'
 
-let listener: ReturnType<typeof Bun.listen>
+// Bun.listen is overloaded for TCP and Unix sockets, so its return type is a
+// union; pin to the TCP variant so .port is always present.
+let listener: Bun.TCPSocketListener<undefined>
 let openPort: number
 let closedPort: number
 
 beforeAll(() => {
-  listener = Bun.listen({
+  listener = Bun.listen<undefined>({
     hostname: '127.0.0.1',
     port: 0,
     socket: {
@@ -21,7 +23,7 @@ beforeAll(() => {
   openPort = listener.port
 
   // Pick a closed port by opening then closing a temporary listener.
-  const tmp = Bun.listen({
+  const tmp = Bun.listen<undefined>({
     hostname: '127.0.0.1',
     port: 0,
     socket: { open() {}, data() {}, close() {}, drain() {}, error() {} },
