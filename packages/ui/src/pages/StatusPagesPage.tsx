@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
+  Edit02Icon,
   LinkSquare02Icon,
   LockPasswordIcon,
   PlusSignIcon,
@@ -27,14 +28,29 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { api } from '@/lib/api'
-import type { Monitor, StatusPage } from '@/types'
+import type { Monitor, StatusPage, Theme } from '@/types'
+
+interface LinkedMonitor {
+  statusPageId: string
+  monitorId: string
+  groupName: string | null
+  sortOrder: number
+}
 
 export function StatusPagesPage() {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const [passwordTarget, setPasswordTarget] = useState<StatusPage | null>(null)
+  const [editTarget, setEditTarget] = useState<StatusPage | null>(null)
 
   const pages = useQuery({
     queryKey: ['pages'],
@@ -117,6 +133,14 @@ export function StatusPagesPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onSelect={() => setEditTarget(p)}>
+                            <HugeiconsIcon
+                              icon={Edit02Icon}
+                              className="h-3.5 w-3.5"
+                            />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem onSelect={() => setPasswordTarget(p)}>
                             <HugeiconsIcon
                               icon={LockPasswordIcon}
@@ -167,6 +191,7 @@ export function StatusPagesPage() {
       </Card>
 
       <PageDialog open={open} onClose={() => setOpen(false)} />
+      <EditPageDialog page={editTarget} onClose={() => setEditTarget(null)} />
       <PasswordDialog
         page={passwordTarget}
         onClose={() => setPasswordTarget(null)}
@@ -359,6 +384,198 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={handleSubmit} disabled={!slug.trim() || create.isPending}>
             {create.isPending ? 'Creating…' : 'Create'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function EditPageDialog({
+  page,
+  onClose,
+}: {
+  page: StatusPage | null
+  onClose: () => void
+}) {
+  const queryClient = useQueryClient()
+  const open = !!page
+
+  const detail = useQuery({
+    queryKey: ['page', page?.id],
+    queryFn: () =>
+      api.get<{ page: StatusPage; monitors: LinkedMonitor[] }>(
+        `/api/admin/pages/${page!.id}`,
+      ),
+    enabled: open,
+  })
+
+  const monitors = useQuery({
+    queryKey: ['monitors'],
+    queryFn: () => api.get<{ monitors: Monitor[] }>('/api/admin/monitors'),
+    enabled: open,
+  })
+
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [theme, setTheme] = useState<Theme>('auto')
+  // monitorId → groupName ('' = no group)
+  const [selected, setSelected] = useState<Map<string, string>>(new Map())
+  const [order, setOrder] = useState<string[]>([])
+  const [error, setError] = useState<string | null>(null)
+
+  // Hydrate when the detail query lands.
+  useEffect(() => {
+    if (!detail.data) return
+    setTitle(detail.data.page.title)
+    setDescription(detail.data.page.description ?? '')
+    setTheme(detail.data.page.theme)
+    const sorted = [...detail.data.monitors].sort(
+      (a, b) => a.sortOrder - b.sortOrder,
+    )
+    setOrder(sorted.map((m) => m.monitorId))
+    setSelected(new Map(sorted.map((m) => [m.monitorId, m.groupName ?? ''])))
+    setError(null)
+  }, [detail.data])
+
+  const save = useMutation({
+    mutationFn: (payload: object) =>
+      api.patch(`/api/admin/pages/${page!.id}`, payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['pages'] })
+      void queryClient.invalidateQueries({ queryKey: ['page', page!.id] })
+      onClose()
+    },
+    onError: (err) => setError(err instanceof Error ? err.message : 'Failed'),
+  })
+
+  const handleSubmit = () => {
+    setError(null)
+    save.mutate({
+      title: title.trim() || page!.slug,
+      description: description.trim() || null,
+      theme,
+      monitors: order.map((monitorId, i) => ({
+        monitorId,
+        groupName: selected.get(monitorId)?.trim() || null,
+        sortOrder: i,
+      })),
+    })
+  }
+
+  const toggle = (id: string) => {
+    setSelected((prev) => {
+      const next = new Map(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.set(id, '')
+      }
+      return next
+    })
+    setOrder((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  const setGroup = (id: string, value: string) => {
+    setSelected((prev) => {
+      const next = new Map(prev)
+      next.set(id, value)
+      return next
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit status page</DialogTitle>
+          <DialogDescription>
+            The slug (<span className="font-mono">/{page?.slug}</span>) cannot
+            be changed without breaking incoming links.
+          </DialogDescription>
+        </DialogHeader>
+        {detail.isLoading ? (
+          <p className="text-sm text-muted-foreground py-8 text-center">Loading…</p>
+        ) : (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Title</Label>
+              <Input
+                id="edit-title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-desc">Description</Label>
+              <Input
+                id="edit-desc"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Optional"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-theme">Theme</Label>
+              <Select value={theme} onValueChange={(v) => setTheme(v as Theme)}>
+                <SelectTrigger id="edit-theme">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Auto (follow visitor)</SelectItem>
+                  <SelectItem value="light">Light</SelectItem>
+                  <SelectItem value="dark">Dark</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Monitors</Label>
+              <div className="border rounded-md max-h-72 overflow-y-auto divide-y">
+                {(monitors.data?.monitors ?? []).map((m) => {
+                  const checked = selected.has(m.id)
+                  return (
+                    <div key={m.id} className="p-3 flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggle(m.id)}
+                        className="h-4 w-4"
+                      />
+                      <div className="flex-1 text-sm">
+                        <div className="font-medium">{m.name}</div>
+                        <div className="text-xs text-muted-foreground uppercase">
+                          {m.type}
+                        </div>
+                      </div>
+                      {checked && (
+                        <Input
+                          value={selected.get(m.id) ?? ''}
+                          onChange={(e) => setGroup(m.id, e.target.value)}
+                          placeholder="Group (optional)"
+                          className="w-40 text-xs"
+                        />
+                      )}
+                    </div>
+                  )
+                })}
+                {(!monitors.data?.monitors || monitors.data.monitors.length === 0) && (
+                  <div className="p-4 text-sm text-muted-foreground text-center">
+                    No monitors to add.
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Group names cluster monitors on the public page (e.g. "API",
+                "Web", "Database"). Leave blank for an ungrouped item.
+              </p>
+            </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSubmit} disabled={save.isPending || detail.isLoading}>
+            {save.isPending ? 'Saving…' : 'Save changes'}
           </Button>
         </DialogFooter>
       </DialogContent>
