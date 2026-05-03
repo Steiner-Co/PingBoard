@@ -71,11 +71,8 @@ export function MonitorWizardPage() {
   }
 
   return (
-    <div className="p-8 max-w-2xl mx-auto space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Add monitor</h1>
-        <p className="text-muted-foreground">A few quick steps and you're tracking uptime.</p>
-      </header>
+    <div className="px-4 lg:px-6 max-w-2xl mx-auto flex flex-col gap-6">
+      <p className="text-muted-foreground">A few quick steps and you're tracking uptime.</p>
 
       <Stepper current={step} />
 

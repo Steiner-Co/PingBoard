@@ -5,11 +5,8 @@ export function SettingsPage() {
   const { user } = useAuth()
 
   return (
-    <div className="p-8 space-y-6 max-w-3xl">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">Instance-wide preferences.</p>
-      </header>
+    <div className="px-4 lg:px-6 flex flex-col gap-6 max-w-3xl">
+      <p className="text-muted-foreground">Instance-wide preferences.</p>
 
       <Card>
         <CardHeader>

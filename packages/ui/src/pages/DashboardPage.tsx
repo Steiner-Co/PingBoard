@@ -54,11 +54,12 @@ export function DashboardPage() {
     },
   })
 
-  const rows = useMemo(() => toRows(query.data?.monitors ?? []), [query.data])
+  const monitors = query.data?.monitors ?? []
+  const rows = useMemo(() => toRows(monitors), [monitors])
 
   return (
     <>
-      <SectionCards />
+      <SectionCards monitors={monitors} />
       <DataTable data={rows} />
     </>
   )

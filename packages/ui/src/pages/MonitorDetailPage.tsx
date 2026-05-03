@@ -3,16 +3,20 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { ArrowLeft01Icon, PauseIcon, PlayIcon, Delete02Icon } from '@hugeicons/core-free-icons'
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
   XAxis,
   YAxis,
 } from 'recharts'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from '@/components/ui/chart'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { StatusBadge } from '@/components/StatusBadge'
 import { api } from '@/lib/api'
@@ -26,6 +30,13 @@ interface DetailResponse {
   incidents: Incident[]
   channelIds: string[]
 }
+
+const chartConfig = {
+  ms: {
+    label: 'Response time',
+    color: 'var(--chart-1)',
+  },
+} satisfies ChartConfig
 
 export function MonitorDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -60,8 +71,8 @@ export function MonitorDetailPage() {
     },
   })
 
-  if (query.isLoading) return <div className="p-8">Loading…</div>
-  if (query.isError) return <div className="p-8">Failed to load monitor.</div>
+  if (query.isLoading) return <div className="px-4 lg:px-6 text-muted-foreground">Loading…</div>
+  if (query.isError) return <div className="px-4 lg:px-6 text-muted-foreground">Failed to load monitor.</div>
   if (!query.data) return null
 
   const { monitor, heartbeats, incidents } = query.data
@@ -80,15 +91,15 @@ export function MonitorDetailPage() {
   const uptimePct = total === 0 ? null : ((upCount / total) * 100).toFixed(2)
 
   return (
-    <div className="p-8 space-y-6 max-w-6xl">
-      <Button variant="ghost" size="sm" asChild>
+    <div className="px-4 lg:px-6 flex flex-col gap-6">
+      <Button variant="ghost" size="sm" asChild className="self-start -ml-3">
         <Link to="/admin" className="gap-2">
           <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
           Back to dashboard
         </Link>
       </Button>
 
-      <header className="flex items-start justify-between">
+      <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">{monitor.name}</h1>
           <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
@@ -125,9 +136,9 @@ export function MonitorDetailPage() {
         </div>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-card *:data-[slot=card]:to-card *:data-[slot=card]:transition-colors *:data-[slot=card]:duration-500 *:data-[slot=card]:shadow-xs *:data-[slot=card]:hover:from-chart-1/15 md:grid-cols-3 dark:*:data-[slot=card]:bg-card">
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader>
             <CardDescription>Current status</CardDescription>
           </CardHeader>
           <CardContent>
@@ -138,21 +149,21 @@ export function MonitorDetailPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader>
             <CardDescription>Uptime (last 24h)</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold">
+            <div className="text-2xl font-semibold tabular-nums">
               {uptimePct === null ? '—' : `${uptimePct}%`}
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader>
             <CardDescription>Last check</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-sm">
+            <div className="text-2xl font-semibold tabular-nums">
               {latest ? formatRelative(latest.checkedAt) : '—'}
             </div>
           </CardContent>
@@ -170,27 +181,43 @@ export function MonitorDetailPage() {
               Waiting for the first successful check…
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={240}>
-              <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} unit="ms" />
-                <Tooltip
-                  contentStyle={{
-                    background: 'hsl(var(--popover))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: 'var(--radius)',
-                  }}
+            <ChartContainer config={chartConfig} className="aspect-auto h-[280px] w-full">
+              <AreaChart data={chartData} margin={{ top: 5, right: 12, bottom: 5, left: 0 }}>
+                <defs>
+                  <linearGradient id="fillResponseMs" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-ms)" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="var(--color-ms)" stopOpacity={0.1} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis
+                  dataKey="time"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  minTickGap={32}
+                  fontSize={12}
                 />
-                <Line
-                  type="monotone"
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  fontSize={12}
+                  unit="ms"
+                  width={56}
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent indicator="dot" />}
+                />
+                <Area
                   dataKey="ms"
-                  stroke="hsl(var(--success))"
+                  type="monotone"
+                  fill="url(#fillResponseMs)"
+                  stroke="var(--color-ms)"
                   strokeWidth={2}
-                  dot={false}
                 />
-              </LineChart>
-            </ResponsiveContainer>
+              </AreaChart>
+            </ChartContainer>
           )}
         </CardContent>
       </Card>
@@ -202,8 +229,8 @@ export function MonitorDetailPage() {
             {incidents.length === 0 ? 'No incidents yet.' : `${incidents.length} recent`}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          {incidents.length > 0 && (
+        {incidents.length > 0 && (
+          <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -235,8 +262,8 @@ export function MonitorDetailPage() {
                 ))}
               </TableBody>
             </Table>
-          )}
-        </CardContent>
+          </CardContent>
+        )}
       </Card>
     </div>
   )

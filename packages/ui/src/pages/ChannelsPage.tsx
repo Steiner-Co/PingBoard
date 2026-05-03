@@ -45,17 +45,14 @@ export function ChannelsPage() {
   })
 
   return (
-    <div className="p-8 space-y-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Notification channels</h1>
-          <p className="text-muted-foreground">Where alerts go when monitors change state.</p>
-        </div>
+    <div className="px-4 lg:px-6 flex flex-col gap-6">
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-muted-foreground">Where alerts go when monitors change state.</p>
         <Button onClick={() => setOpen(true)}>
           <HugeiconsIcon icon={PlusSignIcon} className="h-4 w-4" />
           Add channel
         </Button>
-      </header>
+      </div>
 
       <Card>
         <CardHeader>
