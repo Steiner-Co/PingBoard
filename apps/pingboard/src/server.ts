@@ -34,10 +34,13 @@ import {
   getMonitor,
   getStatusPage,
   listChannels,
+  listIncidents,
   listMonitors,
   listStatusPages,
+  resolveIncident,
   testChannel,
   updateChannel,
+  updateIncident,
   updateMonitor,
   updateStatusPage,
 } from './routes/admin'
@@ -159,6 +162,20 @@ async function main() {
           // Account
           if (path === '/api/admin/account/password' && method === 'POST') {
             return changePassword(req, { db, userId: auth.user.userId })
+          }
+
+          // Incidents
+          if (path === '/api/admin/incidents' && method === 'GET')
+            return listIncidents(adminDeps)
+          const incidentResolveMatch = path.match(
+            /^\/api\/admin\/incidents\/([\w-]+)\/resolve$/,
+          )
+          if (incidentResolveMatch?.[1] && method === 'POST') {
+            return resolveIncident(incidentResolveMatch[1], adminDeps)
+          }
+          const incidentMatch = path.match(/^\/api\/admin\/incidents\/([\w-]+)$/)
+          if (incidentMatch?.[1] && (method === 'PATCH' || method === 'PUT')) {
+            return updateIncident(incidentMatch[1], req, adminDeps)
           }
 
           // Status pages

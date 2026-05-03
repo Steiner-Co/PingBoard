@@ -1,7 +1,16 @@
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { ArrowLeft01Icon, PauseIcon, PlayIcon, Delete02Icon } from '@hugeicons/core-free-icons'
+import {
+  ArrowLeft01Icon,
+  CheckmarkCircle01Icon,
+  Delete02Icon,
+  Edit02Icon,
+  PauseIcon,
+  PlayIcon,
+} from '@hugeicons/core-free-icons'
+import { Input } from '@/components/ui/input'
 import {
   Area,
   AreaChart,
@@ -237,28 +246,13 @@ export function MonitorDetailPage() {
                   <TableHead>Started</TableHead>
                   <TableHead>Resolved</TableHead>
                   <TableHead>Duration</TableHead>
+                  <TableHead>Note</TableHead>
+                  <TableHead className="text-right" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {incidents.map((i) => (
-                  <TableRow key={i.id}>
-                    <TableCell className="text-sm">
-                      {new Date(i.startedAt).toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {i.resolvedAt ? new Date(i.resolvedAt).toLocaleString() : (
-                        <span className="text-destructive">Ongoing</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {i.resolvedAt
-                        ? formatDuration(
-                            new Date(i.resolvedAt).getTime() -
-                              new Date(i.startedAt).getTime(),
-                          )
-                        : '—'}
-                    </TableCell>
-                  </TableRow>
+                  <IncidentRow key={i.id} incident={i} monitorId={monitor.id} />
                 ))}
               </TableBody>
             </Table>
@@ -266,5 +260,118 @@ export function MonitorDetailPage() {
         )}
       </Card>
     </div>
+  )
+}
+
+function IncidentRow({
+  incident,
+  monitorId,
+}: {
+  incident: Incident
+  monitorId: string
+}) {
+  const queryClient = useQueryClient()
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(incident.note ?? '')
+
+  const saveNote = useMutation({
+    mutationFn: (note: string | null) =>
+      api.patch(`/api/admin/incidents/${incident.id}`, { note }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['monitor', monitorId] })
+      void queryClient.invalidateQueries({ queryKey: ['incidents'] })
+      setEditing(false)
+    },
+  })
+
+  const resolve = useMutation({
+    mutationFn: () => api.post(`/api/admin/incidents/${incident.id}/resolve`),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['monitor', monitorId] })
+      void queryClient.invalidateQueries({ queryKey: ['incidents'] })
+    },
+  })
+
+  const isOpen = !incident.resolvedAt
+
+  return (
+    <TableRow>
+      <TableCell className="text-sm whitespace-nowrap">
+        {new Date(incident.startedAt).toLocaleString()}
+      </TableCell>
+      <TableCell className="text-sm whitespace-nowrap">
+        {incident.resolvedAt ? (
+          <span>
+            {new Date(incident.resolvedAt).toLocaleString()}
+            {incident.cause === 'manual' && (
+              <span className="ml-1 text-xs text-muted-foreground">(manual)</span>
+            )}
+          </span>
+        ) : (
+          <span className="text-destructive">Ongoing</span>
+        )}
+      </TableCell>
+      <TableCell className="text-sm whitespace-nowrap">
+        {incident.resolvedAt
+          ? formatDuration(
+              new Date(incident.resolvedAt).getTime() -
+                new Date(incident.startedAt).getTime(),
+            )
+          : '—'}
+      </TableCell>
+      <TableCell className="text-sm w-full">
+        {editing ? (
+          <div className="flex gap-2">
+            <Input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="e.g. Cloudflare outage, not our fault"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') saveNote.mutate(draft.trim() || null)
+                if (e.key === 'Escape') setEditing(false)
+              }}
+            />
+            <Button
+              size="sm"
+              onClick={() => saveNote.mutate(draft.trim() || null)}
+              disabled={saveNote.isPending}
+            >
+              Save
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setDraft(incident.note ?? '')
+              setEditing(true)
+            }}
+            className="text-left w-full hover:text-foreground transition-colors flex items-center gap-2"
+          >
+            <span className={incident.note ? '' : 'text-muted-foreground italic'}>
+              {incident.note ?? 'Add a note…'}
+            </span>
+            <HugeiconsIcon icon={Edit02Icon} className="h-3 w-3 opacity-40" />
+          </button>
+        )}
+      </TableCell>
+      <TableCell className="text-right">
+        {isOpen && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => resolve.mutate()}
+            disabled={resolve.isPending}
+          >
+            <HugeiconsIcon icon={CheckmarkCircle01Icon} className="h-3 w-3" />
+            Resolve
+          </Button>
+        )}
+      </TableCell>
+    </TableRow>
   )
 }

@@ -233,6 +233,62 @@ export async function testChannel(id: string, deps: AdminDeps): Promise<Response
   }
 }
 
+// ─────────────────────── Incidents ────────────────────────
+
+export async function listIncidents(deps: AdminDeps): Promise<Response> {
+  const rows = await deps.db
+    .select({
+      id: incidents.id,
+      monitorId: incidents.monitorId,
+      monitorName: monitors.name,
+      monitorType: monitors.type,
+      monitorTarget: monitors.target,
+      startedAt: incidents.startedAt,
+      resolvedAt: incidents.resolvedAt,
+      cause: incidents.cause,
+      note: incidents.note,
+    })
+    .from(incidents)
+    .innerJoin(monitors, eq(monitors.id, incidents.monitorId))
+    .orderBy(desc(incidents.startedAt))
+    .limit(200)
+  return json({ incidents: rows })
+}
+
+export async function updateIncident(
+  id: string,
+  req: Request,
+  deps: AdminDeps,
+): Promise<Response> {
+  const body = await safeJson(req)
+  if (!body) return error(400, 'Invalid JSON body')
+  const set: { note?: string | null } = {}
+  if ('note' in body) {
+    const note = body.note
+    if (note === null) set.note = null
+    else if (typeof note === 'string') set.note = note.trim() || null
+    else return error(400, 'note must be a string or null')
+  }
+  if (Object.keys(set).length === 0) return error(400, 'No supported fields to update')
+  await deps.db.update(incidents).set(set).where(eq(incidents.id, id))
+  const [updated] = await deps.db.select().from(incidents).where(eq(incidents.id, id))
+  if (!updated) return error(404, 'Incident not found')
+  return json({ incident: updated })
+}
+
+export async function resolveIncident(id: string, deps: AdminDeps): Promise<Response> {
+  const [incident] = await deps.db.select().from(incidents).where(eq(incidents.id, id))
+  if (!incident) return error(404, 'Incident not found')
+  if (incident.resolvedAt) return error(409, 'Incident is already resolved')
+  const resolvedAt = new Date()
+  await deps.db
+    .update(incidents)
+    .set({ resolvedAt, cause: 'manual' })
+    .where(eq(incidents.id, id))
+  const [updated] = await deps.db.select().from(incidents).where(eq(incidents.id, id))
+  return json({ incident: updated })
+}
+
 // ─────────────────────── Status pages ────────────────────────
 
 export async function listStatusPages(deps: AdminDeps): Promise<Response> {

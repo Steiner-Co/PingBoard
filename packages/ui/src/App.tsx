@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from '@/contexts/auth'
 import { AdminLayout } from '@/layouts/AdminLayout'
 import { ChannelsPage } from '@/pages/ChannelsPage'
 import { DashboardPage } from '@/pages/DashboardPage'
+import { IncidentsPage } from '@/pages/IncidentsPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { MonitorDetailPage } from '@/pages/MonitorDetailPage'
 import { MonitorWizardPage } from '@/pages/MonitorWizardPage'
@@ -58,6 +59,7 @@ function Router() {
         <Route path="monitors/new" element={<MonitorWizardPage />} />
         <Route path="monitors/:id" element={<MonitorDetailPage />} />
         <Route path="channels" element={<ChannelsPage />} />
+        <Route path="incidents" element={<IncidentsPage />} />
         <Route path="pages" element={<StatusPagesPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>

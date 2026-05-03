@@ -15,6 +15,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Activity03Icon,
+  AlertCircleIcon,
   Notification03Icon,
   GlobeIcon,
   DashboardSquare01Icon,
@@ -24,6 +25,7 @@ import {
 const navItems = [
   { title: "Dashboard", url: "/admin", icon: DashboardSquare01Icon },
   { title: "Monitors", url: "/admin/monitors", icon: Activity03Icon },
+  { title: "Incidents", url: "/admin/incidents", icon: AlertCircleIcon },
   { title: "Channels", url: "/admin/channels", icon: Notification03Icon },
   { title: "Status pages", url: "/admin/pages", icon: GlobeIcon },
   { title: "Settings", url: "/admin/settings", icon: Settings02Icon },
