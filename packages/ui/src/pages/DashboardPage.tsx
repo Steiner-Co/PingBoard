@@ -1,7 +1,11 @@
 import { useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import { z } from 'zod'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { Activity03Icon, PlusSignCircleIcon } from '@hugeicons/core-free-icons'
 
+import { Button } from '@/components/ui/button'
 import { DataTable, schema as monitorRowSchema } from '@/components/data-table'
 import { SectionCards } from '@/components/section-cards'
 import { api } from '@/lib/api'
@@ -57,10 +61,40 @@ export function DashboardPage() {
   const monitors = query.data?.monitors ?? []
   const rows = useMemo(() => toRows(monitors), [monitors])
 
+  if (query.isSuccess && monitors.length === 0) {
+    return <EmptyDashboard />
+  }
+
   return (
     <>
       <SectionCards monitors={monitors} />
       <DataTable data={rows} />
     </>
+  )
+}
+
+function EmptyDashboard() {
+  return (
+    <div className="px-4 lg:px-6">
+      <div className="flex min-h-[420px] flex-col items-center justify-center gap-6 rounded-xl border border-dashed bg-card/50 p-10 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
+          <HugeiconsIcon icon={Activity03Icon} className="h-6 w-6" strokeWidth={1.75} />
+        </div>
+        <div className="space-y-2 max-w-md">
+          <h2 className="text-2xl font-semibold tracking-tight">No monitors yet</h2>
+          <p className="text-muted-foreground text-sm">
+            Add your first check to start tracking uptime. The dashboard will
+            light up as soon as the first heartbeat lands — usually within a
+            couple of seconds.
+          </p>
+        </div>
+        <Button asChild>
+          <Link to="/admin/monitors/new" className="gap-2">
+            <HugeiconsIcon icon={PlusSignCircleIcon} className="h-4 w-4" />
+            Add your first check
+          </Link>
+        </Button>
+      </div>
+    </div>
   )
 }
