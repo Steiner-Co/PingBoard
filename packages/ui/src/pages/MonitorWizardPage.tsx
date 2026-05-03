@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, ChevronLeft, ChevronRight } from 'lucide-react'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { Tick02Icon, ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -194,18 +195,18 @@ export function MonitorWizardPage() {
           onClick={() => (step === 0 ? navigate('/admin') : setStep(step - 1))}
           disabled={createMutation.isPending}
         >
-          <ChevronLeft className="h-4 w-4" />
+          <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
           {step === 0 ? 'Cancel' : 'Back'}
         </Button>
         {step < STEPS.length - 1 ? (
           <Button onClick={() => setStep(step + 1)} disabled={!canAdvance()}>
             Continue
-            <ChevronRight className="h-4 w-4" />
+            <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
           </Button>
         ) : (
           <Button onClick={handleSubmit} disabled={createMutation.isPending}>
             {createMutation.isPending ? 'Creating…' : 'Create monitor'}
-            <Check className="h-4 w-4" />
+            <HugeiconsIcon icon={Tick02Icon} className="h-4 w-4" />
           </Button>
         )}
       </div>
@@ -226,7 +227,7 @@ function Stepper({ current }: { current: number }) {
               i > current && 'bg-muted text-muted-foreground',
             )}
           >
-            {i < current ? <Check className="h-3 w-3" /> : i + 1}
+            {i < current ? <HugeiconsIcon icon={Tick02Icon} className="h-3 w-3" /> : i + 1}
           </span>
           <span className={cn(i === current ? 'font-medium' : 'text-muted-foreground')}>
             {label}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ExternalLink, Plus, Trash2 } from 'lucide-react'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { LinkSquare02Icon, PlusSignIcon, Delete02Icon } from '@hugeicons/core-free-icons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -39,7 +40,7 @@ export function StatusPagesPage() {
           <p className="text-muted-foreground">Public dashboards you can share with users.</p>
         </div>
         <Button onClick={() => setOpen(true)}>
-          <Plus className="h-4 w-4" />
+          <HugeiconsIcon icon={PlusSignIcon} className="h-4 w-4" />
           Create page
         </Button>
       </header>
@@ -71,7 +72,7 @@ export function StatusPagesPage() {
                     <TableCell className="text-right space-x-2">
                       <Button size="sm" variant="outline" asChild>
                         <a href={`/${p.slug}`} target="_blank" rel="noreferrer">
-                          <ExternalLink className="h-3 w-3" />
+                          <HugeiconsIcon icon={LinkSquare02Icon} className="h-3 w-3" />
                           View
                         </a>
                       </Button>
@@ -84,7 +85,7 @@ export function StatusPagesPage() {
                           }
                         }}
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <HugeiconsIcon icon={Delete02Icon} className="h-3 w-3" />
                       </Button>
                     </TableCell>
                   </TableRow>

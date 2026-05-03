@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, TestTube2, Trash2 } from 'lucide-react'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { PlusSignIcon, TestTube02Icon, Delete02Icon } from '@hugeicons/core-free-icons'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -51,7 +52,7 @@ export function ChannelsPage() {
           <p className="text-muted-foreground">Where alerts go when monitors change state.</p>
         </div>
         <Button onClick={() => setOpen(true)}>
-          <Plus className="h-4 w-4" />
+          <HugeiconsIcon icon={PlusSignIcon} className="h-4 w-4" />
           Add channel
         </Button>
       </header>
@@ -99,7 +100,7 @@ export function ChannelsPage() {
                         }}
                         disabled={testMutation.isPending}
                       >
-                        <TestTube2 className="h-3 w-3" />
+                        <HugeiconsIcon icon={TestTube02Icon} className="h-3 w-3" />
                         Test
                       </Button>
                       <Button
@@ -111,7 +112,7 @@ export function ChannelsPage() {
                           }
                         }}
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <HugeiconsIcon icon={Delete02Icon} className="h-3 w-3" />
                       </Button>
                     </TableCell>
                   </TableRow>

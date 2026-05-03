@@ -1,15 +1,23 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { Activity, Bell, Globe, LayoutDashboard, LogOut, Settings } from 'lucide-react'
+import { HugeiconsIcon } from '@hugeicons/react'
+import {
+  Activity03Icon,
+  Notification03Icon,
+  GlobeIcon,
+  DashboardSquare01Icon,
+  Logout03Icon,
+  Settings02Icon,
+} from '@hugeicons/core-free-icons'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/auth'
 import { cn } from '@/lib/utils'
 
 const navItems = [
-  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/admin/monitors', label: 'Monitors', icon: Activity, end: false },
-  { to: '/admin/channels', label: 'Channels', icon: Bell, end: false },
-  { to: '/admin/pages', label: 'Status pages', icon: Globe, end: false },
-  { to: '/admin/settings', label: 'Settings', icon: Settings, end: false },
+  { to: '/admin', label: 'Dashboard', icon: DashboardSquare01Icon, end: true },
+  { to: '/admin/monitors', label: 'Monitors', icon: Activity03Icon, end: false },
+  { to: '/admin/channels', label: 'Channels', icon: Notification03Icon, end: false },
+  { to: '/admin/pages', label: 'Status pages', icon: GlobeIcon, end: false },
+  { to: '/admin/settings', label: 'Settings', icon: Settings02Icon, end: false },
 ]
 
 export function AdminLayout() {
@@ -45,7 +53,7 @@ export function AdminLayout() {
                 )
               }
             >
-              <item.icon className="h-4 w-4" />
+              <HugeiconsIcon icon={item.icon} className="h-4 w-4" />
               {item.label}
             </NavLink>
           ))}
@@ -60,7 +68,7 @@ export function AdminLayout() {
             onClick={handleLogout}
             className="w-full justify-start gap-2 text-muted-foreground"
           >
-            <LogOut className="h-4 w-4" />
+            <HugeiconsIcon icon={Logout03Icon} className="h-4 w-4" />
             Log out
           </Button>
         </div>

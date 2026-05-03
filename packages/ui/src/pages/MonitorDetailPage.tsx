@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Pause, Play, Trash2 } from 'lucide-react'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { ArrowLeft01Icon, PauseIcon, PlayIcon, Delete02Icon } from '@hugeicons/core-free-icons'
 import {
   CartesianGrid,
   Line,
@@ -82,7 +83,7 @@ export function MonitorDetailPage() {
     <div className="p-8 space-y-6 max-w-6xl">
       <Button variant="ghost" size="sm" asChild>
         <Link to="/admin" className="gap-2">
-          <ArrowLeft className="h-4 w-4" />
+          <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
           Back to dashboard
         </Link>
       </Button>
@@ -102,7 +103,11 @@ export function MonitorDetailPage() {
             onClick={() => togglePause.mutate(!monitor.paused)}
             disabled={togglePause.isPending}
           >
-            {monitor.paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+            {monitor.paused ? (
+              <HugeiconsIcon icon={PlayIcon} className="h-4 w-4" />
+            ) : (
+              <HugeiconsIcon icon={PauseIcon} className="h-4 w-4" />
+            )}
             {monitor.paused ? 'Resume' : 'Pause'}
           </Button>
           <Button
@@ -114,7 +119,7 @@ export function MonitorDetailPage() {
             }}
             disabled={deleteMutation.isPending}
           >
-            <Trash2 className="h-4 w-4" />
+            <HugeiconsIcon icon={Delete02Icon} className="h-4 w-4" />
             Delete
           </Button>
         </div>

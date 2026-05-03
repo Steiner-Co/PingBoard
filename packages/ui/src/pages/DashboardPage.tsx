@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Activity, Plus } from 'lucide-react'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { Activity03Icon, PlusSignIcon } from '@hugeicons/core-free-icons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -45,7 +46,7 @@ export function DashboardPage() {
         </div>
         <Button asChild>
           <Link to="/admin/monitors/new">
-            <Plus className="h-4 w-4" />
+            <HugeiconsIcon icon={PlusSignIcon} className="h-4 w-4" />
             Add monitor
           </Link>
         </Button>
@@ -150,14 +151,14 @@ function EmptyMonitors() {
   return (
     <div className="text-center py-12 space-y-3">
       <div className="mx-auto h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-        <Activity className="h-5 w-5 text-muted-foreground" />
+        <HugeiconsIcon icon={Activity03Icon} className="h-5 w-5 text-muted-foreground" />
       </div>
       <div className="text-sm text-muted-foreground">
         No monitors yet. Add one to start tracking uptime.
       </div>
       <Button asChild>
         <Link to="/admin/monitors/new">
-          <Plus className="h-4 w-4" />
+          <HugeiconsIcon icon={PlusSignIcon} className="h-4 w-4" />
           Add your first monitor
         </Link>
       </Button>
