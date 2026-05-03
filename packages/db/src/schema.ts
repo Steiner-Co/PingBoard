@@ -49,6 +49,7 @@ export const monitors = sqliteTable('monitors', {
   timeoutSeconds: integer('timeout_seconds').notNull().default(10),
   retryCount: integer('retry_count').notNull().default(1),
   config: text('config', { mode: 'json' }).$type<MonitorConfig>().notNull(),
+  tags: text('tags', { mode: 'json' }).$type<string[]>().notNull().default([]),
   paused: integer('paused', { mode: 'boolean' }).notNull().default(false),
   createdAt: timestamp('created_at').default(now),
   updatedAt: timestamp('updated_at').default(now),

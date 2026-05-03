@@ -41,5 +41,8 @@ yarn-error.log*
 coverage/
 .nyc_output/
 
-# Drizzle
+# Drizzle: migration history under packages/db is the source of truth
+# and must be committed; ignore any stray drizzle/ folders elsewhere.
 drizzle/
+!packages/db/drizzle/
+!packages/db/drizzle/**

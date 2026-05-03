@@ -83,6 +83,7 @@ export const schema = z.object({
   target: z.string(),
   interval: z.string(),
   channel: z.string(),
+  tags: z.array(z.string()),
 })
 
 // Create a separate component for the drag handle
@@ -596,11 +597,22 @@ export function DataTable({
 
 function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
   return (
-    <Link
-      to={`/admin/monitors/${item.id}`}
-      className="text-foreground hover:underline underline-offset-4 font-medium"
-    >
-      {item.name}
-    </Link>
+    <div className="flex flex-col gap-1">
+      <Link
+        to={`/admin/monitors/${item.id}`}
+        className="text-foreground hover:underline underline-offset-4 font-medium"
+      >
+        {item.name}
+      </Link>
+      {item.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {item.tags.map((tag) => (
+            <Badge key={tag} variant="secondary" className="font-mono text-[10px] px-1.5 py-0">
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

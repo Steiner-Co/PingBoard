@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Tick02Icon, ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons'
+import { Tick02Icon, ArrowLeft01Icon, ArrowRight01Icon, Cancel01Icon } from '@hugeicons/core-free-icons'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -27,6 +28,7 @@ export function MonitorWizardPage() {
   const [target, setTarget] = useState('')
   const [name, setName] = useState('')
   const [intervalSeconds, setIntervalSeconds] = useState(60)
+  const [tags, setTags] = useState<string[]>([])
   const [selectedChannels, setSelectedChannels] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
 
@@ -66,6 +68,7 @@ export function MonitorWizardPage() {
       timeoutSeconds: 10,
       retryCount: 1,
       config: detected.config,
+      tags,
       channelIds: selectedChannels,
     })
   }
@@ -135,6 +138,13 @@ export function MonitorWizardPage() {
                     <SelectItem value="3600">Every hour</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tags-input">Tags</Label>
+                <TagInput value={tags} onChange={setTags} />
+                <p className="text-xs text-muted-foreground">
+                  Optional. Lowercase letters, digits, and hyphens. Press Enter or comma to add.
+                </p>
               </div>
             </>
           )}
@@ -233,6 +243,68 @@ function Stepper({ current }: { current: number }) {
         </li>
       ))}
     </ol>
+  )
+}
+
+export function TagInput({
+  value,
+  onChange,
+  id = 'tags-input',
+}: {
+  value: string[]
+  onChange: (next: string[]) => void
+  id?: string
+}) {
+  const [draft, setDraft] = useState('')
+
+  const commit = (raw: string) => {
+    const trimmed = raw.trim().toLowerCase()
+    if (!trimmed) return
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(trimmed)) return
+    if (value.includes(trimmed)) {
+      setDraft('')
+      return
+    }
+    if (value.length >= 16) return
+    onChange([...value, trimmed])
+    setDraft('')
+  }
+
+  const remove = (tag: string) => onChange(value.filter((t) => t !== tag))
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-input bg-transparent px-2 py-1.5 focus-within:ring-2 focus-within:ring-ring">
+      {value.map((tag) => (
+        <Badge key={tag} variant="secondary" className="gap-1 font-mono text-xs">
+          {tag}
+          <button
+            type="button"
+            onClick={() => remove(tag)}
+            className="opacity-60 hover:opacity-100"
+            aria-label={`Remove ${tag}`}
+          >
+            <HugeiconsIcon icon={Cancel01Icon} className="h-3 w-3" />
+          </button>
+        </Badge>
+      ))}
+      <input
+        id={id}
+        type="text"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault()
+            commit(draft)
+          } else if (e.key === 'Backspace' && !draft && value.length > 0) {
+            remove(value[value.length - 1]!)
+          }
+        }}
+        onBlur={() => commit(draft)}
+        placeholder={value.length === 0 ? 'api, prod, payments…' : ''}
+        className="flex-1 min-w-[120px] bg-transparent text-sm outline-none"
+      />
+    </div>
   )
 }
 

@@ -18,8 +18,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { TagInput } from '@/pages/MonitorWizardPage'
 import {
   ChartContainer,
   ChartTooltip,
@@ -116,6 +118,7 @@ export function MonitorDetailPage() {
             <span>·</span>
             <span className="font-mono">{monitor.target}</span>
           </div>
+          <TagsRow monitor={monitor} />
         </div>
         <div className="flex gap-2">
           <Button
@@ -259,6 +262,77 @@ export function MonitorDetailPage() {
           </CardContent>
         )}
       </Card>
+    </div>
+  )
+}
+
+function TagsRow({ monitor }: { monitor: Monitor }) {
+  const queryClient = useQueryClient()
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState<string[]>(monitor.tags)
+
+  const save = useMutation({
+    mutationFn: (tags: string[]) =>
+      api.patch(`/api/admin/monitors/${monitor.id}`, { tags }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['monitor', monitor.id] })
+      void queryClient.invalidateQueries({ queryKey: ['monitors'] })
+      setEditing(false)
+    },
+  })
+
+  if (editing) {
+    return (
+      <div className="mt-3 flex items-start gap-2 max-w-xl">
+        <div className="flex-1">
+          <TagInput value={draft} onChange={setDraft} id={`tags-${monitor.id}`} />
+        </div>
+        <Button size="sm" onClick={() => save.mutate(draft)} disabled={save.isPending}>
+          Save
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            setDraft(monitor.tags)
+            setEditing(false)
+          }}
+        >
+          Cancel
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+      {monitor.tags.length === 0 ? (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="text-xs text-muted-foreground italic hover:text-foreground transition-colors"
+        >
+          Add tags…
+        </button>
+      ) : (
+        <>
+          {monitor.tags.map((tag) => (
+            <Badge key={tag} variant="secondary" className="font-mono text-xs">
+              {tag}
+            </Badge>
+          ))}
+          <button
+            type="button"
+            onClick={() => {
+              setDraft(monitor.tags)
+              setEditing(true)
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors ml-1"
+          >
+            Edit
+          </button>
+        </>
+      )}
     </div>
   )
 }

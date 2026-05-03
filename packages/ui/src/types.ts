@@ -12,6 +12,7 @@ export interface Monitor {
   timeoutSeconds: number
   retryCount: number
   config: Record<string, unknown>
+  tags: string[]
   paused: boolean
   createdAt: string
   updatedAt: string

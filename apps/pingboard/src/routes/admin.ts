@@ -100,6 +100,7 @@ export async function createMonitor(req: Request, deps: AdminDeps): Promise<Resp
     timeoutSeconds: validation.timeoutSeconds,
     retryCount: validation.retryCount,
     config: validation.config,
+    tags: validation.tags,
     paused: false,
   }
 
@@ -140,6 +141,7 @@ export async function updateMonitor(
       timeoutSeconds: validation.timeoutSeconds,
       retryCount: validation.retryCount,
       config: validation.config,
+      tags: validation.tags,
       paused: typeof body.paused === 'boolean' ? body.paused : existing.paused,
       updatedAt: new Date(),
     })
@@ -443,6 +445,7 @@ function validateMonitorPayload(body: Record<string, unknown>):
       timeoutSeconds: number
       retryCount: number
       config: Record<string, unknown>
+      tags: string[]
     } {
   const name = String(body.name ?? '').trim()
   const type = String(body.type ?? '') as 'http' | 'tcp' | 'ping' | 'dns'
@@ -451,6 +454,8 @@ function validateMonitorPayload(body: Record<string, unknown>):
   const timeoutSeconds = Number(body.timeoutSeconds ?? 10)
   const retryCount = Number(body.retryCount ?? 1)
   const config = (body.config as Record<string, unknown> | undefined) ?? {}
+  const tagsResult = normalizeTags(body.tags)
+  if ('error' in tagsResult) return tagsResult
 
   if (!name) return { error: 'Name required' }
   if (!['http', 'tcp', 'ping', 'dns'].includes(type)) return { error: 'Invalid monitor type' }
@@ -465,7 +470,37 @@ function validateMonitorPayload(body: Record<string, unknown>):
     return { error: 'retryCount must be between 0 and 5' }
   }
 
-  return { name, type, target, intervalSeconds, timeoutSeconds, retryCount, config }
+  return {
+    name,
+    type,
+    target,
+    intervalSeconds,
+    timeoutSeconds,
+    retryCount,
+    config,
+    tags: tagsResult.value,
+  }
+}
+
+function normalizeTags(input: unknown): { value: string[] } | { error: string } {
+  if (input == null) return { value: [] }
+  if (!Array.isArray(input)) return { error: 'tags must be an array of strings' }
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const raw of input) {
+    if (typeof raw !== 'string') return { error: 'tags must be an array of strings' }
+    const trimmed = raw.trim().toLowerCase()
+    if (!trimmed) continue
+    if (trimmed.length > 32) return { error: 'tags must be 32 characters or fewer' }
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(trimmed)) {
+      return { error: `Invalid tag "${trimmed}" — use lowercase letters, digits, and hyphens` }
+    }
+    if (seen.has(trimmed)) continue
+    seen.add(trimmed)
+    out.push(trimmed)
+  }
+  if (out.length > 16) return { error: 'a monitor can have at most 16 tags' }
+  return { value: out }
 }
 
 async function safeJson(req: Request): Promise<Record<string, unknown> | null> {
