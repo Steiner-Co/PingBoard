@@ -1,0 +1,21 @@
+{
+  "name": "pingboard-app",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --hot src/server.ts",
+    "start": "bun run src/server.ts",
+    "build": "bun build src/server.ts --outdir dist --target bun",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "clean": "rm -rf dist .turbo *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@pingboard/core": "workspace:*",
+    "@pingboard/db": "workspace:*",
+    "@pingboard/shared": "workspace:*",
+    "@pingboard/ui": "workspace:*",
+    "drizzle-orm": "^0.36.0"
+  }
+}

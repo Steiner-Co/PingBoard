@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+**/dist
+**/build
+**/.turbo
+.git
+.github
+data
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.*
+*.log
