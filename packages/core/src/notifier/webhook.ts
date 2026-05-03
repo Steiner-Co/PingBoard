@@ -3,6 +3,7 @@ import type { ChannelDriver } from './types'
 
 export const webhookDriver: ChannelDriver<WebhookChannelConfig> = {
   async send(config, payload) {
+    requireUrl(config)
     const body = JSON.stringify({
       status: payload.status,
       monitor: {
@@ -29,6 +30,7 @@ export const webhookDriver: ChannelDriver<WebhookChannelConfig> = {
   },
 
   async testConfig(config) {
+    requireUrl(config)
     const response = await fetch(config.url, {
       method: config.method ?? 'POST',
       headers: { 'content-type': 'application/json', ...config.headers },
@@ -38,4 +40,10 @@ export const webhookDriver: ChannelDriver<WebhookChannelConfig> = {
       throw new Error(`Webhook returned ${response.status}`)
     }
   },
+}
+
+function requireUrl(config: WebhookChannelConfig): void {
+  if (!config.url || !config.url.trim()) {
+    throw new Error('Webhook URL is required')
+  }
 }

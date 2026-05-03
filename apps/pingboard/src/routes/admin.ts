@@ -181,20 +181,23 @@ export async function createChannel(req: Request, deps: AdminDeps): Promise<Resp
   const body = await safeJson(req)
   if (!body) return error(400, 'Invalid JSON body')
 
-  const id = crypto.randomUUID()
-  const channel: NewNotificationChannel = {
-    id,
-    name: String(body.name ?? '').trim(),
-    type: body.type as never,
-    config: body.config as never,
-    enabled: typeof body.enabled === 'boolean' ? body.enabled : true,
-  }
-  if (!channel.name) return error(400, 'Name required')
-  if (!['email', 'webhook', 'discord', 'slack', 'ntfy'].includes(channel.type)) {
+  const name = String(body.name ?? '').trim()
+  const type = body.type as string
+  if (!name) return error(400, 'Name required')
+  if (!['email', 'webhook', 'discord', 'slack', 'ntfy'].includes(type)) {
     return error(400, 'Invalid channel type')
   }
+  const cfg = validateChannelConfig(type, body.config)
+  if ('error' in cfg) return error(400, cfg.error)
 
-  await deps.db.insert(notificationChannels).values(channel)
+  const id = crypto.randomUUID()
+  await deps.db.insert(notificationChannels).values({
+    id,
+    name,
+    type: type as NewNotificationChannel['type'],
+    config: cfg.value as unknown as NewNotificationChannel['config'],
+    enabled: typeof body.enabled === 'boolean' ? body.enabled : true,
+  })
   const [created] = await deps.db
     .select()
     .from(notificationChannels)
@@ -209,20 +212,72 @@ export async function updateChannel(
 ): Promise<Response> {
   const body = await safeJson(req)
   if (!body) return error(400, 'Invalid JSON body')
+
+  const [existing] = await deps.db
+    .select()
+    .from(notificationChannels)
+    .where(eq(notificationChannels.id, id))
+  if (!existing) return error(404, 'Channel not found')
+
+  const name = body.name == null ? existing.name : String(body.name).trim()
+  if (!name) return error(400, 'Name required')
+
+  // Type is immutable in update — re-validate config against the stored type.
+  const incomingConfig = 'config' in body ? body.config : existing.config
+  const cfg = validateChannelConfig(existing.type, incomingConfig)
+  if ('error' in cfg) return error(400, cfg.error)
+
   await deps.db
     .update(notificationChannels)
     .set({
-      name: body.name as string,
-      config: body.config as never,
-      enabled: typeof body.enabled === 'boolean' ? body.enabled : true,
+      name,
+      config: cfg.value as unknown as NewNotificationChannel['config'],
+      enabled: typeof body.enabled === 'boolean' ? body.enabled : existing.enabled,
     })
     .where(eq(notificationChannels.id, id))
   const [updated] = await deps.db
     .select()
     .from(notificationChannels)
     .where(eq(notificationChannels.id, id))
-  if (!updated) return error(404, 'Channel not found')
   return json({ channel: updated })
+}
+
+function validateChannelConfig(
+  type: string,
+  raw: unknown,
+): { value: Record<string, unknown> } | { error: string } {
+  if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { error: 'config must be an object' }
+  }
+  const c = raw as Record<string, unknown>
+  if (type === 'webhook') {
+    if (typeof c.url !== 'string' || !c.url.trim()) {
+      return { error: 'webhook config requires a URL' }
+    }
+    return { value: c }
+  }
+  if (type === 'discord' || type === 'slack') {
+    if (typeof c.webhookUrl !== 'string' || !c.webhookUrl.trim()) {
+      return { error: `${type} config requires a webhookUrl` }
+    }
+    return { value: c }
+  }
+  if (type === 'ntfy') {
+    if (typeof c.serverUrl !== 'string' || !c.serverUrl.trim()) {
+      return { error: 'ntfy config requires a serverUrl' }
+    }
+    if (typeof c.topic !== 'string' || !c.topic.trim()) {
+      return { error: 'ntfy config requires a topic' }
+    }
+    return { value: c }
+  }
+  if (type === 'email') {
+    if (typeof c.to !== 'string' || !c.to.trim()) {
+      return { error: 'email config requires a recipient address' }
+    }
+    return { value: c }
+  }
+  return { error: `Unknown channel type: ${type}` }
 }
 
 export async function deleteChannel(id: string, deps: AdminDeps): Promise<Response> {
@@ -458,8 +513,10 @@ function validateMonitorPayload(body: Record<string, unknown>):
   if ('error' in tagsResult) return tagsResult
 
   if (!name) return { error: 'Name required' }
+  if (name.length > 200) return { error: 'Name must be 200 characters or fewer' }
   if (!['http', 'tcp', 'ping', 'dns'].includes(type)) return { error: 'Invalid monitor type' }
   if (!target) return { error: 'Target required' }
+  if (target.length > 2048) return { error: 'Target must be 2048 characters or fewer' }
   if (!(ALLOWED_INTERVALS_SECONDS as readonly number[]).includes(intervalSeconds)) {
     return { error: `interval must be one of ${ALLOWED_INTERVALS_SECONDS.join(', ')}` }
   }
