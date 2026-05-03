@@ -4,7 +4,7 @@ import { loadConfig } from './config'
 
 async function resetPassword(email: string): Promise<void> {
   const config = loadConfig()
-  runMigrations(config.dbPath)
+  runMigrations(config.dbPath, config.migrationsDir ?? undefined)
   const db = createDb(config.dbPath)
 
   const [user] = await db.select().from(users).where(eq(users.email, email.toLowerCase()))

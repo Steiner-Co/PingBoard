@@ -7,6 +7,7 @@ export interface Config {
   baseUrl: string | null
   logLevel: 'debug' | 'info' | 'warn' | 'error'
   publicStaticDir: string | null
+  migrationsDir: string | null
 }
 
 export function loadConfig(): Config {
@@ -18,5 +19,6 @@ export function loadConfig(): Config {
     baseUrl: process.env.PINGBOARD_BASE_URL ?? null,
     logLevel: (process.env.LOG_LEVEL as Config['logLevel']) ?? 'info',
     publicStaticDir: process.env.PINGBOARD_STATIC_DIR ?? null,
+    migrationsDir: process.env.PINGBOARD_MIGRATIONS_DIR ?? null,
   }
 }

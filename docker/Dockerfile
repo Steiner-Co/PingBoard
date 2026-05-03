@@ -1,7 +1,7 @@
 ###############################################################################
-# Stage 1 — Install dev dependencies (needed to build the frontend)
+# Stage 1 — Install workspace dependencies (dev deps included for build)
 ###############################################################################
-FROM oven/bun:1.3.13 AS deps
+FROM oven/bun:1.3.13-alpine AS deps
 
 WORKDIR /app
 COPY package.json bun.lock ./
@@ -13,42 +13,44 @@ COPY packages/ui/package.json packages/ui/
 RUN bun install --frozen-lockfile
 
 ###############################################################################
-# Stage 2 — Build the frontend
+# Stage 2 — Build frontend + bundle backend into single files
 ###############################################################################
 FROM deps AS build
 WORKDIR /app
 COPY . .
+# Frontend → packages/ui/dist
 RUN cd packages/ui && bun run build
+# Backend → /out/server.js, /out/cli.js (single bundles, deps inlined).
+# Skip --minify: it costs cold-boot parse time without meaningfully shrinking
+# the final image (the bun:alpine base dominates at ~156 MB).
+RUN bun build apps/pingboard/src/server.ts \
+    --outdir /out --target bun
+RUN bun build apps/pingboard/src/cli.ts \
+    --outdir /out --target bun
 
 ###############################################################################
-# Stage 3 — Runtime
+# Stage 3 — Runtime: alpine + bundled JS + static + migrations only
 ###############################################################################
-FROM oven/bun:1.3.13-slim AS runtime
+FROM oven/bun:1.3.13-alpine AS runtime
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends iputils-ping ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+# iputils provides ping; ca-certificates for outbound TLS.
+RUN apk add --no-cache iputils ca-certificates
 
 WORKDIR /app
 
-# Bun workspaces install per-package node_modules; copy everything wholesale.
-# (Cleanup of source-only files happens after the copy.)
-COPY --from=build /app /app
-
-# Drop frontend source after dist is built; keep the dist + package.json
-RUN rm -rf /app/packages/ui/src /app/packages/ui/index.html \
-    /app/packages/ui/public.html /app/packages/ui/vite.config.ts \
-    /app/packages/ui/tailwind.config.js /app/packages/ui/postcss.config.js \
-    /app/packages/ui/components.json /app/packages/ui/tsconfig.json \
-    /app/packages/ui/node_modules
+COPY --from=build /out/server.js /app/server.js
+COPY --from=build /out/cli.js /app/cli.js
+COPY --from=build /app/packages/ui/dist /app/static
+COPY --from=build /app/packages/db/drizzle /app/drizzle
 
 RUN mkdir -p /data
 ENV DATA_DIR=/data
-ENV PINGBOARD_STATIC_DIR=/app/packages/ui/dist
+ENV PINGBOARD_STATIC_DIR=/app/static
+ENV PINGBOARD_MIGRATIONS_DIR=/app/drizzle
 ENV PORT=3000
 ENV NODE_ENV=production
 
-# Copy entrypoint and add a `pingboard` shim for `docker exec pingboard pingboard <cmd>`
+# Entrypoint + `pingboard` shim for `docker exec pingboard pingboard <cmd>`.
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh \
     && printf '#!/bin/sh\nexec /entrypoint.sh "$@"\n' > /usr/local/bin/pingboard \

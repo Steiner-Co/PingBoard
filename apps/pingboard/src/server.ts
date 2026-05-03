@@ -61,9 +61,10 @@ async function main() {
 
   console.log(`PingBoard starting on port ${config.port} (data: ${config.dataDir})`)
 
-  // Migrations: tolerate either dev (running from source) or prod (built bundle)
+  // Migrations: prefer the explicit env-configured dir (set in the bundled
+  // Docker image); otherwise fall back to the source-tree layout for dev.
   try {
-    runMigrations(config.dbPath, resolveMigrationsDir())
+    runMigrations(config.dbPath, config.migrationsDir ?? resolveMigrationsDir())
   } catch (err) {
     console.error('Migration failed:', err)
     process.exit(1)
