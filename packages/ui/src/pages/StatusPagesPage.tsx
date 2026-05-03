@@ -5,6 +5,7 @@ import {
   Edit02Icon,
   LinkSquare02Icon,
   LockPasswordIcon,
+  MoreVerticalCircle01Icon,
   PlusSignIcon,
   Delete02Icon,
 } from '@hugeicons/core-free-icons'
@@ -126,21 +127,29 @@ export function StatusPagesPage() {
                           View
                         </a>
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEditTarget(p)}
+                      >
+                        <HugeiconsIcon icon={Edit02Icon} className="h-3 w-3" />
+                        Edit
+                      </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button size="sm" variant="ghost">
-                            …
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            aria-label={`More actions for ${p.title}`}
+                          >
+                            <HugeiconsIcon
+                              icon={MoreVerticalCircle01Icon}
+                              className="h-3.5 w-3.5"
+                              strokeWidth={2}
+                            />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onSelect={() => setEditTarget(p)}>
-                            <HugeiconsIcon
-                              icon={Edit02Icon}
-                              className="h-3.5 w-3.5"
-                            />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
                           <DropdownMenuItem onSelect={() => setPasswordTarget(p)}>
                             <HugeiconsIcon
                               icon={LockPasswordIcon}
