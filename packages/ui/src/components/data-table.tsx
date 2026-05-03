@@ -33,13 +33,12 @@ import {
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table"
-import { toast } from "sonner"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { z } from "zod"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -48,8 +47,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -66,14 +63,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
+import { api } from "@/lib/api"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { DragDropVerticalIcon, CheckmarkCircle01Icon, AlertCircleIcon, PauseIcon, MoreVerticalCircle01Icon, LeftToRightListBulletIcon, ArrowDown01Icon, Add01Icon, ArrowLeftDoubleIcon, ArrowLeft01Icon, ArrowRight01Icon, ArrowRightDoubleIcon } from "@hugeicons/core-free-icons"
+import {
+  DragDropVerticalIcon,
+  CheckmarkCircle01Icon,
+  AlertCircleIcon,
+  PauseIcon,
+  PlayIcon,
+  MoreVerticalCircle01Icon,
+  LeftToRightListBulletIcon,
+  ArrowDown01Icon,
+  ArrowLeftDoubleIcon,
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  ArrowRightDoubleIcon,
+  Delete02Icon,
+} from "@hugeicons/core-free-icons"
 
 export const schema = z.object({
   id: z.string(),
@@ -82,11 +88,12 @@ export const schema = z.object({
   status: z.string(),
   target: z.string(),
   interval: z.string(),
-  channel: z.string(),
   tags: z.array(z.string()),
 })
 
-// Create a separate component for the drag handle
+type MonitorRow = z.infer<typeof schema>
+
+// Drag handle component (kept exported via DraggableRow below).
 function DragHandle({ id }: { id: string }) {
   const { attributes, listeners } = useSortable({
     id,
@@ -106,37 +113,11 @@ function DragHandle({ id }: { id: string }) {
   )
 }
 
-const columns: ColumnDef<z.infer<typeof schema>>[] = [
+const columns: ColumnDef<MonitorRow>[] = [
   {
     id: "drag",
     header: () => null,
     cell: ({ row }) => <DragHandle id={row.original.id} />,
-  },
-  {
-    id: "select",
-    header: ({ table }) => (
-      <div className="flex items-center justify-center">
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && "indeterminate")
-          }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      </div>
-    ),
-    cell: ({ row }) => (
-      <div className="flex items-center justify-center">
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      </div>
-    ),
-    enableSorting: false,
-    enableHiding: false,
   },
   {
     accessorKey: "name",
@@ -189,87 +170,75 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     accessorKey: "interval",
     header: () => <div className="w-full text-right">Interval</div>,
     cell: ({ row }) => (
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          toast.promise(new Promise((resolve) => setTimeout(resolve, 1000)), {
-            loading: `Saving ${row.original.name}`,
-            success: "Done",
-            error: "Error",
-          })
-        }}
-      >
-        <Label htmlFor={`${row.original.id}-interval`} className="sr-only">
-          Interval
-        </Label>
-        <Input
-          className="h-8 w-16 border-transparent bg-transparent text-right shadow-none hover:bg-input/30 focus-visible:border focus-visible:bg-background dark:bg-transparent dark:hover:bg-input/30 dark:focus-visible:bg-input/30"
-          defaultValue={row.original.interval}
-          id={`${row.original.id}-interval`}
-        />
-      </form>
+      <div className="text-right text-sm tabular-nums text-muted-foreground">
+        {row.original.interval}
+      </div>
     ),
-  },
-  {
-    accessorKey: "channel",
-    header: "Channel",
-    cell: ({ row }) => {
-      const isAssigned = row.original.channel !== "Assign channel"
-
-      if (isAssigned) {
-        return row.original.channel
-      }
-
-      return (
-        <>
-          <Label htmlFor={`${row.original.id}-channel`} className="sr-only">
-            Channel
-          </Label>
-          <Select>
-            <SelectTrigger
-              className="w-38 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate"
-              size="sm"
-              id={`${row.original.id}-channel`}
-            >
-              <SelectValue placeholder="Assign channel" />
-            </SelectTrigger>
-            <SelectContent align="end">
-              <SelectGroup>
-                <SelectItem value="#alerts (Slack)">#alerts (Slack)</SelectItem>
-                <SelectItem value="On-call (Discord)">On-call (Discord)</SelectItem>
-                <SelectItem value="ops@company (Email)">ops@company (Email)</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </>
-      )
-    },
   },
   {
     id: "actions",
-    cell: () => (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
-            size="icon"
-          >
-            <HugeiconsIcon icon={MoreVerticalCircle01Icon} strokeWidth={2} />
-            <span className="sr-only">Open menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-32">
-          <DropdownMenuItem>Edit</DropdownMenuItem>
-          <DropdownMenuItem>Pause</DropdownMenuItem>
-          <DropdownMenuItem>Run check now</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    ),
+    cell: ({ row }) => <RowActions row={row.original} />,
   },
 ]
+
+function RowActions({ row }: { row: MonitorRow }) {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const isPaused = row.status === "PAUSED"
+
+  const togglePause = useMutation({
+    mutationFn: (paused: boolean) =>
+      api.patch(`/api/admin/monitors/${row.id}`, { paused }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["monitors"] }),
+  })
+
+  const remove = useMutation({
+    mutationFn: () => api.delete(`/api/admin/monitors/${row.id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["monitors"] }),
+  })
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
+          size="icon"
+          aria-label={`Actions for ${row.name}`}
+        >
+          <HugeiconsIcon icon={MoreVerticalCircle01Icon} strokeWidth={2} />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuItem onSelect={() => navigate(`/admin/monitors/${row.id}`)}>
+          Open detail
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => togglePause.mutate(!isPaused)}
+          disabled={togglePause.isPending}
+        >
+          <HugeiconsIcon
+            icon={isPaused ? PlayIcon : PauseIcon}
+            className="h-3.5 w-3.5"
+          />
+          {isPaused ? "Resume" : "Pause"}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          variant="destructive"
+          onSelect={() => {
+            if (confirm(`Delete monitor "${row.name}"? This cannot be undone.`)) {
+              remove.mutate()
+            }
+          }}
+        >
+          <HugeiconsIcon icon={Delete02Icon} className="h-3.5 w-3.5" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
 
 function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
   const { transform, transition, setNodeRef, isDragging } = useSortable({
@@ -367,84 +336,42 @@ export function DataTable({
   }
 
   return (
-    <Tabs
-      defaultValue="all"
-      className="w-full flex-col justify-start gap-6"
-    >
-      <div className="flex items-center justify-between px-4 lg:px-6">
-        <Label htmlFor="view-selector" className="sr-only">
-          View
-        </Label>
-        <Select defaultValue="all">
-          <SelectTrigger
-            className="flex w-fit @4xl/main:hidden"
-            size="sm"
-            id="view-selector"
-          >
-            <SelectValue placeholder="Select a view" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="down">Down</SelectItem>
-              <SelectItem value="paused">Paused</SelectItem>
-              <SelectItem value="http">HTTP</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-        <TabsList className="hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1 @4xl/main:flex">
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="down">
-            Down <Badge variant="secondary">1</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="paused">
-            Paused <Badge variant="secondary">2</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="http">HTTP</TabsTrigger>
-        </TabsList>
-        <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <HugeiconsIcon icon={LeftToRightListBulletIcon} strokeWidth={2} data-icon="inline-start" />
-                Columns
-                <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} data-icon="inline-end" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-32">
-              {table
-                .getAllColumns()
-                .filter(
-                  (column) =>
-                    typeof column.accessorFn !== "undefined" &&
-                    column.getCanHide()
+    <div className="w-full flex flex-col justify-start gap-4">
+      <div className="flex items-center justify-end px-4 lg:px-6">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              <HugeiconsIcon icon={LeftToRightListBulletIcon} strokeWidth={2} data-icon="inline-start" />
+              Columns
+              <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} data-icon="inline-end" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-32">
+            {table
+              .getAllColumns()
+              .filter(
+                (column) =>
+                  typeof column.accessorFn !== "undefined" &&
+                  column.getCanHide()
+              )
+              .map((column) => {
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    className="capitalize"
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(value) =>
+                      column.toggleVisibility(!!value)
+                    }
+                  >
+                    {column.id}
+                  </DropdownMenuCheckboxItem>
                 )
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  )
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button variant="outline" size="sm">
-            <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-            <span className="hidden lg:inline">Add monitor</span>
-          </Button>
-        </div>
+              })}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
-      <TabsContent
-        value="all"
-        className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6"
-      >
+      <div className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
         <div className="overflow-hidden rounded-lg border">
           <DndContext
             collisionDetection={closestCenter}
@@ -498,14 +425,13 @@ export function DataTable({
         </div>
         <div className="flex items-center justify-between px-4">
           <div className="hidden flex-1 text-sm text-muted-foreground lg:flex">
-            {table.getFilteredSelectedRowModel().rows.length} of{" "}
-            {table.getFilteredRowModel().rows.length} row(s) selected.
+            {table.getFilteredRowModel().rows.length} monitor(s)
           </div>
           <div className="flex w-full items-center gap-8 lg:w-fit">
             <div className="hidden items-center gap-2 lg:flex">
-              <Label htmlFor="rows-per-page" className="text-sm font-medium">
+              <label htmlFor="rows-per-page" className="text-sm font-medium">
                 Rows per page
-              </Label>
+              </label>
               <Select
                 value={`${table.getState().pagination.pageSize}`}
                 onValueChange={(value) => {
@@ -575,23 +501,8 @@ export function DataTable({
             </div>
           </div>
         </div>
-      </TabsContent>
-      <TabsContent
-        value="down"
-        className="flex flex-col px-4 lg:px-6"
-      >
-        <div className="aspect-video w-full flex-1 rounded-lg border border-dashed"></div>
-      </TabsContent>
-      <TabsContent value="paused" className="flex flex-col px-4 lg:px-6">
-        <div className="aspect-video w-full flex-1 rounded-lg border border-dashed"></div>
-      </TabsContent>
-      <TabsContent
-        value="http"
-        className="flex flex-col px-4 lg:px-6"
-      >
-        <div className="aspect-video w-full flex-1 rounded-lg border border-dashed"></div>
-      </TabsContent>
-    </Tabs>
+      </div>
+    </div>
   )
 }
 

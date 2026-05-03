@@ -34,7 +34,6 @@ function toRows(monitors: MonitorWithLatest[]): MonitorRow[] {
     status: rowStatus(m),
     target: m.target,
     interval: formatInterval(m.intervalSeconds),
-    channel: 'Assign channel',
     tags: m.tags,
   }))
 }

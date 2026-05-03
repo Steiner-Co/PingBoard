@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/auth'
 const ROUTE_TITLES: Record<string, string> = {
   '/admin': 'Dashboard',
   '/admin/monitors/new': 'Add monitor',
+  '/admin/incidents': 'Incidents',
   '/admin/channels': 'Channels',
   '/admin/pages': 'Status pages',
   '/admin/settings': 'Settings',
