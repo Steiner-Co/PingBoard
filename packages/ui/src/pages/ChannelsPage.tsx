@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { PlusSignIcon, TestTube02Icon, Delete02Icon } from '@hugeicons/core-free-icons'
+import { PlusSignIcon, TestTube02Icon, Delete02Icon, Edit02Icon } from '@hugeicons/core-free-icons'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -29,6 +29,7 @@ import type { ChannelType, NotificationChannel } from '@/types'
 export function ChannelsPage() {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
+  const [editing, setEditing] = useState<NotificationChannel | null>(null)
 
   const channels = useQuery({
     queryKey: ['channels'],
@@ -102,6 +103,14 @@ export function ChannelsPage() {
                       </Button>
                       <Button
                         size="sm"
+                        variant="outline"
+                        onClick={() => setEditing(c)}
+                      >
+                        <HugeiconsIcon icon={Edit02Icon} className="h-3 w-3" />
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
                         variant="ghost"
                         onClick={() => {
                           if (confirm(`Delete channel "${c.name}"?`)) {
@@ -125,26 +134,60 @@ export function ChannelsPage() {
       </Card>
 
       <ChannelDialog open={open} onClose={() => setOpen(false)} />
+      <ChannelDialog
+        open={!!editing}
+        onClose={() => setEditing(null)}
+        editing={editing}
+      />
     </div>
   )
 }
 
-function ChannelDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+function ChannelDialog({
+  open,
+  onClose,
+  editing,
+}: {
+  open: boolean
+  onClose: () => void
+  editing?: NotificationChannel | null
+}) {
   const queryClient = useQueryClient()
   const [name, setName] = useState('')
   const [type, setType] = useState<ChannelType>('webhook')
   const [config, setConfig] = useState<Record<string, string>>({})
+  const [enabled, setEnabled] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const isEdit = !!editing
 
   const reset = () => {
     setName('')
     setType('webhook')
     setConfig({})
+    setEnabled(true)
     setError(null)
   }
 
-  const create = useMutation({
-    mutationFn: (payload: object) => api.post('/api/admin/channels', payload),
+  // Hydrate from the editing target whenever it changes (and reset when the
+  // dialog moves back into create mode).
+  useEffect(() => {
+    if (editing) {
+      setName(editing.name)
+      setType(editing.type)
+      setConfig(configToFormState(editing.config))
+      setEnabled(editing.enabled)
+      setError(null)
+    } else {
+      reset()
+    }
+  }, [editing])
+
+  const save = useMutation({
+    mutationFn: (payload: object) =>
+      editing
+        ? api.patch(`/api/admin/channels/${editing.id}`, payload)
+        : api.post('/api/admin/channels', payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['channels'] })
       reset()
@@ -160,16 +203,28 @@ function ChannelDialog({ open, onClose }: { open: boolean; onClose: () => void }
       setError(cfg.error)
       return
     }
-    create.mutate({ name: name.trim(), type, config: cfg.value, enabled: true })
+    save.mutate({ name: name.trim(), type, config: cfg.value, enabled })
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && (reset(), onClose())}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) {
+          reset()
+          onClose()
+        }
+      }}
+    >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add notification channel</DialogTitle>
+          <DialogTitle>
+            {isEdit ? `Edit ${editing!.name}` : 'Add notification channel'}
+          </DialogTitle>
           <DialogDescription>
-            Channels can be linked to one or more monitors.
+            {isEdit
+              ? 'Type cannot be changed after creation; delete and recreate to switch.'
+              : 'Channels can be linked to one or more monitors.'}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -184,7 +239,14 @@ function ChannelDialog({ open, onClose }: { open: boolean; onClose: () => void }
           </div>
           <div className="space-y-2">
             <Label>Type</Label>
-            <Select value={type} onValueChange={(v) => { setType(v as ChannelType); setConfig({}) }}>
+            <Select
+              value={type}
+              onValueChange={(v) => {
+                setType(v as ChannelType)
+                setConfig({})
+              }}
+              disabled={isEdit}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -198,17 +260,37 @@ function ChannelDialog({ open, onClose }: { open: boolean; onClose: () => void }
             </Select>
           </div>
           <ConfigFields type={type} config={config} setConfig={setConfig} />
+          {isEdit && (
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={enabled}
+                onChange={(e) => setEnabled(e.target.checked)}
+                className="h-4 w-4 rounded border-input"
+              />
+              Enabled (receives notifications)
+            </label>
+          )}
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!name.trim() || create.isPending}>
-            {create.isPending ? 'Creating…' : 'Create channel'}
+          <Button onClick={handleSubmit} disabled={!name.trim() || save.isPending}>
+            {save.isPending ? 'Saving…' : isEdit ? 'Save changes' : 'Create channel'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   )
+}
+
+function configToFormState(config: Record<string, unknown>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [k, v] of Object.entries(config)) {
+    if (v == null) continue
+    out[k] = typeof v === 'string' ? v : String(v)
+  }
+  return out
 }
 
 function ConfigFields({
