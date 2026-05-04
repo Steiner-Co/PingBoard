@@ -146,11 +146,59 @@ function MitBadge() {
   )
 }
 
+function ExpiryBadges() {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="inline-flex items-center gap-1 rounded-sm border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[0.625rem] text-amber-700 dark:text-amber-400">
+        SSL · 12 days
+      </span>
+      <span className="inline-flex items-center gap-1 rounded-sm border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-[0.625rem] text-success">
+        Domain · 287 days
+      </span>
+    </div>
+  )
+}
+
+function PushSnippet() {
+  return (
+    <div className="rounded-sm border border-border/60 bg-background/40 px-2 py-1.5 font-mono text-[0.625rem] leading-relaxed">
+      <div>
+        <span className="text-success">$</span>{' '}
+        <span className="text-[oklch(0.68_0.18_300)]">curl</span>
+        <span className="text-muted-foreground"> -X POST </span>
+        <span className="text-foreground/85">/api/push/</span>
+        <span className="text-muted-foreground">k7…b3</span>
+      </div>
+      <div className="text-muted-foreground">→ heartbeat received · 10s grace</div>
+    </div>
+  )
+}
+
+function MaintenanceBar() {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-[0.625rem] font-mono text-muted-foreground">
+        <span>Sat 02:00</span>
+        <span>04:00</span>
+      </div>
+      <div className="relative h-2 rounded-sm border border-amber-500/40 bg-amber-500/10 overflow-hidden">
+        <div className="absolute inset-y-0 left-1/3 right-1/3 bg-amber-500/30" />
+      </div>
+      <div className="flex items-center gap-1.5">
+        <span className="rounded-sm bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] uppercase tracking-wide text-amber-700 dark:text-amber-400">
+          In progress
+        </span>
+        <span className="text-[0.625rem] text-muted-foreground">alerts suppressed</span>
+      </div>
+    </div>
+  )
+}
+
 const features: Array<{ n: string; title: string; body: string; demo: ReactNode }> = [
   {
     n: '01',
     title: 'HTTP & HTTPS monitors.',
-    body: 'Watch any URL. Status codes, response time, certificate expiry — checked from your own infra.',
+    body: 'Watch any URL. Status codes, response time, redirects, headers — checked from your own infra.',
     demo: <MethodPills />,
   },
   {
@@ -167,36 +215,54 @@ const features: Array<{ n: string; title: string; body: string; demo: ReactNode 
   },
   {
     n: '04',
+    title: 'SSL & domain expiry.',
+    body: 'Get warned 14 days before a cert lapses, 30 before a domain. Connects directly, parses the truth — no third party.',
+    demo: <ExpiryBadges />,
+  },
+  {
+    n: '05',
+    title: 'Push / heartbeat monitors.',
+    body: 'Cron jobs and queue workers ping PingBoard. Miss the deadline, page on-call. Zero polling, zero infra.',
+    demo: <PushSnippet />,
+  },
+  {
+    n: '06',
+    title: 'Maintenance windows.',
+    body: 'Schedule downtime in advance — alerts stay silent, the public page shows a banner so customers see it coming.',
+    demo: <MaintenanceBar />,
+  },
+  {
+    n: '07',
     title: 'Five notification channels.',
     body: 'Email, webhook, Discord, Slack, ntfy. Per-monitor routing with quiet hours.',
     demo: <ChannelIcons />,
   },
   {
-    n: '05',
+    n: '08',
     title: 'Public status pages.',
     body: 'Multiple pages per instance. Custom slugs, optional passwords, themeable per visitor.',
     demo: <FakeUrlBar />,
   },
   {
-    n: '06',
+    n: '09',
     title: 'Real-time dashboard.',
     body: 'No polling. Heartbeats stream over SSE — the dashboard updates the moment a check resolves.',
     demo: <Sparkline />,
   },
   {
-    n: '07',
+    n: '10',
     title: 'Themeable everywhere.',
     body: 'Light, dark, and system themes — for the dashboard and every public status page.',
     demo: <ThemeChips />,
   },
   {
-    n: '08',
+    n: '11',
     title: 'Single binary, single file.',
     body: 'One container, one SQLite file, one port. No Redis, no queue, no external services.',
     demo: <DockerLine />,
   },
   {
-    n: '09',
+    n: '12',
     title: 'Self-hosted, MIT.',
     body: 'Your data, your infra, your terms. Open source — fork it, ship it, run it forever.',
     demo: <MitBadge />,

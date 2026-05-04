@@ -1,11 +1,11 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-type SnippetKey = 'monitor' | 'channel' | 'page' | 'realtime'
+type SnippetKey = 'monitor' | 'expiry' | 'push' | 'maintenance' | 'channel' | 'page' | 'realtime'
 
 const snippets: Record<SnippetKey, { label: string; body: string; code: string }> = {
   monitor: {
     label: 'Monitors',
-    body: 'Five built-in check types — HTTP, TCP, ping, DNS, keyword. Each version-controllable as JSON.',
+    body: 'Eight built-in check types — HTTP, TCP, ping, DNS, keyword, SSL, domain, push. Each version-controllable as JSON.',
     code: `import { createMonitor } from '@pingboard/core'
 
 await createMonitor({
@@ -16,6 +16,47 @@ await createMonitor({
   timeoutSeconds: 5,
   expect: { status: 200, keyword: '"ok":true' },
   channels: ['ops-discord', 'pager-webhook'],
+})`,
+  },
+  expiry: {
+    label: 'SSL & domain',
+    body: 'Catch expiring certs and domains before they bite. Configurable warning thresholds, no third party in the path.',
+    code: `await createMonitor({
+  name: 'example.com cert',
+  type: 'ssl',
+  url: 'https://example.com',
+  config: { warningDays: 14, criticalDays: 3 },
+})
+
+await createMonitor({
+  name: 'example.com domain',
+  type: 'domain',
+  target: 'example.com',
+  config: { warningDays: 30, criticalDays: 7 },
+})`,
+  },
+  push: {
+    label: 'Push / heartbeat',
+    body: 'Cron jobs and workers ping PingBoard. Miss the deadline (interval + grace) and an incident opens automatically.',
+    code: `await createMonitor({
+  name: 'nightly-backup',
+  type: 'push',
+  intervalSeconds: 3600,
+  config: { graceSeconds: 300 },
+})
+
+// In your job:
+// curl -X POST https://status.acme.dev/api/push/<token>`,
+  },
+  maintenance: {
+    label: 'Maintenance',
+    body: 'Plan downtime ahead of time — alerts stay silent, the public status page shows a banner so customers see it coming.',
+    code: `await scheduleMaintenanceWindow({
+  monitorId: 'db-primary',
+  title: 'Database upgrade',
+  description: 'Routine version bump',
+  startsAt: '2026-05-09T02:00:00Z',
+  endsAt:   '2026-05-09T04:00:00Z',
 })`,
   },
   channel: {

@@ -1,15 +1,30 @@
 const columns = [
   {
     label: 'Monitors',
-    items: ['HTTP / HTTPS / TCP / Ping / DNS', 'Keyword & JSON-path assertions', 'Per-monitor retry & timeout', 'Tagging & grouping'],
+    items: [
+      'HTTP / TCP / Ping / DNS / Keyword',
+      'SSL & domain expiry warnings',
+      'Push / heartbeat for cron jobs',
+      'Tagging, grouping, retries',
+    ],
   },
   {
     label: 'Status pages',
-    items: ['Multiple pages per instance', 'Custom slugs & passwords', 'Theme override per visitor', 'Editable after creation'],
+    items: [
+      'Multiple pages per instance',
+      'Custom slugs & passwords',
+      'Theme override per visitor',
+      'Maintenance windows banner',
+    ],
   },
   {
     label: 'Notifications',
-    items: ['Email / webhook / Discord / Slack / ntfy', 'Per-monitor channel routing', 'Down + recovery events', 'Quiet hours'],
+    items: [
+      'Email / webhook / Discord / Slack / ntfy',
+      'Per-monitor channel routing',
+      'Down + recovery events',
+      'Suppressed during maintenance',
+    ],
   },
 ]
 
@@ -76,20 +91,28 @@ function MockDashboard() {
           <div className="mt-3 space-y-1.5">
             {[
               ['api.example.com', 'up', '128ms'],
-              ['cdn.example.com', 'up', '54ms'],
-              ['db-primary', 'degraded', '412ms'],
-              ['mail.example.com', 'up', '203ms'],
+              ['nightly-backup', 'push', 'last 23m ago'],
+              ['db-primary', 'maintenance', '—'],
+              ['example.com cert', 'expiry', '12 days'],
             ].map(([name, status, latency]) => (
               <div
                 key={name}
                 className="flex items-center justify-between rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-[0.6875rem]"
               >
                 <div className="flex items-center gap-2">
-                  <span
-                    className={`inline-block h-1.5 w-1.5 rounded-full ${
-                      status === 'up' ? 'bg-success' : 'bg-chart-2'
-                    }`}
-                  />
+                  {status === 'maintenance' ? (
+                    <span className="rounded-sm bg-amber-500/15 px-1.5 py-px text-[0.5625rem] uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                      Maint
+                    </span>
+                  ) : status === 'expiry' ? (
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  ) : (
+                    <span
+                      className={`inline-block h-1.5 w-1.5 rounded-full ${
+                        status === 'up' || status === 'push' ? 'bg-success' : 'bg-chart-2'
+                      }`}
+                    />
+                  )}
                   <span className="text-foreground/80">{name}</span>
                 </div>
                 <div className="text-muted-foreground">{latency}</div>

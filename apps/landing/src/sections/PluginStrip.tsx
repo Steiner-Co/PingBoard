@@ -1,4 +1,14 @@
-const monitors = ['HTTP', 'HTTPS', 'TCP', 'Ping', 'DNS', 'Keyword', 'JSON-path', 'Cert expiry']
+const monitors = [
+  'HTTP(S)',
+  'TCP',
+  'Ping',
+  'DNS',
+  'Keyword',
+  'JSON-path',
+  'SSL expiry',
+  'Domain expiry',
+  'Push / heartbeat',
+]
 const channels = ['Email / SMTP', 'Webhook', 'Discord', 'Slack', 'ntfy']
 
 function Pill({ label, badge }: { label: string; badge: string }) {
