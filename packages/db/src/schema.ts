@@ -162,6 +162,28 @@ export const statusPageMonitors = sqliteTable(
   }),
 )
 
+export const maintenanceWindows = sqliteTable(
+  'maintenance_windows',
+  {
+    id: uuid().primaryKey(),
+    monitorId: text('monitor_id')
+      .notNull()
+      .references(() => monitors.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    description: text('description'),
+    startsAt: timestamp('starts_at'),
+    endsAt: timestamp('ends_at'),
+    createdAt: timestamp('created_at').default(now),
+  },
+  (t) => ({
+    monitorTimeIdx: index('maintenance_windows_monitor_time_idx').on(
+      t.monitorId,
+      t.startsAt,
+      t.endsAt,
+    ),
+  }),
+)
+
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),
@@ -182,4 +204,6 @@ export type NewNotificationChannel = typeof notificationChannels.$inferInsert
 export type StatusPage = typeof statusPages.$inferSelect
 export type NewStatusPage = typeof statusPages.$inferInsert
 export type StatusPageMonitor = typeof statusPageMonitors.$inferSelect
+export type MaintenanceWindow = typeof maintenanceWindows.$inferSelect
+export type NewMaintenanceWindow = typeof maintenanceWindows.$inferInsert
 export type Setting = typeof settings.$inferSelect

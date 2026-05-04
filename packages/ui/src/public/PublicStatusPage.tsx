@@ -21,6 +21,7 @@ type AdminTheme = 'light' | 'dark' | 'auto'
 interface PublicData {
   page: { slug: string; title: string; description: string | null; theme: AdminTheme }
   monitors: PublicMonitor[]
+  maintenance?: MaintenanceWindow[]
 }
 
 interface PublicMonitor {
@@ -30,6 +31,15 @@ interface PublicMonitor {
   currentStatus: 'up' | 'down' | 'degraded' | 'unknown'
   uptimePct: number | null
   recent: Array<{ checkedAt: string; status: 'up' | 'down' | 'degraded'; responseTimeMs: number | null }>
+}
+
+interface MaintenanceWindow {
+  id: string
+  monitorId: string
+  title: string
+  description: string | null
+  startsAt: string
+  endsAt: string
 }
 
 class GateError extends Error {
@@ -91,9 +101,21 @@ export function PublicStatusPage({ slug }: { slug: string }) {
   }
   if (!query.data) return null
 
-  const { page, monitors } = query.data
+  const { page, monitors, maintenance = [] } = query.data
+  const now = Date.now()
+  const activeMaintenance = maintenance.filter((w) => {
+    const start = new Date(w.startsAt).getTime()
+    const end = new Date(w.endsAt).getTime()
+    return start <= now && end >= now
+  })
+  const upcomingMaintenance = maintenance.filter(
+    (w) => new Date(w.startsAt).getTime() > now,
+  )
+  const inMaintenance = new Set(activeMaintenance.map((w) => w.monitorId))
   const allUp = monitors.length > 0 && monitors.every((m) => m.currentStatus === 'up')
-  const anyDown = monitors.some((m) => m.currentStatus === 'down')
+  const anyDown = monitors.some(
+    (m) => m.currentStatus === 'down' && !inMaintenance.has(m.id),
+  )
 
   const overallText = allUp
     ? 'All systems operational'
@@ -130,6 +152,14 @@ export function PublicStatusPage({ slug }: { slug: string }) {
           <div className="text-sm opacity-90 mt-1">Updated {formatRelative(new Date())}</div>
         </div>
 
+        {(activeMaintenance.length > 0 || upcomingMaintenance.length > 0) && (
+          <MaintenanceBanner
+            active={activeMaintenance}
+            upcoming={upcomingMaintenance}
+            monitors={monitors}
+          />
+        )}
+
         <div className="space-y-8">
           {Object.entries(grouped).map(([group, list]) => (
             <section key={group} className="space-y-3">
@@ -140,7 +170,11 @@ export function PublicStatusPage({ slug }: { slug: string }) {
               )}
               <div className="rounded-xl border bg-card divide-y">
                 {list.map((m) => (
-                  <MonitorRow key={m.id} monitor={m} />
+                  <MonitorRow
+                    key={m.id}
+                    monitor={m}
+                    inMaintenance={inMaintenance.has(m.id)}
+                  />
                 ))}
               </div>
             </section>
@@ -158,7 +192,13 @@ export function PublicStatusPage({ slug }: { slug: string }) {
   )
 }
 
-function MonitorRow({ monitor }: { monitor: PublicMonitor }) {
+function MonitorRow({
+  monitor,
+  inMaintenance,
+}: {
+  monitor: PublicMonitor
+  inMaintenance: boolean
+}) {
   const dotColor =
     monitor.currentStatus === 'up'
       ? 'bg-success'
@@ -180,7 +220,13 @@ function MonitorRow({ monitor }: { monitor: PublicMonitor }) {
     <div className="p-5 flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className={cn('h-2.5 w-2.5 rounded-full', dotColor)} />
+          {inMaintenance ? (
+            <span className="text-[10px] font-medium uppercase tracking-wide rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5">
+              Maintenance
+            </span>
+          ) : (
+            <span className={cn('h-2.5 w-2.5 rounded-full', dotColor)} />
+          )}
           <span className="font-medium">{monitor.name}</span>
         </div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -193,6 +239,57 @@ function MonitorRow({ monitor }: { monitor: PublicMonitor }) {
         </div>
       </div>
       <UptimeBar recent={monitor.recent} />
+    </div>
+  )
+}
+
+function MaintenanceBanner({
+  active,
+  upcoming,
+  monitors,
+}: {
+  active: MaintenanceWindow[]
+  upcoming: MaintenanceWindow[]
+  monitors: PublicMonitor[]
+}) {
+  const monitorName = (id: string) =>
+    monitors.find((m) => m.id === id)?.name ?? 'a monitor'
+  return (
+    <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5 space-y-3">
+      <div className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+        Scheduled maintenance
+      </div>
+      <ul className="space-y-2 text-sm">
+        {active.map((w) => (
+          <li key={w.id} className="space-y-0.5">
+            <div className="font-medium">
+              {w.title}{' '}
+              <span className="text-xs font-normal uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                · in progress
+              </span>
+            </div>
+            <div className="text-muted-foreground text-xs">
+              {monitorName(w.monitorId)} — until{' '}
+              {new Date(w.endsAt).toLocaleString()}
+            </div>
+            {w.description && (
+              <div className="text-muted-foreground text-xs">{w.description}</div>
+            )}
+          </li>
+        ))}
+        {upcoming.map((w) => (
+          <li key={w.id} className="space-y-0.5">
+            <div className="font-medium">{w.title}</div>
+            <div className="text-muted-foreground text-xs">
+              {monitorName(w.monitorId)} — {new Date(w.startsAt).toLocaleString()}{' '}
+              → {new Date(w.endsAt).toLocaleString()}
+            </div>
+            {w.description && (
+              <div className="text-muted-foreground text-xs">{w.description}</div>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

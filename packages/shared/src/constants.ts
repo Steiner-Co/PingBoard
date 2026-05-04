@@ -19,3 +19,23 @@ export const RESERVED_SLUGS = [
 ] as const
 
 export const PUBLIC_RATE_LIMIT_PER_MINUTE = 60
+
+export const ALLOWED_MONITOR_TYPES = [
+  'http',
+  'tcp',
+  'ping',
+  'dns',
+  'ssl',
+  'domain',
+  'push',
+] as const
+
+export const SSL_DEFAULT_WARNING_DAYS = 14
+export const SSL_DEFAULT_CRITICAL_DAYS = 3
+export const SSL_DEFAULT_PORT = 443
+
+export const DOMAIN_DEFAULT_WARNING_DAYS = 30
+export const DOMAIN_DEFAULT_CRITICAL_DAYS = 7
+
+export const PUSH_DEFAULT_GRACE_SECONDS = 30
+export const PUSH_OVERDUE_TICK_MS = 10_000

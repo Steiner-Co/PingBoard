@@ -1,11 +1,14 @@
-import { and, desc, eq, gte } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray } from 'drizzle-orm'
 import type { DB } from '@pingboard/db'
 import {
   heartbeats,
+  maintenanceWindows,
   monitors,
   statusPageMonitors,
   statusPages,
 } from '@pingboard/db'
+import { events, reconcileIncident } from '@pingboard/core'
+import type { CheckResult, PushMonitorConfig } from '@pingboard/shared'
 import { parseCookies, serializeCookie } from '../lib/cookies'
 import { issueToken, pageCookieName, verifyToken } from '../lib/page-auth'
 import { error, json, noContent } from '../lib/responses'
@@ -98,6 +101,28 @@ export async function getStatusPagePublic(
       }),
   )
 
+  const now = new Date()
+  const maintenance =
+    monitorIds.length === 0
+      ? []
+      : await deps.db
+          .select({
+            id: maintenanceWindows.id,
+            monitorId: maintenanceWindows.monitorId,
+            title: maintenanceWindows.title,
+            description: maintenanceWindows.description,
+            startsAt: maintenanceWindows.startsAt,
+            endsAt: maintenanceWindows.endsAt,
+          })
+          .from(maintenanceWindows)
+          .where(
+            and(
+              inArray(maintenanceWindows.monitorId, monitorIds),
+              gte(maintenanceWindows.endsAt, now),
+            ),
+          )
+          .orderBy(maintenanceWindows.startsAt)
+
   return json({
     page: {
       slug: page.slug,
@@ -107,6 +132,7 @@ export async function getStatusPagePublic(
     },
     monitors: data,
     monitorIds,
+    maintenance,
   })
 }
 
@@ -179,4 +205,65 @@ export async function authStatusPagePublic(
     secure: deps.secureCookies,
   })
   return noContent({ 'set-cookie': cookie })
+}
+
+export async function handlePushHeartbeat(
+  token: string,
+  req: Request,
+  deps: { db: DB },
+): Promise<Response> {
+  if (!/^[a-zA-Z0-9_-]{16,128}$/.test(token)) {
+    return error(404, 'Unknown push token')
+  }
+
+  // Push monitors are rare; loading all is fine. (SQLite, in-process,
+  // typical instance has <100 monitors.)
+  const pushMonitors = await deps.db
+    .select()
+    .from(monitors)
+    .where(eq(monitors.type, 'push'))
+  const monitor = pushMonitors.find(
+    (m) => (m.config as PushMonitorConfig | null)?.token === token,
+  )
+  if (!monitor) return error(404, 'Unknown push token')
+  if (monitor.paused) return json({ ok: true, paused: true })
+
+  let body: { status?: unknown; message?: unknown; responseTimeMs?: unknown } = {}
+  if (req.headers.get('content-length') !== '0' && req.method !== 'GET') {
+    try {
+      body = (await req.json()) as typeof body
+    } catch {
+      // Ignore — empty / non-JSON bodies are valid; default to 'up'.
+    }
+  }
+
+  const status: CheckResult['status'] =
+    body.status === 'down' || body.status === 'degraded' ? body.status : 'up'
+  const message =
+    typeof body.message === 'string' && body.message.length <= 500
+      ? body.message
+      : null
+  const responseTimeMs =
+    typeof body.responseTimeMs === 'number' && Number.isFinite(body.responseTimeMs)
+      ? Math.max(0, Math.round(body.responseTimeMs))
+      : null
+
+  const result: CheckResult = {
+    status,
+    responseTimeMs,
+    statusCode: null,
+    message,
+    checkedAt: new Date(),
+  }
+  await deps.db.insert(heartbeats).values({
+    monitorId: monitor.id,
+    status: result.status,
+    responseTimeMs: result.responseTimeMs,
+    statusCode: result.statusCode,
+    message: result.message,
+    checkedAt: result.checkedAt,
+  })
+  events.emit('heartbeat', { monitorId: monitor.id, result })
+  await reconcileIncident(deps.db, monitor.id, result)
+  return json({ ok: true })
 }

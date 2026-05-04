@@ -1,4 +1,11 @@
-export type MonitorType = 'http' | 'tcp' | 'ping' | 'dns'
+export type MonitorType =
+  | 'http'
+  | 'tcp'
+  | 'ping'
+  | 'dns'
+  | 'ssl'
+  | 'domain'
+  | 'push'
 export type CheckStatus = 'up' | 'down' | 'degraded'
 export type ChannelType = 'email' | 'webhook' | 'discord' | 'slack' | 'ntfy'
 export type Theme = 'light' | 'dark' | 'auto'

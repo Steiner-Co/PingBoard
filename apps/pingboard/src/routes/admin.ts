@@ -3,16 +3,23 @@ import type { DB } from '@pingboard/db'
 import {
   heartbeats,
   incidents,
+  maintenanceWindows,
   monitorChannels,
   monitors,
   notificationChannels,
   statusPageMonitors,
   statusPages,
+  type NewMaintenanceWindow,
   type NewMonitor,
   type NewNotificationChannel,
   type NewStatusPage,
 } from '@pingboard/db'
-import { ALLOWED_INTERVALS_SECONDS, RESERVED_SLUGS } from '@pingboard/shared'
+import {
+  ALLOWED_INTERVALS_SECONDS,
+  ALLOWED_MONITOR_TYPES,
+  RESERVED_SLUGS,
+  type MonitorType,
+} from '@pingboard/shared'
 import { Scheduler, sendTest } from '@pingboard/core'
 import { error, json, noContent } from '../lib/responses'
 import { revokeTokensForPage } from '../lib/page-auth'
@@ -488,13 +495,157 @@ export async function deleteStatusPage(id: string, deps: AdminDeps): Promise<Res
   return noContent()
 }
 
+// ─────────────────────── Maintenance windows ────────────────────────
+
+export async function listMaintenanceWindows(
+  req: Request,
+  deps: AdminDeps,
+): Promise<Response> {
+  const url = new URL(req.url)
+  const monitorId = url.searchParams.get('monitorId')
+  const rows = monitorId
+    ? await deps.db
+        .select()
+        .from(maintenanceWindows)
+        .where(eq(maintenanceWindows.monitorId, monitorId))
+        .orderBy(desc(maintenanceWindows.startsAt))
+    : await deps.db
+        .select()
+        .from(maintenanceWindows)
+        .orderBy(desc(maintenanceWindows.startsAt))
+  return json({ windows: rows })
+}
+
+export async function createMaintenanceWindow(
+  req: Request,
+  deps: AdminDeps,
+): Promise<Response> {
+  const body = await safeJson(req)
+  if (!body) return error(400, 'Invalid JSON body')
+  const validation = validateMaintenanceWindowPayload(body)
+  if ('error' in validation) return error(400, validation.error)
+
+  const [monitor] = await deps.db
+    .select({ id: monitors.id })
+    .from(monitors)
+    .where(eq(monitors.id, validation.monitorId))
+  if (!monitor) return error(404, 'Monitor not found')
+
+  const id = crypto.randomUUID()
+  const window: NewMaintenanceWindow = {
+    id,
+    monitorId: validation.monitorId,
+    title: validation.title,
+    description: validation.description,
+    startsAt: validation.startsAt,
+    endsAt: validation.endsAt,
+  }
+  await deps.db.insert(maintenanceWindows).values(window)
+  const [created] = await deps.db
+    .select()
+    .from(maintenanceWindows)
+    .where(eq(maintenanceWindows.id, id))
+  return json({ window: created }, { status: 201 })
+}
+
+export async function updateMaintenanceWindow(
+  id: string,
+  req: Request,
+  deps: AdminDeps,
+): Promise<Response> {
+  const body = await safeJson(req)
+  if (!body) return error(400, 'Invalid JSON body')
+  const [existing] = await deps.db
+    .select()
+    .from(maintenanceWindows)
+    .where(eq(maintenanceWindows.id, id))
+  if (!existing) return error(404, 'Maintenance window not found')
+
+  const merged = {
+    monitorId: existing.monitorId,
+    title: existing.title,
+    description: existing.description,
+    startsAt: existing.startsAt.toISOString(),
+    endsAt: existing.endsAt.toISOString(),
+    ...body,
+  }
+  const validation = validateMaintenanceWindowPayload(merged)
+  if ('error' in validation) return error(400, validation.error)
+
+  await deps.db
+    .update(maintenanceWindows)
+    .set({
+      title: validation.title,
+      description: validation.description,
+      startsAt: validation.startsAt,
+      endsAt: validation.endsAt,
+    })
+    .where(eq(maintenanceWindows.id, id))
+  const [updated] = await deps.db
+    .select()
+    .from(maintenanceWindows)
+    .where(eq(maintenanceWindows.id, id))
+  return json({ window: updated })
+}
+
+export async function deleteMaintenanceWindow(
+  id: string,
+  deps: AdminDeps,
+): Promise<Response> {
+  await deps.db.delete(maintenanceWindows).where(eq(maintenanceWindows.id, id))
+  return noContent()
+}
+
+function validateMaintenanceWindowPayload(body: Record<string, unknown>):
+  | { error: string }
+  | {
+      monitorId: string
+      title: string
+      description: string | null
+      startsAt: Date
+      endsAt: Date
+    } {
+  const monitorId = String(body.monitorId ?? '').trim()
+  const title = String(body.title ?? '').trim()
+  const description =
+    typeof body.description === 'string' && body.description.trim()
+      ? body.description.trim()
+      : null
+  if (!monitorId) return { error: 'monitorId required' }
+  if (!title) return { error: 'title required' }
+  if (title.length > 200) return { error: 'title must be 200 characters or fewer' }
+
+  const startsAt = parseDate(body.startsAt)
+  const endsAt = parseDate(body.endsAt)
+  if (!startsAt) return { error: 'startsAt must be an ISO date' }
+  if (!endsAt) return { error: 'endsAt must be an ISO date' }
+  if (endsAt.getTime() <= startsAt.getTime()) {
+    return { error: 'endsAt must be after startsAt' }
+  }
+
+  return { monitorId, title, description, startsAt, endsAt }
+}
+
+function parseDate(input: unknown): Date | null {
+  if (input instanceof Date) return Number.isNaN(input.getTime()) ? null : input
+  if (typeof input === 'string') {
+    const d = new Date(input)
+    return Number.isNaN(d.getTime()) ? null : d
+  }
+  if (typeof input === 'number') {
+    const d = new Date(input)
+    return Number.isNaN(d.getTime()) ? null : d
+  }
+  return null
+}
+
 // ─────────────────────── Helpers ───────────────────────
 
 function validateMonitorPayload(body: Record<string, unknown>):
   | { error: string }
   | {
       name: string
-      type: 'http' | 'tcp' | 'ping' | 'dns'
+      type: MonitorType
       target: string
       intervalSeconds: number
       timeoutSeconds: number
@@ -503,7 +654,7 @@ function validateMonitorPayload(body: Record<string, unknown>):
       tags: string[]
     } {
   const name = String(body.name ?? '').trim()
-  const type = String(body.type ?? '') as 'http' | 'tcp' | 'ping' | 'dns'
+  const type = String(body.type ?? '') as MonitorType
   const target = String(body.target ?? '').trim()
   const intervalSeconds = Number(body.intervalSeconds ?? 60)
   const timeoutSeconds = Number(body.timeoutSeconds ?? 10)
@@ -514,7 +665,9 @@ function validateMonitorPayload(body: Record<string, unknown>):
 
   if (!name) return { error: 'Name required' }
   if (name.length > 200) return { error: 'Name must be 200 characters or fewer' }
-  if (!['http', 'tcp', 'ping', 'dns'].includes(type)) return { error: 'Invalid monitor type' }
+  if (!(ALLOWED_MONITOR_TYPES as readonly string[]).includes(type)) {
+    return { error: 'Invalid monitor type' }
+  }
   if (!target) return { error: 'Target required' }
   if (target.length > 2048) return { error: 'Target must be 2048 characters or fewer' }
   if (!(ALLOWED_INTERVALS_SECONDS as readonly number[]).includes(intervalSeconds)) {
@@ -527,6 +680,12 @@ function validateMonitorPayload(body: Record<string, unknown>):
     return { error: 'retryCount must be between 0 and 5' }
   }
 
+  // Push monitors need a server-generated token; preserve any existing token
+  // on update, otherwise mint a fresh one.
+  if (type === 'push' && typeof config.token !== 'string') {
+    config.token = generatePushToken()
+  }
+
   return {
     name,
     type,
@@ -537,6 +696,12 @@ function validateMonitorPayload(body: Record<string, unknown>):
     config,
     tags: tagsResult.value,
   }
+}
+
+function generatePushToken(): string {
+  const bytes = new Uint8Array(24)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 function normalizeTags(input: unknown): { value: string[] } | { error: string } {

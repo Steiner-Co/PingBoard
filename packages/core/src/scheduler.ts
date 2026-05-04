@@ -26,6 +26,8 @@ export class Scheduler {
     if (this.draining) return
     this.stop(monitor.id)
     if (monitor.paused) return
+    // Push monitors are driven by external heartbeats, never polled.
+    if (monitor.type === 'push') return
 
     const entry: ScheduledMonitor = {
       monitor,

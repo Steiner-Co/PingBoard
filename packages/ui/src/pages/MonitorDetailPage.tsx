@@ -241,6 +241,10 @@ export function MonitorDetailPage() {
         </CardContent>
       </Card>
 
+      {monitor.type === 'push' && <PushUrlCard monitor={monitor} />}
+
+      <MaintenanceWindowsCard monitorId={monitor.id} />
+
       <Card>
         <CardHeader>
           <CardTitle>Incidents</CardTitle>
@@ -455,4 +459,243 @@ function IncidentRow({
       </TableCell>
     </TableRow>
   )
+}
+
+function PushUrlCard({ monitor }: { monitor: Monitor }) {
+  const token =
+    typeof monitor.config.token === 'string' ? monitor.config.token : null
+  const url = token ? `${window.location.origin}/api/push/${token}` : null
+  const [copied, setCopied] = useState(false)
+
+  if (!url) return null
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Push endpoint</CardTitle>
+        <CardDescription>
+          Have your job POST to this URL on every successful run. PingBoard
+          marks the monitor down if it doesn't hear from you within the check
+          interval (plus grace period).
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-center gap-2">
+          <code className="flex-1 rounded-md bg-muted px-3 py-2 text-sm font-mono break-all">
+            {url}
+          </code>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              void navigator.clipboard.writeText(url)
+              setCopied(true)
+              setTimeout(() => setCopied(false), 1500)
+            }}
+          >
+            {copied ? 'Copied' : 'Copy'}
+          </Button>
+        </div>
+        <pre className="text-xs text-muted-foreground bg-muted/50 rounded-md p-3 overflow-x-auto">
+          {`curl -X POST ${url}`}
+        </pre>
+      </CardContent>
+    </Card>
+  )
+}
+
+interface MaintenanceWindowRow {
+  id: string
+  monitorId: string
+  title: string
+  description: string | null
+  startsAt: string
+  endsAt: string
+}
+
+function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
+  const queryClient = useQueryClient()
+  const [adding, setAdding] = useState(false)
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [startsAt, setStartsAt] = useState(localDatetimeNow())
+  const [endsAt, setEndsAt] = useState(localDatetimePlus(60))
+  const [error, setError] = useState<string | null>(null)
+
+  const list = useQuery({
+    queryKey: ['maintenance', monitorId],
+    queryFn: () =>
+      api.get<{ windows: MaintenanceWindowRow[] }>(
+        `/api/admin/maintenance-windows?monitorId=${monitorId}`,
+      ),
+  })
+
+  const create = useMutation({
+    mutationFn: (payload: object) =>
+      api.post('/api/admin/maintenance-windows', payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['maintenance', monitorId] })
+      setAdding(false)
+      setTitle('')
+      setDescription('')
+      setStartsAt(localDatetimeNow())
+      setEndsAt(localDatetimePlus(60))
+      setError(null)
+    },
+    onError: (err) => setError(err instanceof Error ? err.message : 'Failed'),
+  })
+
+  const remove = useMutation({
+    mutationFn: (id: string) => api.delete(`/api/admin/maintenance-windows/${id}`),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['maintenance', monitorId] }),
+  })
+
+  const submit = () => {
+    setError(null)
+    if (!title.trim()) {
+      setError('Title required')
+      return
+    }
+    create.mutate({
+      monitorId,
+      title: title.trim(),
+      description: description.trim() || null,
+      startsAt: new Date(startsAt).toISOString(),
+      endsAt: new Date(endsAt).toISOString(),
+    })
+  }
+
+  const windows = list.data?.windows ?? []
+  const now = Date.now()
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between gap-4">
+        <div>
+          <CardTitle>Maintenance windows</CardTitle>
+          <CardDescription>
+            Suppress alerts during scheduled downtime. The status page shows a
+            banner; heartbeats are still recorded honestly.
+          </CardDescription>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => setAdding((v) => !v)}>
+          {adding ? 'Cancel' : 'Schedule'}
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {adding && (
+          <div className="rounded-md border bg-muted/30 p-4 space-y-3">
+            <Input
+              placeholder="Title (e.g. Database upgrade)"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+            <Input
+              placeholder="Description (optional)"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="text-xs text-muted-foreground space-y-1">
+                Start
+                <Input
+                  type="datetime-local"
+                  value={startsAt}
+                  onChange={(e) => setStartsAt(e.target.value)}
+                />
+              </label>
+              <label className="text-xs text-muted-foreground space-y-1">
+                End
+                <Input
+                  type="datetime-local"
+                  value={endsAt}
+                  onChange={(e) => setEndsAt(e.target.value)}
+                />
+              </label>
+            </div>
+            {error && <div className="text-sm text-destructive">{error}</div>}
+            <div className="flex justify-end">
+              <Button size="sm" onClick={submit} disabled={create.isPending}>
+                Save window
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {windows.length === 0 ? (
+          !adding && (
+            <div className="text-sm text-muted-foreground">
+              No maintenance windows scheduled.
+            </div>
+          )
+        ) : (
+          <div className="divide-y">
+            {windows.map((w) => {
+              const start = new Date(w.startsAt).getTime()
+              const end = new Date(w.endsAt).getTime()
+              const isActive = start <= now && end >= now
+              const isPast = end < now
+              return (
+                <div
+                  key={w.id}
+                  className="py-3 flex items-start justify-between gap-4"
+                >
+                  <div>
+                    <div className="font-medium flex items-center gap-2">
+                      {w.title}
+                      {isActive && (
+                        <span className="text-[10px] uppercase tracking-wide rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 px-2 py-0.5">
+                          In progress
+                        </span>
+                      )}
+                      {isPast && (
+                        <span className="text-[10px] uppercase tracking-wide rounded-full bg-muted text-muted-foreground px-2 py-0.5">
+                          Past
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {new Date(w.startsAt).toLocaleString()} →{' '}
+                      {new Date(w.endsAt).toLocaleString()}
+                    </div>
+                    {w.description && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {w.description}
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      if (confirm(`Delete maintenance window "${w.title}"?`)) {
+                        remove.mutate(w.id)
+                      }
+                    }}
+                  >
+                    <HugeiconsIcon icon={Delete02Icon} className="h-3 w-3" />
+                  </Button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function localDatetimeNow(): string {
+  return toLocalDatetime(new Date())
+}
+
+function localDatetimePlus(minutes: number): string {
+  return toLocalDatetime(new Date(Date.now() + minutes * 60_000))
+}
+
+function toLocalDatetime(d: Date): string {
+  // datetime-local expects "YYYY-MM-DDTHH:mm" in the browser's local zone.
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }

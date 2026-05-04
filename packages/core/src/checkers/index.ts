@@ -4,12 +4,18 @@ import { checkHttp } from './http'
 import { checkTcp } from './tcp'
 import { checkPing } from './ping'
 import { checkDns } from './dns'
+import { checkSsl } from './ssl'
+import { checkDomain } from './domain'
+import { checkPush } from './push'
 
 const checkers: Record<MonitorType, (m: Monitor) => Promise<CheckResult>> = {
   http: checkHttp,
   tcp: checkTcp,
   ping: checkPing,
   dns: checkDns,
+  ssl: checkSsl,
+  domain: checkDomain,
+  push: checkPush,
 }
 
 export async function runCheck(monitor: Monitor): Promise<CheckResult> {
@@ -26,4 +32,12 @@ export async function runCheck(monitor: Monitor): Promise<CheckResult> {
   return checker(monitor)
 }
 
-export { checkHttp, checkTcp, checkPing, checkDns }
+export {
+  checkHttp,
+  checkTcp,
+  checkPing,
+  checkDns,
+  checkSsl,
+  checkDomain,
+  checkPush,
+}

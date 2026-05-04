@@ -13,6 +13,7 @@ import {
   Scheduler,
   reconcileIncident,
   startNotifier,
+  startPushOverdueJob,
   startRetentionJob,
 } from '@pingboard/core'
 import type { CheckResult } from '@pingboard/shared'
@@ -26,27 +27,32 @@ import {
 } from './routes/auth'
 import {
   createChannel,
+  createMaintenanceWindow,
   createMonitor,
   createStatusPage,
   deleteChannel,
+  deleteMaintenanceWindow,
   deleteMonitor,
   deleteStatusPage,
   getMonitor,
   getStatusPage,
   listChannels,
   listIncidents,
+  listMaintenanceWindows,
   listMonitors,
   listStatusPages,
   resolveIncident,
   testChannel,
   updateChannel,
   updateIncident,
+  updateMaintenanceWindow,
   updateMonitor,
   updateStatusPage,
 } from './routes/admin'
 import {
   authStatusPagePublic,
   getStatusPagePublic,
+  handlePushHeartbeat,
   streamStatusPagePublic,
 } from './routes/public'
 import { changePassword, getSettings, updateSettings } from './routes/settings'
@@ -84,6 +90,7 @@ async function main() {
 
   const notifier = startNotifier(db, { baseUrl: config.baseUrl })
   const retention = startRetentionJob(db)
+  const pushOverdue = startPushOverdueJob(db)
 
   const secureCookies = (config.baseUrl ?? '').startsWith('https://')
   const authDeps = { db, secureCookies }
@@ -183,6 +190,21 @@ async function main() {
             return updateIncident(incidentMatch[1], req, adminDeps)
           }
 
+          // Maintenance windows
+          if (path === '/api/admin/maintenance-windows' && method === 'GET')
+            return listMaintenanceWindows(req, adminDeps)
+          if (path === '/api/admin/maintenance-windows' && method === 'POST')
+            return createMaintenanceWindow(req, adminDeps)
+          const mwMatch = path.match(
+            /^\/api\/admin\/maintenance-windows\/([\w-]+)$/,
+          )
+          if (mwMatch?.[1]) {
+            const id = mwMatch[1]
+            if (method === 'PATCH' || method === 'PUT')
+              return updateMaintenanceWindow(id, req, adminDeps)
+            if (method === 'DELETE') return deleteMaintenanceWindow(id, adminDeps)
+          }
+
           // Status pages
           if (path === '/api/admin/pages' && method === 'GET')
             return listStatusPages(adminDeps)
@@ -198,6 +220,15 @@ async function main() {
           }
 
           return error(404, 'Not found')
+        }
+
+        // ───────── Push ingest (no auth — token is the secret) ─────────
+        const pushMatch = path.match(/^\/api\/push\/([\w-]+)$/)
+        if (pushMatch?.[1] && method === 'POST') {
+          if (!checkRateLimit(`push:${pushMatch[1]}`)) {
+            return error(429, 'Rate limit exceeded')
+          }
+          return handlePushHeartbeat(pushMatch[1], req, { db })
         }
 
         // ───────── Public API ─────────
@@ -263,6 +294,7 @@ async function main() {
     console.log('Shutting down…')
     notifier.stop()
     retention.stop()
+    pushOverdue.stop()
     await scheduler.drain()
     server.stop()
     process.exit(0)

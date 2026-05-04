@@ -1,4 +1,11 @@
-export type MonitorType = 'http' | 'tcp' | 'ping' | 'dns'
+export type MonitorType =
+  | 'http'
+  | 'tcp'
+  | 'ping'
+  | 'dns'
+  | 'ssl'
+  | 'domain'
+  | 'push'
 
 export type CheckStatus = 'up' | 'down' | 'degraded'
 
@@ -42,10 +49,29 @@ export interface DnsMonitorConfig {
   resolver?: string
 }
 
+export interface SslMonitorConfig {
+  warningDays?: number
+  criticalDays?: number
+  port?: number
+}
+
+export interface DomainMonitorConfig {
+  warningDays?: number
+  criticalDays?: number
+}
+
+export interface PushMonitorConfig {
+  token: string
+  graceSeconds?: number
+}
+
 export type MonitorConfig =
   | HttpMonitorConfig
   | TcpMonitorConfig
   | DnsMonitorConfig
+  | SslMonitorConfig
+  | DomainMonitorConfig
+  | PushMonitorConfig
   | Record<string, never>
 
 export interface EmailChannelConfig {

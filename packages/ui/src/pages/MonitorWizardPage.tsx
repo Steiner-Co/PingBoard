@@ -26,13 +26,21 @@ export function MonitorWizardPage() {
   const queryClient = useQueryClient()
   const [step, setStep] = useState(0)
   const [target, setTarget] = useState('')
+  const [typeOverride, setTypeOverride] = useState<MonitorType | 'auto'>('auto')
   const [name, setName] = useState('')
   const [intervalSeconds, setIntervalSeconds] = useState(60)
   const [tags, setTags] = useState<string[]>([])
   const [selectedChannels, setSelectedChannels] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
 
-  const detected = useMemo(() => detectType(target), [target])
+  const autoDetected = useMemo(() => detectType(target), [target])
+  const effectiveType: MonitorType | null =
+    typeOverride === 'auto' ? autoDetected.type : typeOverride
+
+  const effectiveTarget =
+    typeOverride === 'auto' ? autoDetected.target : target.trim()
+  const effectiveConfig =
+    typeOverride === 'auto' ? autoDetected.config : configForType(typeOverride, target.trim())
 
   const channelsQuery = useQuery({
     queryKey: ['channels'],
@@ -40,34 +48,43 @@ export function MonitorWizardPage() {
   })
 
   const createMutation = useMutation({
-    mutationFn: (payload: object) => api.post('/api/admin/monitors', payload),
-    onSuccess: () => {
+    mutationFn: (payload: object) =>
+      api.post<{ monitor: { id: string; type: MonitorType } }>(
+        '/api/admin/monitors',
+        payload,
+      ),
+    onSuccess: (res) => {
       void queryClient.invalidateQueries({ queryKey: ['monitors'] })
-      navigate('/admin')
+      // Push monitors need their generated URL shown to the user immediately.
+      if (res.monitor.type === 'push') {
+        navigate(`/admin/monitors/${res.monitor.id}`)
+      } else {
+        navigate('/admin')
+      }
     },
     onError: (err) => setError(err instanceof Error ? err.message : 'Failed to create'),
   })
 
   const canAdvance = () => {
-    if (step === 0) return Boolean(target.trim() && detected.type)
+    if (step === 0) return Boolean(target.trim() && effectiveType)
     if (step === 1) return Boolean(name.trim())
     return true
   }
 
   const handleSubmit = () => {
     setError(null)
-    if (!detected.type) {
-      setError('Could not detect monitor type from input')
+    if (!effectiveType) {
+      setError('Pick a monitor type to continue')
       return
     }
     createMutation.mutate({
       name: name.trim(),
-      type: detected.type,
-      target: detected.target,
+      type: effectiveType,
+      target: effectiveTarget,
       intervalSeconds,
       timeoutSeconds: 10,
       retryCount: 1,
-      config: detected.config,
+      config: effectiveConfig,
       tags,
       channelIds: selectedChannels,
     })
@@ -83,7 +100,7 @@ export function MonitorWizardPage() {
         <CardHeader>
           <CardTitle>{['What to check?', 'How often?', 'Where to alert?'][step]}</CardTitle>
           <CardDescription>
-            {step === 0 && 'Paste a URL, host, or host:port. Type is auto-detected.'}
+            {step === 0 && 'Paste a URL, host, or host:port. Type is auto-detected, or pick one.'}
             {step === 1 && 'Sensible defaults are pre-filled.'}
             {step === 2 && 'Optional — pick existing channels (or skip).'}
           </CardDescription>
@@ -92,20 +109,47 @@ export function MonitorWizardPage() {
           {step === 0 && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="target">URL or host</Label>
+                <Label htmlFor="target">{targetLabel(effectiveType)}</Label>
                 <Input
                   id="target"
-                  placeholder="https://example.com or db.example.com:5432"
+                  placeholder={targetPlaceholder(effectiveType)}
                   value={target}
                   onChange={(e) => setTarget(e.target.value)}
                   autoFocus
                 />
-                {detected.type && (
+                {typeOverride === 'auto' && autoDetected.type && (
                   <p className="text-xs text-muted-foreground">
-                    Detected: <span className="font-medium uppercase">{detected.type}</span> check on{' '}
-                    <span className="font-mono">{detected.target}</span>
+                    Detected: <span className="font-medium uppercase">{autoDetected.type}</span> check on{' '}
+                    <span className="font-mono">{autoDetected.target}</span>
                   </p>
                 )}
+                {typeOverride === 'push' && (
+                  <p className="text-xs text-muted-foreground">
+                    For push monitors the target is just a label. PingBoard will
+                    generate a unique URL for your job to ping.
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="type-override">Type</Label>
+                <Select
+                  value={typeOverride}
+                  onValueChange={(v) => setTypeOverride(v as MonitorType | 'auto')}
+                >
+                  <SelectTrigger id="type-override">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Auto-detect</SelectItem>
+                    <SelectItem value="http">HTTP(S)</SelectItem>
+                    <SelectItem value="tcp">TCP port</SelectItem>
+                    <SelectItem value="ping">Ping (ICMP)</SelectItem>
+                    <SelectItem value="dns">DNS lookup</SelectItem>
+                    <SelectItem value="ssl">SSL certificate expiry</SelectItem>
+                    <SelectItem value="domain">Domain (WHOIS) expiry</SelectItem>
+                    <SelectItem value="push">Push / heartbeat</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </>
           )}
@@ -115,7 +159,7 @@ export function MonitorWizardPage() {
                 <Label htmlFor="name">Display name</Label>
                 <Input
                   id="name"
-                  placeholder={defaultName(detected.target) ?? 'My monitor'}
+                  placeholder={defaultName(effectiveTarget) ?? 'My monitor'}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   autoFocus
@@ -349,5 +393,59 @@ function defaultName(target: string): string | null {
     return url.hostname
   } catch {
     return target.split(':')[0] ?? target
+  }
+}
+
+function configForType(
+  type: MonitorType,
+  target: string,
+): Record<string, unknown> {
+  if (type === 'tcp') {
+    const match = target.match(/:(\d+)$/)
+    if (match) return { port: Number(match[1]) }
+  }
+  if (type === 'dns') return { recordType: 'A' }
+  return {}
+}
+
+function targetLabel(type: MonitorType | null): string {
+  switch (type) {
+    case 'http':
+      return 'URL'
+    case 'tcp':
+      return 'host:port'
+    case 'ping':
+      return 'IP or hostname'
+    case 'dns':
+      return 'Hostname'
+    case 'ssl':
+      return 'URL or hostname (port optional)'
+    case 'domain':
+      return 'Domain name'
+    case 'push':
+      return 'Label (e.g. nightly-backup)'
+    default:
+      return 'URL or host'
+  }
+}
+
+function targetPlaceholder(type: MonitorType | null): string {
+  switch (type) {
+    case 'http':
+      return 'https://example.com/health'
+    case 'tcp':
+      return 'db.example.com:5432'
+    case 'ping':
+      return '1.1.1.1'
+    case 'dns':
+      return 'example.com'
+    case 'ssl':
+      return 'https://example.com'
+    case 'domain':
+      return 'example.com'
+    case 'push':
+      return 'nightly-backup'
+    default:
+      return 'https://example.com or db.example.com:5432'
   }
 }

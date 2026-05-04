@@ -3,6 +3,7 @@ import type { CheckResult } from '@pingboard/shared'
 import type { DB } from '@pingboard/db'
 import { incidents } from '@pingboard/db'
 import { events } from './events'
+import { isMonitorInMaintenance } from './maintenance'
 
 /**
  * State machine: given a fresh check result, opens or closes incidents.
@@ -23,6 +24,12 @@ export async function reconcileIncident(
   const openIncident = open[0]
 
   if (result.status === 'down' && !openIncident) {
+    // Suppress incident (and therefore notifications) during a planned
+    // maintenance window. The down heartbeat is still recorded honestly
+    // by the caller — only incident creation is gated.
+    if (await isMonitorInMaintenance(db, monitorId, result.checkedAt)) {
+      return
+    }
     const id = crypto.randomUUID()
     const startedAt = result.checkedAt
     await db.insert(incidents).values({

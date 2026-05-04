@@ -82,4 +82,17 @@ describe('Scheduler', () => {
     await scheduler.drain()
     expect(scheduler.has('any')).toBe(false)
   })
+
+  test('push monitors are never started (no polling)', async () => {
+    const calls: string[] = []
+    const scheduler = new Scheduler({
+      onHeartbeat: (id) => void calls.push(id),
+    })
+    const m = monitor({ type: 'push', config: { token: 'abc' } })
+    scheduler.start(m)
+    await wait(50)
+    expect(calls).toEqual([])
+    expect(scheduler.has(m.id)).toBe(false)
+    await scheduler.drain()
+  })
 })
