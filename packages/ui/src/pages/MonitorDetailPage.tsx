@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { toast } from 'sonner'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   ArrowLeft01Icon,
   CheckmarkCircle01Icon,
   Delete02Icon,
   Edit02Icon,
+  MoreVerticalCircle01Icon,
   PauseIcon,
   PlayIcon,
   Settings02Icon,
@@ -22,6 +24,13 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { TagInput } from '@/pages/MonitorWizardPage'
 import {
   ChartContainer,
@@ -31,6 +40,8 @@ import {
 } from '@/components/ui/chart'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { StatusBadge } from '@/components/StatusBadge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useConfirm } from '@/components/confirm-provider'
 import { api } from '@/lib/api'
 import { useSSE } from '@/lib/sse'
 import { formatDuration, formatRelative } from '@/lib/utils'
@@ -54,6 +65,7 @@ export function MonitorDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const confirm = useConfirm()
 
   const query = useQuery({
     queryKey: ['monitor', id],
@@ -72,19 +84,42 @@ export function MonitorDetailPage() {
   const togglePause = useMutation({
     mutationFn: (paused: boolean) =>
       api.patch(`/api/admin/monitors/${id}`, { paused }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['monitor', id] }),
+    onSuccess: (_data, paused) => {
+      queryClient.invalidateQueries({ queryKey: ['monitor', id] })
+      queryClient.invalidateQueries({ queryKey: ['monitors'] })
+      toast.success(paused ? 'Monitor paused' : 'Monitor resumed')
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : 'Failed to update'),
   })
 
   const deleteMutation = useMutation({
     mutationFn: () => api.delete(`/api/admin/monitors/${id}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['monitors'] })
+      toast.success('Monitor deleted')
       navigate('/admin')
     },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : 'Failed to delete'),
   })
 
-  if (query.isLoading) return <div className="px-4 lg:px-6 text-muted-foreground">Loading…</div>
-  if (query.isError) return <div className="px-4 lg:px-6 text-muted-foreground">Failed to load monitor.</div>
+  if (query.isLoading) return <MonitorDetailSkeleton />
+  if (query.isError)
+    return (
+      <div className="px-4 lg:px-6">
+        <div className="rounded-xl border border-dashed bg-card/50 p-8 text-center text-sm text-muted-foreground">
+          Couldn't load this monitor.{' '}
+          <button
+            type="button"
+            onClick={() => query.refetch()}
+            className="text-foreground underline underline-offset-4"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    )
   if (!query.data) return null
 
   const { monitor, heartbeats, incidents } = query.data
@@ -111,18 +146,20 @@ export function MonitorDetailPage() {
         </Link>
       </Button>
 
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">{monitor.name}</h1>
-          <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-            <span className="uppercase">{monitor.type}</span>
-            <span>·</span>
-            <span className="font-mono">{monitor.target}</span>
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight break-words">
+            {monitor.name}
+          </h1>
+          <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground min-w-0">
+            <span className="uppercase shrink-0">{monitor.type}</span>
+            <span className="shrink-0">·</span>
+            <span className="font-mono truncate">{monitor.target}</span>
           </div>
           <TagsRow monitor={monitor} />
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" asChild>
+        <div className="flex gap-2 shrink-0">
+          <Button variant="default" asChild>
             <Link to={`/admin/monitors/${monitor.id}/edit`} className="gap-2">
               <HugeiconsIcon icon={Settings02Icon} className="h-4 w-4" />
               Edit
@@ -140,18 +177,47 @@ export function MonitorDetailPage() {
             )}
             {monitor.paused ? 'Resume' : 'Pause'}
           </Button>
-          <Button
-            variant="destructive"
-            onClick={() => {
-              if (confirm(`Delete monitor "${monitor.name}"? This cannot be undone.`)) {
-                deleteMutation.mutate()
-              }
-            }}
-            disabled={deleteMutation.isPending}
-          >
-            <HugeiconsIcon icon={Delete02Icon} className="h-4 w-4" />
-            Delete
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="More actions"
+                disabled={deleteMutation.isPending}
+              >
+                <HugeiconsIcon
+                  icon={MoreVerticalCircle01Icon}
+                  className="h-4 w-4"
+                  strokeWidth={2}
+                />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link to={`/admin/monitors/${monitor.id}/edit`}>
+                  <HugeiconsIcon icon={Settings02Icon} className="h-3.5 w-3.5" />
+                  Edit configuration
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                onSelect={async () => {
+                  const ok = await confirm({
+                    title: `Delete "${monitor.name}"?`,
+                    description:
+                      'All heartbeats, incidents, and links to status pages will be removed. This cannot be undone.',
+                    confirmLabel: 'Delete monitor',
+                    destructive: true,
+                  })
+                  if (ok) deleteMutation.mutate()
+                }}
+              >
+                <HugeiconsIcon icon={Delete02Icon} className="h-3.5 w-3.5" />
+                Delete monitor
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
@@ -288,8 +354,11 @@ function TagsRow({ monitor }: { monitor: Monitor }) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['monitor', monitor.id] })
       void queryClient.invalidateQueries({ queryKey: ['monitors'] })
+      toast.success('Tags updated')
       setEditing(false)
     },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : 'Failed to update tags'),
   })
 
   if (editing) {
@@ -367,6 +436,8 @@ function IncidentRow({
       void queryClient.invalidateQueries({ queryKey: ['incidents'] })
       setEditing(false)
     },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : 'Failed to save note'),
   })
 
   const resolve = useMutation({
@@ -374,7 +445,10 @@ function IncidentRow({
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['monitor', monitorId] })
       void queryClient.invalidateQueries({ queryKey: ['incidents'] })
+      toast.success('Incident resolved')
     },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : 'Failed to resolve'),
   })
 
   const isOpen = !incident.resolvedAt
@@ -515,6 +589,7 @@ interface MaintenanceWindowRow {
 
 function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
   const queryClient = useQueryClient()
+  const confirm = useConfirm()
   const [adding, setAdding] = useState(false)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -535,6 +610,7 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
       api.post('/api/admin/maintenance-windows', payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['maintenance', monitorId] })
+      toast.success('Maintenance window scheduled')
       setAdding(false)
       setTitle('')
       setDescription('')
@@ -547,8 +623,12 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
 
   const remove = useMutation({
     mutationFn: (id: string) => api.delete(`/api/admin/maintenance-windows/${id}`),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['maintenance', monitorId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['maintenance', monitorId] })
+      toast.success('Maintenance window removed')
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : 'Failed to remove'),
   })
 
   const submit = () => {
@@ -668,10 +748,16 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => {
-                      if (confirm(`Delete maintenance window "${w.title}"?`)) {
-                        remove.mutate(w.id)
-                      }
+                    aria-label={`Delete ${w.title}`}
+                    onClick={async () => {
+                      const ok = await confirm({
+                        title: `Delete "${w.title}"?`,
+                        description:
+                          'Alerts during this window will resume immediately.',
+                        confirmLabel: 'Delete window',
+                        destructive: true,
+                      })
+                      if (ok) remove.mutate(w.id)
                     }}
                   >
                     <HugeiconsIcon icon={Delete02Icon} className="h-3 w-3" />
@@ -683,6 +769,37 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
         )}
       </CardContent>
     </Card>
+  )
+}
+
+function MonitorDetailSkeleton() {
+  return (
+    <div className="px-4 lg:px-6 flex flex-col gap-6">
+      <Skeleton className="h-7 w-32" />
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2 flex-1">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+        <div className="flex gap-2">
+          <Skeleton className="h-7 w-16" />
+          <Skeleton className="h-7 w-20" />
+          <Skeleton className="h-7 w-16" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="rounded-xl border bg-card p-6 space-y-3">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-7 w-20" />
+          </div>
+        ))}
+      </div>
+      <div className="rounded-xl border bg-card p-6 space-y-4">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-[260px] w-full" />
+      </div>
+    </div>
   )
 }
 

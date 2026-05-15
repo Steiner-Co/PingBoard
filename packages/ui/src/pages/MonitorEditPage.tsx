@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { ArrowLeft01Icon, Tick02Icon } from '@hugeicons/core-free-icons'
 import { ALLOWED_INTERVALS_SECONDS } from '@pingboard/shared'
@@ -9,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
   SelectContent,
@@ -17,9 +19,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { api } from '@/lib/api'
-import { cn } from '@/lib/utils'
+import { cn, formatIntervalLabel } from '@/lib/utils'
 import type { Heartbeat, Incident, Monitor, NotificationChannel } from '@/types'
 import { TagInput } from '@/pages/MonitorWizardPage'
+import { useConfirm } from '@/components/confirm-provider'
 
 interface DetailResponse {
   monitor: Monitor
@@ -35,6 +38,7 @@ export function MonitorEditPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const confirm = useConfirm()
 
   const detail = useQuery({
     queryKey: ['monitor', id],
@@ -78,13 +82,76 @@ export function MonitorEditPage() {
     }
     setError(null)
     setHeadersError(null)
+    setBaseline({
+      name: m.name,
+      target: m.target,
+      intervalSeconds: m.intervalSeconds,
+      timeoutSeconds: m.timeoutSeconds,
+      retryCount: m.retryCount,
+      tags: m.tags.join(','),
+      channels: [...detail.data.channelIds].sort().join(','),
+      config: JSON.stringify(m.config),
+    })
   }, [detail.data])
+
+  // Track baseline so we can detect "dirty" state on navigation. Comparing
+  // serialised forms is good enough — these objects are small and rarely
+  // change shape mid-edit.
+  const [baseline, setBaseline] = useState<{
+    name: string
+    target: string
+    intervalSeconds: number
+    timeoutSeconds: number
+    retryCount: number
+    tags: string
+    channels: string
+    config: string
+  } | null>(null)
+
+  const isDirty = useMemo(() => {
+    if (!baseline) return false
+    return (
+      baseline.name !== name ||
+      baseline.target !== target ||
+      baseline.intervalSeconds !== intervalSeconds ||
+      baseline.timeoutSeconds !== timeoutSeconds ||
+      baseline.retryCount !== retryCount ||
+      baseline.tags !== tags.join(',') ||
+      baseline.channels !== [...channelIds].sort().join(',') ||
+      baseline.config !== JSON.stringify(config)
+    )
+  }, [
+    baseline,
+    name,
+    target,
+    intervalSeconds,
+    timeoutSeconds,
+    retryCount,
+    tags,
+    channelIds,
+    config,
+  ])
+
+  // Warn before page unload (tab close, refresh, hard link). React Router v6's
+  // useBlocker handles in-app nav, but beforeunload catches the rest. Both are
+  // valuable; do both.
+  useEffect(() => {
+    if (!isDirty) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      // Modern browsers ignore the message and show their own copy.
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
 
   const save = useMutation({
     mutationFn: (payload: object) => api.patch(`/api/admin/monitors/${id}`, payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['monitor', id] })
       void queryClient.invalidateQueries({ queryKey: ['monitors'] })
+      toast.success('Monitor saved')
       navigate(`/admin/monitors/${id}`)
     },
     onError: (err) => setError(err instanceof Error ? err.message : 'Failed'),
@@ -122,21 +189,70 @@ export function MonitorEditPage() {
   }
 
   if (detail.isLoading) {
-    return <div className="px-4 lg:px-6 text-muted-foreground">Loading…</div>
+    return (
+      <div className="px-4 lg:px-6 max-w-3xl flex flex-col gap-6">
+        <Skeleton className="h-7 w-32" />
+        <Skeleton className="h-9 w-72" />
+        <div className="rounded-xl border bg-card p-6 space-y-4">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-7 w-full" />
+          <Skeleton className="h-7 w-full" />
+          <div className="grid grid-cols-3 gap-4">
+            <Skeleton className="h-7" />
+            <Skeleton className="h-7" />
+            <Skeleton className="h-7" />
+          </div>
+        </div>
+      </div>
+    )
   }
   if (detail.isError || !detail.data) {
-    return <div className="px-4 lg:px-6 text-muted-foreground">Failed to load monitor.</div>
+    return (
+      <div className="px-4 lg:px-6">
+        <div className="rounded-xl border border-dashed bg-card/50 p-8 text-center text-sm text-muted-foreground">
+          Couldn't load this monitor.{' '}
+          <button
+            type="button"
+            onClick={() => detail.refetch()}
+            className="text-foreground underline underline-offset-4"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    )
   }
 
   const monitor = detail.data.monitor
 
+  // Helper for any in-app nav away from this form — confirms before discarding
+  // unsaved changes. Submit is the only path that should bypass the guard.
+  const guardedNavigate = async (target: string) => {
+    if (isDirty) {
+      const ok = await confirm({
+        title: 'Discard unsaved changes?',
+        description:
+          'You have edits that haven\'t been saved yet. Leaving now will lose them.',
+        confirmLabel: 'Discard changes',
+        cancelLabel: 'Keep editing',
+        destructive: true,
+      })
+      if (!ok) return
+    }
+    navigate(target)
+  }
+
   return (
     <form onSubmit={handleSubmit} className="px-4 lg:px-6 max-w-3xl flex flex-col gap-6">
-      <Button variant="ghost" size="sm" asChild className="self-start -ml-3">
-        <Link to={`/admin/monitors/${id}`} className="gap-2">
-          <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
-          Back to monitor
-        </Link>
+      <Button
+        variant="ghost"
+        size="sm"
+        type="button"
+        onClick={() => guardedNavigate(`/admin/monitors/${id}`)}
+        className="self-start -ml-3"
+      >
+        <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
+        Back to monitor
       </Button>
 
       <header>
@@ -185,7 +301,7 @@ export function MonitorEditPage() {
                 <SelectContent>
                   {ALLOWED_INTERVALS_SECONDS.map((s) => (
                     <SelectItem key={s} value={String(s)}>
-                      {formatInterval(s)}
+                      {formatIntervalLabel(s)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -246,11 +362,11 @@ export function MonitorEditPage() {
         <Button
           type="button"
           variant="ghost"
-          onClick={() => navigate(`/admin/monitors/${id}`)}
+          onClick={() => guardedNavigate(`/admin/monitors/${id}`)}
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={save.isPending}>
+        <Button type="submit" disabled={save.isPending || !isDirty}>
           {save.isPending ? 'Saving…' : 'Save changes'}
           <HugeiconsIcon icon={Tick02Icon} className="h-4 w-4" />
         </Button>
@@ -642,12 +758,6 @@ function CheckboxField({
 }
 
 // ─────────────────────────── Helpers ───────────────────────────
-
-function formatInterval(seconds: number): string {
-  if (seconds < 60) return `Every ${seconds}s`
-  if (seconds < 3600) return `Every ${seconds / 60}m`
-  return `Every ${seconds / 3600}h`
-}
 
 function parseHeaders(text: string): { value: Record<string, string> | undefined } | { error: string } {
   if (!text.trim()) return { value: undefined }

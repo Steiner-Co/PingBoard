@@ -20,7 +20,7 @@ import {
   RESERVED_SLUGS,
   type MonitorType,
 } from '@pingboard/shared'
-import { Scheduler, sendTest } from '@pingboard/core'
+import { Scheduler, sendTest, runCheck } from '@pingboard/core'
 import { error, json, noContent } from '../lib/responses'
 import { revokeTokensForPage } from '../lib/page-auth'
 
@@ -175,6 +175,54 @@ export async function deleteMonitor(id: string, deps: AdminDeps): Promise<Respon
   deps.scheduler.stop(id)
   await deps.db.delete(monitors).where(eq(monitors.id, id))
   return noContent()
+}
+
+// One-shot check used by the wizard's "Test now" button. Doesn't persist a
+// heartbeat — just runs the relevant checker and returns the raw result so the
+// user can confirm their target+config before saving the monitor.
+export async function runMonitorCheck(
+  req: Request,
+  _deps: AdminDeps,
+): Promise<Response> {
+  const body = await safeJson(req)
+  if (!body) return error(400, 'Invalid JSON body')
+
+  // Push monitors don't run on demand — they're waited on.
+  if (body.type === 'push') {
+    return error(400, 'Push monitors cannot be tested with run-once')
+  }
+
+  // Synthesize the minimum Monitor shape that checkers need. We DO NOT touch
+  // the database, so transient fields like id/createdAt are stubbed.
+  const validation = validateMonitorPayload({
+    name: body.name ?? 'Test',
+    type: body.type,
+    target: body.target,
+    intervalSeconds: 60,
+    timeoutSeconds: typeof body.timeoutSeconds === 'number' ? body.timeoutSeconds : 10,
+    retryCount: 0,
+    config: body.config ?? {},
+    tags: [],
+  })
+  if ('error' in validation) return error(400, validation.error)
+
+  const monitor = {
+    id: 'test-run',
+    name: validation.name,
+    type: validation.type,
+    target: validation.target,
+    intervalSeconds: validation.intervalSeconds,
+    timeoutSeconds: validation.timeoutSeconds,
+    retryCount: validation.retryCount,
+    config: validation.config,
+    tags: validation.tags,
+    paused: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  } as Parameters<typeof runCheck>[0]
+
+  const result = await runCheck(monitor)
+  return json({ result })
 }
 
 // ───────────────────── Notification channels ─────────────────────
@@ -503,16 +551,30 @@ export async function listMaintenanceWindows(
 ): Promise<Response> {
   const url = new URL(req.url)
   const monitorId = url.searchParams.get('monitorId')
-  const rows = monitorId
-    ? await deps.db
-        .select()
-        .from(maintenanceWindows)
-        .where(eq(maintenanceWindows.monitorId, monitorId))
-        .orderBy(desc(maintenanceWindows.startsAt))
-    : await deps.db
-        .select()
-        .from(maintenanceWindows)
-        .orderBy(desc(maintenanceWindows.startsAt))
+  // Join the monitor name so the index page doesn't need a second roundtrip.
+  // The single-monitor case keeps the legacy shape since that view already
+  // knows the monitor name from its own query.
+  if (monitorId) {
+    const rows = await deps.db
+      .select()
+      .from(maintenanceWindows)
+      .where(eq(maintenanceWindows.monitorId, monitorId))
+      .orderBy(desc(maintenanceWindows.startsAt))
+    return json({ windows: rows })
+  }
+  const rows = await deps.db
+    .select({
+      id: maintenanceWindows.id,
+      monitorId: maintenanceWindows.monitorId,
+      title: maintenanceWindows.title,
+      description: maintenanceWindows.description,
+      startsAt: maintenanceWindows.startsAt,
+      endsAt: maintenanceWindows.endsAt,
+      monitorName: monitors.name,
+    })
+    .from(maintenanceWindows)
+    .innerJoin(monitors, eq(monitors.id, maintenanceWindows.monitorId))
+    .orderBy(desc(maintenanceWindows.startsAt))
   return json({ windows: rows })
 }
 

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AppSidebar } from '@/components/app-sidebar'
 import { SiteHeader } from '@/components/site-header'
@@ -8,6 +9,7 @@ const ROUTE_TITLES: Record<string, string> = {
   '/admin': 'Dashboard',
   '/admin/monitors/new': 'Add monitor',
   '/admin/incidents': 'Incidents',
+  '/admin/maintenance': 'Maintenance',
   '/admin/channels': 'Channels',
   '/admin/pages': 'Status pages',
   '/admin/settings': 'Settings',
@@ -25,6 +27,13 @@ export function AdminLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
+  const title = titleForPath(pathname)
+
+  // Reflect the current section in the browser tab so admins juggling
+  // multiple tabs can find PingBoard at a glance.
+  useEffect(() => {
+    document.title = `${title} — PingBoard`
+  }, [title])
 
   const handleLogout = async () => {
     await logout()
@@ -46,7 +55,7 @@ export function AdminLayout() {
     >
       <AppSidebar variant="inset" user={sidebarUser} onLogout={handleLogout} />
       <SidebarInset>
-        <SiteHeader title={titleForPath(pathname)} />
+        <SiteHeader title={title} />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">

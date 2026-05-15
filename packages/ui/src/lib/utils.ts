@@ -25,3 +25,23 @@ export function formatDuration(ms: number): string {
   const hr = Math.floor(min / 60)
   return `${hr}h ${min % 60}m`
 }
+
+// Compact ("30s" / "5m" / "1h") — used in the dashboard table column.
+export function formatInterval(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`
+  if (seconds < 3600) return `${seconds / 60}m`
+  return `${seconds / 3600}h`
+}
+
+// Human-readable ("Every 30 seconds" / "Every 1 minute") — used in select
+// dropdowns and form labels.
+export function formatIntervalLabel(seconds: number): string {
+  if (seconds < 60)
+    return `Every ${seconds} ${seconds === 1 ? 'second' : 'seconds'}`
+  if (seconds < 3600) {
+    const m = seconds / 60
+    return `Every ${m} ${m === 1 ? 'minute' : 'minutes'}`
+  }
+  const h = seconds / 3600
+  return `Every ${h} ${h === 1 ? 'hour' : 'hours'}`
+}

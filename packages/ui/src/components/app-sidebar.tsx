@@ -16,6 +16,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Activity03Icon,
   AlertCircleIcon,
+  Calendar03Icon,
   Notification03Icon,
   GlobeIcon,
   DashboardSquare01Icon,
@@ -26,6 +27,7 @@ const navItems = [
   { title: "Dashboard", url: "/admin", icon: DashboardSquare01Icon },
   { title: "Monitors", url: "/admin/monitors", icon: Activity03Icon },
   { title: "Incidents", url: "/admin/incidents", icon: AlertCircleIcon },
+  { title: "Maintenance", url: "/admin/maintenance", icon: Calendar03Icon },
   { title: "Channels", url: "/admin/channels", icon: Notification03Icon },
   { title: "Status pages", url: "/admin/pages", icon: GlobeIcon },
   { title: "Settings", url: "/admin/settings", icon: Settings02Icon },
@@ -47,7 +49,9 @@ export function AppSidebar({ user, onLogout, ...props }: AppSidebarProps) {
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
               <Link to="/admin">
-                <span className="inline-block size-2.5 rounded-full bg-success animate-pulse" />
+                {/* No pulse: constant motion in a dashboard fatigues. The dot
+                    is still the brand mark; quiet is part of "all good". */}
+                <span className="inline-block size-2.5 rounded-full bg-success" />
                 <span className="text-base font-semibold">PingBoard</span>
               </Link>
             </SidebarMenuButton>

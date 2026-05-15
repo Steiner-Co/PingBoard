@@ -1,8 +1,18 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Tick02Icon, ArrowLeft01Icon, ArrowRight01Icon, Cancel01Icon } from '@hugeicons/core-free-icons'
+import {
+  Tick02Icon,
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  Cancel01Icon,
+  TestTube02Icon,
+  CheckmarkCircle01Icon,
+  AlertCircleIcon,
+} from '@hugeicons/core-free-icons'
+import { ALLOWED_INTERVALS_SECONDS } from '@pingboard/shared'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,10 +26,17 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { api } from '@/lib/api'
-import { cn } from '@/lib/utils'
+import { cn, formatIntervalLabel } from '@/lib/utils'
 import type { MonitorType, NotificationChannel } from '@/types'
 
 const STEPS = ['Target', 'Schedule', 'Notify'] as const
+
+interface TestResult {
+  status: 'up' | 'down' | 'degraded'
+  responseTimeMs: number | null
+  statusCode: number | null
+  message: string | null
+}
 
 export function MonitorWizardPage() {
   const navigate = useNavigate()
@@ -32,6 +49,7 @@ export function MonitorWizardPage() {
   const [tags, setTags] = useState<string[]>([])
   const [selectedChannels, setSelectedChannels] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [testResult, setTestResult] = useState<TestResult | null>(null)
 
   const autoDetected = useMemo(() => detectType(target), [target])
   const effectiveType: MonitorType | null =
@@ -47,6 +65,24 @@ export function MonitorWizardPage() {
     queryFn: () => api.get<{ channels: NotificationChannel[] }>('/api/admin/channels'),
   })
 
+  // Run-once test against the configured target. Doesn't touch the database.
+  // Push monitors don't support this since they wait for the world to call us.
+  const testMutation = useMutation({
+    mutationFn: () =>
+      api.post<{ result: TestResult }>('/api/admin/monitors/run', {
+        name: name.trim() || defaultName(effectiveTarget) || 'Test',
+        type: effectiveType,
+        target: effectiveTarget,
+        timeoutSeconds: 10,
+        config: effectiveConfig,
+      }),
+    onSuccess: (res) => setTestResult(res.result),
+    onError: (err) => {
+      setTestResult(null)
+      toast.error(err instanceof Error ? err.message : 'Test failed')
+    },
+  })
+
   const createMutation = useMutation({
     mutationFn: (payload: object) =>
       api.post<{ monitor: { id: string; type: MonitorType } }>(
@@ -55,6 +91,11 @@ export function MonitorWizardPage() {
       ),
     onSuccess: (res) => {
       void queryClient.invalidateQueries({ queryKey: ['monitors'] })
+      toast.success(
+        res.monitor.type === 'push'
+          ? 'Monitor created — copy your push URL below'
+          : 'Monitor created — first check will run within a few seconds',
+      )
       // Push monitors need their generated URL shown to the user immediately.
       if (res.monitor.type === 'push') {
         navigate(`/admin/monitors/${res.monitor.id}`)
@@ -134,7 +175,10 @@ export function MonitorWizardPage() {
                 <Label htmlFor="type-override">Type</Label>
                 <Select
                   value={typeOverride}
-                  onValueChange={(v) => setTypeOverride(v as MonitorType | 'auto')}
+                  onValueChange={(v) => {
+                    setTypeOverride(v as MonitorType | 'auto')
+                    setTestResult(null)
+                  }}
                 >
                   <SelectTrigger id="type-override">
                     <SelectValue />
@@ -151,6 +195,27 @@ export function MonitorWizardPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {effectiveType && effectiveType !== 'push' && (
+                <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-xs text-muted-foreground">
+                      Try a one-off check before saving so you know it works.
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => testMutation.mutate()}
+                      disabled={!effectiveTarget || testMutation.isPending}
+                    >
+                      <HugeiconsIcon icon={TestTube02Icon} className="h-3 w-3" />
+                      {testMutation.isPending ? 'Checking…' : 'Test now'}
+                    </Button>
+                  </div>
+                  {testResult && <TestResultRow result={testResult} />}
+                </div>
+              )}
             </>
           )}
           {step === 1 && (
@@ -175,11 +240,11 @@ export function MonitorWizardPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="30">Every 30 seconds</SelectItem>
-                    <SelectItem value="60">Every 1 minute</SelectItem>
-                    <SelectItem value="300">Every 5 minutes</SelectItem>
-                    <SelectItem value="900">Every 15 minutes</SelectItem>
-                    <SelectItem value="3600">Every hour</SelectItem>
+                    {ALLOWED_INTERVALS_SECONDS.map((s) => (
+                      <SelectItem key={s} value={String(s)}>
+                        {formatIntervalLabel(s)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -197,10 +262,17 @@ export function MonitorWizardPage() {
               {channelsQuery.isLoading ? (
                 <p className="text-sm text-muted-foreground">Loading channels…</p>
               ) : channelsQuery.data?.channels.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No notification channels yet. You can add them later from Channels and link them
-                  to this monitor.
-                </p>
+                <div className="rounded-md border border-dashed bg-muted/30 p-4 text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    No notification channels yet. The monitor will still run; you
+                    just won't be paged when it goes down.
+                  </p>
+                  <Button asChild size="sm" variant="outline">
+                    <Link to="/admin/channels" target="_blank" rel="noreferrer">
+                      Add a channel
+                    </Link>
+                  </Button>
+                </div>
               ) : (
                 <div className="space-y-2">
                   {channelsQuery.data?.channels.map((c) => {
@@ -348,6 +420,33 @@ export function TagInput({
         placeholder={value.length === 0 ? 'api, prod, payments…' : ''}
         className="flex-1 min-w-[120px] bg-transparent text-sm outline-none"
       />
+    </div>
+  )
+}
+
+function TestResultRow({ result }: { result: TestResult }) {
+  const ok = result.status === 'up'
+  const icon = ok ? CheckmarkCircle01Icon : AlertCircleIcon
+  const tone = ok ? 'text-success' : 'text-destructive'
+  return (
+    <div className="flex items-start gap-2 text-sm">
+      <HugeiconsIcon icon={icon} className={`h-4 w-4 mt-0.5 ${tone}`} />
+      <div className="flex-1 min-w-0 space-y-0.5">
+        <div className="font-medium">
+          {ok ? 'Check passed' : `Check ${result.status}`}
+          {result.responseTimeMs != null && (
+            <span className="ml-2 text-xs text-muted-foreground tabular-nums">
+              {result.responseTimeMs} ms
+              {result.statusCode != null && ` · HTTP ${result.statusCode}`}
+            </span>
+          )}
+        </div>
+        {result.message && (
+          <div className="text-xs text-muted-foreground break-words">
+            {result.message}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

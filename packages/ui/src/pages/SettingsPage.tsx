@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { ALLOWED_RETENTION_DAYS } from '@pingboard/shared'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -29,6 +30,8 @@ interface SettingsResponse {
   smtp: SmtpView
 }
 
+// Sentinel the server understands as "no change to the persisted password".
+// We never display it; the UI just hides the field and shows a "Change" button.
 const PASSWORD_SENTINEL = '__set__'
 
 export function SettingsPage() {
@@ -160,7 +163,12 @@ function RetentionCard() {
   const update = useMutation({
     mutationFn: (retentionDays: number) =>
       api.put<SettingsResponse>('/api/admin/settings', { retentionDays }),
-    onSuccess: (data) => queryClient.setQueryData(['settings'], data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['settings'], data)
+      toast.success(`Retention set to ${data.retentionDays} days`)
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : 'Failed to update retention'),
   })
 
   const days = query.data?.retentionDays
@@ -220,6 +228,12 @@ function SmtpCard() {
     from: '',
     secure: false,
   })
+  // Tracks whether the password input is currently exposed. When SMTP already
+  // has a saved password we hide the field by default to avoid an awkward
+  // "•••••" placeholder; the user clicks "Change password" to reveal a fresh
+  // empty input. We only send the password field when the input is exposed
+  // and non-empty — otherwise we send the sentinel ("leave as-is").
+  const [revealPassword, setRevealPassword] = useState(false)
   const [touched, setTouched] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -231,11 +245,12 @@ function SmtpCard() {
       host: query.data.smtp.host ?? '',
       port: query.data.smtp.port != null ? String(query.data.smtp.port) : '',
       user: query.data.smtp.user ?? '',
-      // Never receive the password from server; show placeholder if set.
-      pass: query.data.smtp.passwordSet ? PASSWORD_SENTINEL : '',
+      pass: '',
       from: query.data.smtp.from ?? '',
       secure: query.data.smtp.secure ?? false,
     })
+    // If no password is set yet, expose the field by default.
+    setRevealPassword(!query.data.smtp.passwordSet)
     setTouched(false)
   }, [query.data])
 
@@ -263,12 +278,16 @@ function SmtpCard() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
+    // Password handling has three cases:
+    //   1. Field hidden → leave existing password untouched (sentinel).
+    //   2. Field visible, empty → clear the password (empty string).
+    //   3. Field visible, non-empty → update to the new password.
+    const passField = revealPassword ? form.pass : PASSWORD_SENTINEL
     update.mutate({
       host: form.host,
       port: form.port ? Number(form.port) : null,
       user: form.user,
-      // Empty string clears; sentinel means "leave as-is".
-      pass: form.pass === PASSWORD_SENTINEL ? PASSWORD_SENTINEL : form.pass,
+      pass: passField,
       from: form.from,
       secure: form.secure,
     })
@@ -316,16 +335,51 @@ function SmtpCard() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="smtp-pass">Password</Label>
-              <Input
-                id="smtp-pass"
-                type="password"
-                value={form.pass === PASSWORD_SENTINEL ? '••••••••' : form.pass}
-                onChange={(e) => set('pass')(e.target.value)}
-                onFocus={() => {
-                  if (form.pass === PASSWORD_SENTINEL) set('pass')('')
-                }}
-                autoComplete="new-password"
-              />
+              {revealPassword ? (
+                <div className="space-y-1.5">
+                  <Input
+                    id="smtp-pass"
+                    type="password"
+                    value={form.pass}
+                    onChange={(e) => set('pass')(e.target.value)}
+                    autoComplete="new-password"
+                    autoFocus={query.data?.smtp.passwordSet}
+                  />
+                  {query.data?.smtp.passwordSet && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRevealPassword(false)
+                        setForm((f) => ({ ...f, pass: '' }))
+                        setTouched(true)
+                      }}
+                      className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-3"
+                    >
+                      Cancel password change
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value="•••••••• (saved)"
+                    readOnly
+                    className="font-mono text-xs"
+                    aria-label="Password is set"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setRevealPassword(true)
+                      setTouched(true)
+                    }}
+                  >
+                    Change
+                  </Button>
+                </div>
+              )}
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="smtp-from">From address</Label>

@@ -1,4 +1,5 @@
 import { useMemo } from "react"
+import { Link } from "react-router-dom"
 
 import {
   Card,
@@ -62,81 +63,110 @@ function computeStats(monitors: MonitorWithLatest[]): Stats {
   }
 }
 
+// Monitors that have reported at least once and aren't paused. Used as the
+// uptime-percentage denominator so we don't show "0% up" while pending.
+function reportingCount(stats: Stats): number {
+  return stats.up + stats.down
+}
+
 export function SectionCards({ monitors }: { monitors: MonitorWithLatest[] }) {
   const stats = useMemo(() => computeStats(monitors), [monitors])
+  const reporting = reportingCount(stats)
 
   return (
-    <div className="grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-card *:data-[slot=card]:to-card *:data-[slot=card]:transition-colors *:data-[slot=card]:duration-500 *:data-[slot=card]:shadow-xs *:data-[slot=card]:hover:from-chart-1/15 lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
-      <Card className="@container/card">
-        <CardHeader>
-          <CardDescription>Active monitors</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {stats.active} / {stats.total}
-          </CardTitle>
-        </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            {stats.total === 0 ? "No monitors yet" : "Currently scheduled"}{" "}
-            <HugeiconsIcon icon={Activity03Icon} strokeWidth={2} className="size-4" />
-          </div>
-          <div className="text-muted-foreground">
-            {stats.paused} paused, {stats.pending} awaiting first check
-          </div>
-        </CardFooter>
-      </Card>
-      <Card className="@container/card">
-        <CardHeader>
-          <CardDescription>Currently up</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {stats.active === 0 ? "—" : `${Math.round((stats.up / stats.active) * 100)}%`}
-          </CardTitle>
-        </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            {stats.up} of {stats.active} reporting healthy{" "}
-            <HugeiconsIcon icon={CheckmarkCircle01Icon} strokeWidth={2} className="size-4" />
-          </div>
-          <div className="text-muted-foreground">
-            Based on the latest heartbeat per monitor
-          </div>
-        </CardFooter>
-      </Card>
-      <Card className="@container/card">
-        <CardHeader>
-          <CardDescription>Currently down</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {stats.down}
-          </CardTitle>
-        </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            {stats.down === 0 ? "Nothing failing right now" : "Failing checks"}{" "}
-            <HugeiconsIcon icon={AlertCircleIcon} strokeWidth={2} className="size-4" />
-          </div>
-          <div className="text-muted-foreground">
-            Paused monitors are excluded
-          </div>
-        </CardFooter>
-      </Card>
-      <Card className="@container/card">
-        <CardHeader>
-          <CardDescription>Avg response time</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {stats.avgResponseMs == null ? "—" : `${stats.avgResponseMs} ms`}
-          </CardTitle>
-        </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            {stats.avgResponseMs == null
-              ? "No successful checks yet"
-              : "Mean across healthy monitors"}{" "}
-            <HugeiconsIcon icon={Timer01Icon} strokeWidth={2} className="size-4" />
-          </div>
-          <div className="text-muted-foreground">
-            Latest heartbeat per monitor
-          </div>
-        </CardFooter>
-      </Card>
+    <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+      <KpiCard
+        to="/admin"
+        description="Active monitors"
+        value={`${stats.active} / ${stats.total}`}
+        line={stats.total === 0 ? 'No monitors yet' : 'Currently scheduled'}
+        sub={`${stats.paused} paused, ${stats.pending} awaiting first check`}
+        icon={Activity03Icon}
+      />
+      <KpiCard
+        description="Currently up"
+        value={
+          reporting === 0
+            ? '—'
+            : `${Math.round((stats.up / reporting) * 100)}%`
+        }
+        line={
+          reporting === 0
+            ? 'Waiting for first heartbeats'
+            : `${stats.up} of ${reporting} reporting healthy`
+        }
+        sub="Pending monitors are excluded until they report"
+        icon={CheckmarkCircle01Icon}
+      />
+      <KpiCard
+        to={stats.down > 0 ? '/admin/incidents' : undefined}
+        description="Currently down"
+        value={String(stats.down)}
+        line={stats.down === 0 ? 'Nothing failing right now' : 'Failing checks'}
+        sub="Paused monitors are excluded"
+        icon={AlertCircleIcon}
+        tone={stats.down > 0 ? 'destructive' : 'default'}
+      />
+      <KpiCard
+        description="Avg response time"
+        value={stats.avgResponseMs == null ? '—' : `${stats.avgResponseMs} ms`}
+        line={
+          stats.avgResponseMs == null
+            ? 'No successful checks yet'
+            : 'Mean across healthy monitors'
+        }
+        sub="Latest heartbeat per monitor"
+        icon={Timer01Icon}
+      />
     </div>
   )
+}
+
+function KpiCard({
+  to,
+  description,
+  value,
+  line,
+  sub,
+  icon,
+  tone = 'default',
+}: {
+  to?: string
+  description: string
+  value: string
+  line: string
+  sub: string
+  icon: typeof Activity03Icon
+  tone?: 'default' | 'destructive'
+}) {
+  // Cards with a destination become hover-elevated buttons. Cards without one
+  // stay static — no fake hover affordance.
+  const tint =
+    tone === 'destructive'
+      ? 'data-[link=true]:hover:border-destructive/30 data-[link=true]:hover:bg-destructive/5'
+      : 'data-[link=true]:hover:border-primary/30 data-[link=true]:hover:bg-primary/5'
+
+  const body = (
+    <Card
+      className={`@container/card transition-colors ${tint}`}
+      data-link={to ? 'true' : 'false'}
+    >
+      <CardHeader>
+        <CardDescription>{description}</CardDescription>
+        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+          {value}
+        </CardTitle>
+      </CardHeader>
+      <CardFooter className="flex-col items-start gap-1.5 text-sm">
+        <div className="line-clamp-1 flex gap-2 font-medium">
+          {line}{' '}
+          <HugeiconsIcon icon={icon} strokeWidth={2} className="size-4" />
+        </div>
+        <div className="text-muted-foreground">{sub}</div>
+      </CardFooter>
+    </Card>
+  )
+
+  if (!to) return body
+  return <Link to={to}>{body}</Link>
 }

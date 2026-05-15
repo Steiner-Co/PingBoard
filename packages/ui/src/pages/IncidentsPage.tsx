@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { toast } from 'sonner'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { CheckmarkCircle01Icon, Edit02Icon } from '@hugeicons/core-free-icons'
+import { CheckmarkCircle01Icon, Edit02Icon, AlertCircleIcon } from '@hugeicons/core-free-icons'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { EmptyState } from '@/components/EmptyState'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -60,6 +62,21 @@ export function IncidentsPage() {
   })
   const openCount = all.filter((i) => !i.resolvedAt).length
 
+  if (!query.isLoading && all.length === 0) {
+    return (
+      <div className="px-4 lg:px-6 flex flex-col gap-6">
+        <p className="text-muted-foreground">
+          Every down → up transition across all monitors.
+        </p>
+        <EmptyState
+          icon={CheckmarkCircle01Icon}
+          title="No incidents on record"
+          description="Quiet is good. When a monitor flips down, it'll appear here with start time, duration, and any notes you add."
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="px-4 lg:px-6 flex flex-col gap-6">
       <div className="flex items-center justify-between gap-4">
@@ -87,11 +104,10 @@ export function IncidentsPage() {
         </CardHeader>
         <CardContent>
           {filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">
-              {all.length === 0
-                ? 'No incidents on record. Quiet is good.'
-                : 'No incidents match this filter.'}
-            </p>
+            <div className="py-8 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
+              <HugeiconsIcon icon={AlertCircleIcon} className="h-5 w-5 opacity-50" />
+              No incidents match this filter.
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -129,12 +145,18 @@ function Row({ incident }: { incident: IncidentRow }) {
       void queryClient.invalidateQueries({ queryKey: ['incidents'] })
       setEditing(false)
     },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : 'Failed to save note'),
   })
 
   const resolve = useMutation({
     mutationFn: () => api.post(`/api/admin/incidents/${incident.id}/resolve`),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['incidents'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['incidents'] })
+      toast.success(`Resolved "${incident.monitorName}"`)
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : 'Failed to resolve'),
   })
 
   const isOpen = !incident.resolvedAt

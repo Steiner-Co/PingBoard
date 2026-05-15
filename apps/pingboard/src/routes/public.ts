@@ -1,7 +1,9 @@
 import { and, desc, eq, gte, inArray } from 'drizzle-orm'
 import type { DB } from '@pingboard/db'
 import {
+  dailyStats,
   heartbeats,
+  incidents as incidentsTable,
   maintenanceWindows,
   monitors,
   statusPageMonitors,
@@ -58,7 +60,16 @@ export async function getStatusPagePublic(
     .where(eq(statusPageMonitors.statusPageId, page.id))
 
   const monitorIds = linked.map((l) => l.monitorId)
-  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+  const now = new Date()
+  const TIMELINE_DAYS = 90
+  const RECENT_WINDOW_DAYS = 30
+  const recentWindowStart = new Date(
+    now.getTime() - RECENT_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+  )
+  const timelineStart = new Date(now.getTime() - TIMELINE_DAYS * 24 * 60 * 60 * 1000)
+  // First day in the visible window (UTC). The 90-day strip is built relative to
+  // this anchor so today is always the last bucket.
+  const today = isoDate(now)
 
   const data = await Promise.all(
     linked
@@ -71,9 +82,22 @@ export async function getStatusPagePublic(
           .orderBy(desc(heartbeats.checkedAt))
           .limit(1)
 
-        const recent = await deps.db
+        // 30-day uptime + avg response come from daily stats where possible.
+        // For the most recent day we may not have an aggregated row yet, so
+        // fall back to today's raw heartbeats.
+        const stats = await deps.db
+          .select()
+          .from(dailyStats)
+          .where(
+            and(
+              eq(dailyStats.monitorId, l.monitorId),
+              gte(dailyStats.date, isoDate(timelineStart)),
+            ),
+          )
+        const statsByDate = new Map(stats.map((s) => [s.date, s]))
+
+        const todayHeartbeats = await deps.db
           .select({
-            checkedAt: heartbeats.checkedAt,
             status: heartbeats.status,
             responseTimeMs: heartbeats.responseTimeMs,
           })
@@ -81,14 +105,49 @@ export async function getStatusPagePublic(
           .where(
             and(
               eq(heartbeats.monitorId, l.monitorId),
-              gte(heartbeats.checkedAt, since),
+              gte(heartbeats.checkedAt, startOfDay(now)),
             ),
           )
-          .orderBy(desc(heartbeats.checkedAt))
+        const todayUps = todayHeartbeats.filter((h) => h.status === 'up').length
+        const todayTotal = todayHeartbeats.length
+        const todayUptimePct = todayTotal === 0 ? null : (todayUps / todayTotal) * 100
+        const todayAvgMs =
+          todayHeartbeats
+            .filter((h) => h.status === 'up' && h.responseTimeMs != null)
+            .reduce(
+              (acc, h, _, arr) => acc + (h.responseTimeMs ?? 0) / arr.length,
+              0,
+            ) || null
 
-        const total = recent.length
-        const ups = recent.filter((r) => r.status === 'up').length
-        const uptimePct = total === 0 ? null : (ups / total) * 100
+        if (todayUptimePct != null) {
+          statsByDate.set(today, {
+            monitorId: l.monitorId,
+            date: today,
+            uptimePct: todayUptimePct,
+            avgResponseMs: todayAvgMs,
+            incidentsCount: 0,
+          })
+        }
+
+        const timeline = buildTimeline(now, TIMELINE_DAYS, statsByDate)
+
+        // 30-day rollups for the row header.
+        const last30 = timeline.slice(-RECENT_WINDOW_DAYS).filter(
+          (d) => d.uptimePct != null,
+        )
+        const uptimePct =
+          last30.length === 0
+            ? null
+            : last30.reduce((a, b) => a + (b.uptimePct ?? 0), 0) / last30.length
+        const responseTimeAvgs = stats
+          .filter((s) => s.avgResponseMs != null && new Date(s.date) >= recentWindowStart)
+          .map((s) => s.avgResponseMs as number)
+        const avgResponseMs =
+          responseTimeAvgs.length === 0
+            ? todayAvgMs
+            : Math.round(
+                responseTimeAvgs.reduce((a, b) => a + b, 0) / responseTimeAvgs.length,
+              )
 
         return {
           id: l.monitorId,
@@ -96,12 +155,44 @@ export async function getStatusPagePublic(
           group: l.groupName,
           currentStatus: latest?.status ?? 'unknown',
           uptimePct,
-          recent: recent.slice(0, 90).reverse(),
+          avgResponseMs,
+          timeline,
         }
       }),
   )
 
-  const now = new Date()
+  // Public incident history — last 30 days across the linked monitors.
+  const incidentRows =
+    monitorIds.length === 0
+      ? []
+      : await deps.db
+          .select({
+            id: incidentsTable.id,
+            monitorId: incidentsTable.monitorId,
+            startedAt: incidentsTable.startedAt,
+            resolvedAt: incidentsTable.resolvedAt,
+            note: incidentsTable.note,
+          })
+          .from(incidentsTable)
+          .where(
+            and(
+              inArray(incidentsTable.monitorId, monitorIds),
+              gte(incidentsTable.startedAt, recentWindowStart),
+            ),
+          )
+          .orderBy(desc(incidentsTable.startedAt))
+          .limit(50)
+
+  const monitorNameById = new Map(linked.map((l) => [l.monitorId, l.monitor.name]))
+  const publicIncidents = incidentRows.map((i) => ({
+    id: i.id,
+    monitorId: i.monitorId,
+    monitorName: monitorNameById.get(i.monitorId) ?? 'Monitor',
+    startedAt: i.startedAt,
+    resolvedAt: i.resolvedAt,
+    note: i.note,
+  }))
+
   const maintenance =
     monitorIds.length === 0
       ? []
@@ -132,8 +223,35 @@ export async function getStatusPagePublic(
     },
     monitors: data,
     monitorIds,
+    incidents: publicIncidents,
     maintenance,
   })
+}
+
+function isoDate(d: Date): string {
+  // YYYY-MM-DD in UTC, matching daily_stats.date.
+  return d.toISOString().slice(0, 10)
+}
+
+function startOfDay(d: Date): Date {
+  const x = new Date(d)
+  x.setUTCHours(0, 0, 0, 0)
+  return x
+}
+
+function buildTimeline(
+  now: Date,
+  days: number,
+  statsByDate: Map<string, { uptimePct: number; avgResponseMs: number | null }>,
+): Array<{ date: string; uptimePct: number | null }> {
+  const out: Array<{ date: string; uptimePct: number | null }> = []
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
+    const key = isoDate(d)
+    const stat = statsByDate.get(key)
+    out.push({ date: key, uptimePct: stat ? stat.uptimePct : null })
+  }
+  return out
 }
 
 export async function streamStatusPagePublic(

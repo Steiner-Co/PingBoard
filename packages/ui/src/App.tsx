@@ -6,6 +6,7 @@ import { ChannelsPage } from '@/pages/ChannelsPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { IncidentsPage } from '@/pages/IncidentsPage'
 import { LoginPage } from '@/pages/LoginPage'
+import { MaintenancePage } from '@/pages/MaintenancePage'
 import { MonitorDetailPage } from '@/pages/MonitorDetailPage'
 import { MonitorEditPage } from '@/pages/MonitorEditPage'
 import { MonitorWizardPage } from '@/pages/MonitorWizardPage'
@@ -31,9 +32,14 @@ function Router() {
   const location = useLocation()
 
   if (loading) {
+    // The auth bootstrap takes ~50–200ms. A spinner-shaped placeholder reads
+    // less like a broken deploy than the previous full-screen "Loading…" text.
     return (
-      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-        Loading…
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <span className="inline-block h-2 w-2 rounded-full bg-success animate-pulse" />
+          <span className="text-sm">PingBoard</span>
+        </div>
       </div>
     )
   }
@@ -62,6 +68,7 @@ function Router() {
         <Route path="monitors/:id/edit" element={<MonitorEditPage />} />
         <Route path="channels" element={<ChannelsPage />} />
         <Route path="incidents" element={<IncidentsPage />} />
+        <Route path="maintenance" element={<MaintenancePage />} />
         <Route path="pages" element={<StatusPagesPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>

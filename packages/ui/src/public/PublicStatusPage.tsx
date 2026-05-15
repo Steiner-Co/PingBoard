@@ -14,13 +14,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useSSE } from '@/lib/sse'
-import { cn, formatRelative } from '@/lib/utils'
+import { cn, formatDuration, formatRelative } from '@/lib/utils'
 
 type AdminTheme = 'light' | 'dark' | 'auto'
 
 interface PublicData {
   page: { slug: string; title: string; description: string | null; theme: AdminTheme }
   monitors: PublicMonitor[]
+  incidents: PublicIncident[]
   maintenance?: MaintenanceWindow[]
 }
 
@@ -30,7 +31,17 @@ interface PublicMonitor {
   group: string | null
   currentStatus: 'up' | 'down' | 'degraded' | 'unknown'
   uptimePct: number | null
-  recent: Array<{ checkedAt: string; status: 'up' | 'down' | 'degraded'; responseTimeMs: number | null }>
+  avgResponseMs: number | null
+  timeline: Array<{ date: string; uptimePct: number | null }>
+}
+
+interface PublicIncident {
+  id: string
+  monitorId: string
+  monitorName: string
+  startedAt: string
+  resolvedAt: string | null
+  note: string | null
 }
 
 interface MaintenanceWindow {
@@ -83,6 +94,12 @@ export function PublicStatusPage({ slug }: { slug: string }) {
     setTheme(adminTheme)
   }, [adminTheme, setTheme])
 
+  // Drive <title>, <meta description>, and OG/Twitter tags from the page's
+  // own content. Status pages are explicitly meant to be shared, so this
+  // affects the link previews everywhere.
+  const page = query.data?.page
+  useDocumentMeta(page, query.data?.monitors)
+
   if (query.isLoading) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading…</div>
   }
@@ -101,7 +118,7 @@ export function PublicStatusPage({ slug }: { slug: string }) {
   }
   if (!query.data) return null
 
-  const { page, monitors, maintenance = [] } = query.data
+  const { monitors, incidents, maintenance = [] } = query.data
   const now = Date.now()
   const activeMaintenance = maintenance.filter((w) => {
     const start = new Date(w.startsAt).getTime()
@@ -120,13 +137,13 @@ export function PublicStatusPage({ slug }: { slug: string }) {
   const overallText = allUp
     ? 'All systems operational'
     : anyDown
-      ? 'Degraded service'
+      ? 'Some systems are degraded'
       : 'Status unknown'
-  const overallColor = allUp
-    ? 'bg-success'
+  const overallTone: 'up' | 'down' | 'unknown' = allUp
+    ? 'up'
     : anyDown
-      ? 'bg-destructive'
-      : 'bg-muted-foreground'
+      ? 'down'
+      : 'unknown'
 
   // Group monitors
   const grouped = monitors.reduce<Record<string, PublicMonitor[]>>((acc, m) => {
@@ -138,19 +155,22 @@ export function PublicStatusPage({ slug }: { slug: string }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-3xl mx-auto px-6 py-12 space-y-8">
-        <header className="flex items-start justify-between gap-4">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-semibold tracking-tight">{page.title}</h1>
-            {page.description && <p className="text-muted-foreground">{page.description}</p>}
+      <div className="max-w-3xl mx-auto px-5 py-10 sm:px-6 sm:py-14 space-y-8">
+        <header className="flex items-start justify-between gap-3 sm:gap-4">
+          <div className="space-y-2 min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+              {query.data.page.title}
+            </h1>
+            {query.data.page.description && (
+              <p className="text-muted-foreground text-sm sm:text-base">
+                {query.data.page.description}
+              </p>
+            )}
           </div>
           <ThemeToggle />
         </header>
 
-        <div className={cn('rounded-xl p-6 text-white shadow-sm', overallColor)}>
-          <div className="text-2xl font-semibold">{overallText}</div>
-          <div className="text-sm opacity-90 mt-1">Updated {formatRelative(new Date())}</div>
-        </div>
+        <OverallStatusBanner tone={overallTone} text={overallText} />
 
         {(activeMaintenance.length > 0 || upcomingMaintenance.length > 0) && (
           <MaintenanceBanner
@@ -164,7 +184,7 @@ export function PublicStatusPage({ slug }: { slug: string }) {
           {Object.entries(grouped).map(([group, list]) => (
             <section key={group} className="space-y-3">
               {group !== '__ungrouped' && (
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {group}
                 </h2>
               )}
@@ -181,12 +201,54 @@ export function PublicStatusPage({ slug }: { slug: string }) {
           ))}
         </div>
 
+        <IncidentHistory incidents={incidents} />
+
         <footer className="text-center text-xs text-muted-foreground pt-8">
           Powered by{' '}
-          <a href="https://github.com" className="hover:underline">
+          <a
+            href="https://github.com/pingboard/pingboard"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="hover:text-foreground hover:underline underline-offset-4"
+          >
             PingBoard
           </a>
         </footer>
+      </div>
+    </div>
+  )
+}
+
+function OverallStatusBanner({
+  tone,
+  text,
+}: {
+  tone: 'up' | 'down' | 'unknown'
+  text: string
+}) {
+  const dot =
+    tone === 'up'
+      ? 'bg-success'
+      : tone === 'down'
+        ? 'bg-destructive'
+        : 'bg-muted-foreground'
+  const surface =
+    tone === 'up'
+      ? 'border-success/30 bg-success/5'
+      : tone === 'down'
+        ? 'border-destructive/30 bg-destructive/5'
+        : 'border-border bg-muted/40'
+
+  return (
+    <div className={cn('rounded-xl border p-5 sm:p-6', surface)}>
+      <div className="flex items-center gap-3">
+        <span className={cn('inline-block h-2.5 w-2.5 rounded-full', dot)} />
+        <div className="text-xl sm:text-2xl font-semibold tracking-tight">
+          {text}
+        </div>
+      </div>
+      <div className="text-xs sm:text-sm text-muted-foreground mt-2 ml-5">
+        Updated {formatRelative(new Date())}
       </div>
     </div>
   )
@@ -206,40 +268,164 @@ function MonitorRow({
         ? 'bg-destructive'
         : 'bg-muted-foreground'
 
-  const successful = monitor.recent.filter(
-    (h) => h.status === 'up' && h.responseTimeMs != null,
-  )
-  const avgMs = successful.length
-    ? Math.round(
-        successful.reduce((sum, h) => sum + (h.responseTimeMs ?? 0), 0) /
-          successful.length,
-      )
-    : null
-
   return (
-    <div className="p-5 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+    <div className="p-4 sm:p-5 flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3 min-w-0">
           {inMaintenance ? (
-            <span className="text-[10px] font-medium uppercase tracking-wide rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5">
+            <span className="text-[10px] font-medium uppercase tracking-wide rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 shrink-0">
               Maintenance
             </span>
           ) : (
-            <span className={cn('h-2.5 w-2.5 rounded-full', dotColor)} />
+            <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', dotColor)} />
           )}
-          <span className="font-medium">{monitor.name}</span>
+          <span className="font-medium truncate">{monitor.name}</span>
         </div>
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          {avgMs != null && (
-            <span className="tabular-nums">{avgMs} ms avg</span>
+        <div className="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground shrink-0">
+          {monitor.avgResponseMs != null && (
+            <span className="tabular-nums">{monitor.avgResponseMs} ms</span>
           )}
           <span className="tabular-nums">
-            {monitor.uptimePct == null ? '—' : `${monitor.uptimePct.toFixed(2)}% uptime`}
+            {monitor.uptimePct == null
+              ? '—'
+              : `${monitor.uptimePct.toFixed(2)}% uptime`}
           </span>
         </div>
       </div>
-      <UptimeBar recent={monitor.recent} />
+      <UptimeTimeline timeline={monitor.timeline} />
     </div>
+  )
+}
+
+function UptimeTimeline({
+  timeline,
+}: {
+  timeline: PublicMonitor['timeline']
+}) {
+  if (timeline.length === 0) {
+    return (
+      <div className="text-xs text-muted-foreground italic">
+        Gathering data…
+      </div>
+    )
+  }
+  const first = timeline[0]
+  const last = timeline[timeline.length - 1]
+  return (
+    <div className="space-y-1">
+      <div className="flex items-end gap-px h-6">
+        {timeline.map((d) => (
+          <div
+            key={d.date}
+            title={titleFor(d)}
+            className={cn(
+              'flex-1 h-full rounded-sm',
+              d.uptimePct == null && 'bg-muted',
+              d.uptimePct != null && d.uptimePct >= 99 && 'bg-success/90',
+              d.uptimePct != null && d.uptimePct >= 80 && d.uptimePct < 99 &&
+                'bg-amber-500/80',
+              d.uptimePct != null && d.uptimePct < 80 && 'bg-destructive/90',
+            )}
+          />
+        ))}
+      </div>
+      <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
+        <span>{first?.date && humanDate(first.date)}</span>
+        <span>Today</span>
+      </div>
+    </div>
+  )
+}
+
+function titleFor(d: { date: string; uptimePct: number | null }): string {
+  if (d.uptimePct == null) return `${d.date} — no data`
+  return `${d.date} — ${d.uptimePct.toFixed(2)}% uptime`
+}
+
+function humanDate(iso: string): string {
+  // YYYY-MM-DD → "Feb 14"
+  const d = new Date(`${iso}T00:00:00Z`)
+  return d.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  })
+}
+
+function IncidentHistory({ incidents }: { incidents: PublicIncident[] }) {
+  if (incidents.length === 0) {
+    return (
+      <section className="space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Past incidents
+        </h2>
+        <div className="rounded-xl border bg-card p-5 text-sm text-muted-foreground">
+          No incidents in the last 30 days. Quiet is good.
+        </div>
+      </section>
+    )
+  }
+
+  // Group incidents by day for a compact log-style display.
+  const groups = new Map<string, PublicIncident[]>()
+  for (const i of incidents) {
+    const key = new Date(i.startedAt).toISOString().slice(0, 10)
+    const arr = groups.get(key) ?? []
+    arr.push(i)
+    groups.set(key, arr)
+  }
+
+  return (
+    <section className="space-y-3">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Past incidents
+      </h2>
+      <div className="rounded-xl border bg-card divide-y">
+        {[...groups.entries()].map(([day, list]) => (
+          <div key={day} className="p-4 sm:p-5 space-y-3">
+            <div className="text-sm font-medium">{humanDate(day)}</div>
+            <ul className="space-y-2">
+              {list.map((i) => {
+                const startedAt = new Date(i.startedAt)
+                const isOpen = !i.resolvedAt
+                const durationMs = isOpen
+                  ? Date.now() - startedAt.getTime()
+                  : new Date(i.resolvedAt!).getTime() - startedAt.getTime()
+                return (
+                  <li
+                    key={i.id}
+                    className="flex flex-col sm:flex-row sm:items-baseline sm:gap-3 text-sm"
+                  >
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        className={cn(
+                          'inline-block h-1.5 w-1.5 rounded-full',
+                          isOpen ? 'bg-destructive' : 'bg-muted-foreground',
+                        )}
+                      />
+                      <span className="font-medium">{i.monitorName}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {startedAt.toLocaleTimeString(undefined, {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}{' '}
+                        · {formatDuration(durationMs)}
+                        {isOpen && ' (ongoing)'}
+                      </span>
+                    </div>
+                    {i.note && (
+                      <div className="text-muted-foreground sm:ml-auto sm:text-right">
+                        {i.note}
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -383,7 +569,7 @@ function ThemeToggle() {
         <button
           type="button"
           aria-label="Theme"
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-accent transition-colors"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-accent transition-colors"
         >
           <HugeiconsIcon icon={Icon} strokeWidth={2} className="h-4 w-4" />
         </button>
@@ -409,27 +595,46 @@ function ThemeToggle() {
   )
 }
 
-function UptimeBar({ recent }: { recent: PublicMonitor['recent'] }) {
-  // Show last ~90 datapoints as colored ticks.
-  const slots = recent.slice(-90)
-  return (
-    <div className="flex items-end gap-px h-6">
-      {slots.length === 0 ? (
-        <div className="text-xs text-muted-foreground italic">No data yet</div>
-      ) : (
-        slots.map((h, i) => (
-          <div
-            key={i}
-            title={`${new Date(h.checkedAt).toLocaleString()} — ${h.status}${h.responseTimeMs ? ` (${h.responseTimeMs}ms)` : ''}`}
-            className={cn(
-              'flex-1 h-full rounded-sm',
-              h.status === 'up' && 'bg-success',
-              h.status === 'down' && 'bg-destructive',
-              h.status === 'degraded' && 'bg-yellow-500',
-            )}
-          />
-        ))
-      )}
-    </div>
-  )
+function useDocumentMeta(
+  page: { title: string; description: string | null } | undefined,
+  monitors: PublicMonitor[] | undefined,
+) {
+  useEffect(() => {
+    if (!page) return
+    const fallback = 'Status'
+    document.title = `${page.title} — ${fallback}`
+    setMeta('description', page.description ?? `Live service status for ${page.title}.`)
+    setMeta('og:title', page.title, true)
+    setMeta(
+      'og:description',
+      page.description ?? `Live service status for ${page.title}.`,
+      true,
+    )
+    setMeta('og:type', 'website', true)
+    setMeta('twitter:card', 'summary')
+    setMeta('twitter:title', page.title)
+    setMeta(
+      'twitter:description',
+      page.description ?? `Live service status for ${page.title}.`,
+    )
+
+    // Theme-color tints the mobile browser chrome to reflect status.
+    if (monitors && monitors.length > 0) {
+      const anyDown = monitors.some((m) => m.currentStatus === 'down')
+      const allUp = monitors.every((m) => m.currentStatus === 'up')
+      const color = anyDown ? '#dc2626' : allUp ? '#16a34a' : '#71717a'
+      setMeta('theme-color', color)
+    }
+  }, [page, monitors])
+}
+
+function setMeta(name: string, content: string, ogStyle = false) {
+  const attr = ogStyle || name.startsWith('og:') ? 'property' : 'name'
+  let el = document.head.querySelector<HTMLMetaElement>(`meta[${attr}="${name}"]`)
+  if (!el) {
+    el = document.createElement('meta')
+    el.setAttribute(attr, name)
+    document.head.appendChild(el)
+  }
+  el.setAttribute('content', content)
 }

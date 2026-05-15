@@ -65,6 +65,13 @@ export function LoginPage() {
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting ? 'Signing in…' : 'Sign in'}
             </Button>
+            <p className="text-xs text-muted-foreground text-center pt-1">
+              Forgot your password? Run{' '}
+              <code className="px-1 py-0.5 bg-muted rounded text-foreground">
+                docker exec pingboard pingboard reset-password &lt;email&gt;
+              </code>{' '}
+              from the host.
+            </p>
           </form>
         </CardContent>
       </Card>

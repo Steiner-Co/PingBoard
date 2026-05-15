@@ -1,24 +1,5 @@
 import * as React from "react"
 import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-  type UniqueIdentifier,
-} from "@dnd-kit/core"
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers"
-import {
-  arrayMove,
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
-import {
   flexRender,
   getCoreRowModel,
   getFacetedRowModel,
@@ -29,16 +10,17 @@ import {
   useReactTable,
   type ColumnDef,
   type ColumnFiltersState,
-  type Row,
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { z } from "zod"
 import { Link, useNavigate } from "react-router-dom"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { useConfirm } from "@/components/confirm-provider"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -66,11 +48,11 @@ import {
 import { api } from "@/lib/api"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
-  DragDropVerticalIcon,
   CheckmarkCircle01Icon,
   AlertCircleIcon,
   PauseIcon,
   PlayIcon,
+  Time04Icon,
   MoreVerticalCircle01Icon,
   LeftToRightListBulletIcon,
   ArrowDown01Icon,
@@ -93,32 +75,7 @@ export const schema = z.object({
 
 type MonitorRow = z.infer<typeof schema>
 
-// Drag handle component (kept exported via DraggableRow below).
-function DragHandle({ id }: { id: string }) {
-  const { attributes, listeners } = useSortable({
-    id,
-  })
-
-  return (
-    <Button
-      {...attributes}
-      {...listeners}
-      variant="ghost"
-      size="icon"
-      className="size-7 text-muted-foreground hover:bg-transparent"
-    >
-      <HugeiconsIcon icon={DragDropVerticalIcon} strokeWidth={2} className="size-3 text-muted-foreground" />
-      <span className="sr-only">Drag to reorder</span>
-    </Button>
-  )
-}
-
 const columns: ColumnDef<MonitorRow>[] = [
-  {
-    id: "drag",
-    header: () => null,
-    cell: ({ row }) => <DragHandle id={row.original.id} />,
-  },
   {
     accessorKey: "name",
     header: "Name",
@@ -143,15 +100,23 @@ const columns: ColumnDef<MonitorRow>[] = [
     header: "Status",
     cell: ({ row }) => {
       const status = row.original.status
+      const icon =
+        status === "UP"
+          ? CheckmarkCircle01Icon
+          : status === "DOWN"
+            ? AlertCircleIcon
+            : status === "PAUSED"
+              ? PauseIcon
+              : Time04Icon
+      const tone =
+        status === "UP"
+          ? "text-success"
+          : status === "DOWN"
+            ? "text-destructive"
+            : "text-muted-foreground"
       return (
         <Badge variant="outline" className="px-1.5 text-muted-foreground">
-          {status === "UP" ? (
-            <HugeiconsIcon icon={CheckmarkCircle01Icon} strokeWidth={2} className="fill-green-500 dark:fill-green-400" />
-          ) : status === "DOWN" ? (
-            <HugeiconsIcon icon={AlertCircleIcon} strokeWidth={2} className="fill-red-500 dark:fill-red-400" />
-          ) : (
-            <HugeiconsIcon icon={PauseIcon} strokeWidth={2} />
-          )}
+          <HugeiconsIcon icon={icon} strokeWidth={2} className={tone} />
           {status}
         </Badge>
       )
@@ -184,17 +149,28 @@ const columns: ColumnDef<MonitorRow>[] = [
 function RowActions({ row }: { row: MonitorRow }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const confirm = useConfirm()
   const isPaused = row.status === "PAUSED"
 
   const togglePause = useMutation({
     mutationFn: (paused: boolean) =>
       api.patch(`/api/admin/monitors/${row.id}`, { paused }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["monitors"] }),
+    onSuccess: (_data, paused) => {
+      queryClient.invalidateQueries({ queryKey: ["monitors"] })
+      toast.success(paused ? `Paused "${row.name}"` : `Resumed "${row.name}"`)
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : "Failed to update"),
   })
 
   const remove = useMutation({
     mutationFn: () => api.delete(`/api/admin/monitors/${row.id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["monitors"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["monitors"] })
+      toast.success(`Deleted "${row.name}"`)
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : "Failed to delete"),
   })
 
   return (
@@ -226,10 +202,15 @@ function RowActions({ row }: { row: MonitorRow }) {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           variant="destructive"
-          onSelect={() => {
-            if (confirm(`Delete monitor "${row.name}"? This cannot be undone.`)) {
-              remove.mutate()
-            }
+          onSelect={async () => {
+            const ok = await confirm({
+              title: `Delete "${row.name}"?`,
+              description:
+                "All heartbeats, incidents, and links to status pages will be removed. This cannot be undone.",
+              confirmLabel: "Delete monitor",
+              destructive: true,
+            })
+            if (ok) remove.mutate()
           }}
         >
           <HugeiconsIcon icon={Delete02Icon} className="h-3.5 w-3.5" />
@@ -240,42 +221,11 @@ function RowActions({ row }: { row: MonitorRow }) {
   )
 }
 
-function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
-  const { transform, transition, setNodeRef, isDragging } = useSortable({
-    id: row.original.id,
-  })
-
-  return (
-    <TableRow
-      data-state={row.getIsSelected() && "selected"}
-      data-dragging={isDragging}
-      ref={setNodeRef}
-      className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80"
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition: transition,
-      }}
-    >
-      {row.getVisibleCells().map((cell) => (
-        <TableCell key={cell.id}>
-          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-        </TableCell>
-      ))}
-    </TableRow>
-  )
-}
-
 export function DataTable({
-  data: initialData,
+  data,
 }: {
   data: z.infer<typeof schema>[]
 }) {
-  const [data, setData] = React.useState(() => initialData)
-  // Re-sync when parent passes new data (initial load, refetch, SSE).
-  // The local copy still exists so drag-reordering can mutate it.
-  React.useEffect(() => {
-    setData(initialData)
-  }, [initialData])
   const [rowSelection, setRowSelection] = React.useState({})
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
@@ -287,17 +237,6 @@ export function DataTable({
     pageIndex: 0,
     pageSize: 10,
   })
-  const sortableId = React.useId()
-  const sensors = useSensors(
-    useSensor(MouseSensor, {}),
-    useSensor(TouchSensor, {}),
-    useSensor(KeyboardSensor, {})
-  )
-
-  const dataIds = React.useMemo<UniqueIdentifier[]>(
-    () => data?.map(({ id }) => id) || [],
-    [data]
-  )
 
   const table = useReactTable({
     data,
@@ -323,17 +262,6 @@ export function DataTable({
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
   })
-
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    if (active && over && active.id !== over.id) {
-      setData((data) => {
-        const oldIndex = dataIds.indexOf(active.id)
-        const newIndex = dataIds.indexOf(over.id)
-        return arrayMove(data, oldIndex, newIndex)
-      })
-    }
-  }
 
   return (
     <div className="w-full flex flex-col justify-start gap-4">
@@ -373,55 +301,51 @@ export function DataTable({
       </div>
       <div className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
         <div className="overflow-hidden rounded-lg border">
-          <DndContext
-            collisionDetection={closestCenter}
-            modifiers={[restrictToVerticalAxis]}
-            onDragEnd={handleDragEnd}
-            sensors={sensors}
-            id={sortableId}
-          >
-            <Table>
-              <TableHeader className="sticky top-0 z-10 bg-muted">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      return (
-                        <TableHead key={header.id} colSpan={header.colSpan}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </TableHead>
-                      )
-                    })}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody className="**:data-[slot=table-cell]:first:w-8">
-                {table.getRowModel().rows?.length ? (
-                  <SortableContext
-                    items={dataIds}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {table.getRowModel().rows.map((row) => (
-                      <DraggableRow key={row.id} row={row} />
+          <Table>
+            <TableHeader className="sticky top-0 z-10 bg-muted">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead key={header.id} colSpan={header.colSpan}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    )
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
                     ))}
-                  </SortableContext>
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center"
-                    >
-                      No results.
-                    </TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </DndContext>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    No results.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
         <div className="flex items-center justify-between px-4">
           <div className="hidden flex-1 text-sm text-muted-foreground lg:flex">

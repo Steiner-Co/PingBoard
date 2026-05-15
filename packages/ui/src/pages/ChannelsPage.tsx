@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { PlusSignIcon, TestTube02Icon, Delete02Icon, Edit02Icon } from '@hugeicons/core-free-icons'
+import { PlusSignIcon, TestTube02Icon, Delete02Icon, Edit02Icon, Notification03Icon } from '@hugeicons/core-free-icons'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { EmptyState } from '@/components/EmptyState'
+import { useConfirm } from '@/components/confirm-provider'
 import {
   Dialog,
   DialogContent,
@@ -28,6 +31,7 @@ import type { ChannelType, NotificationChannel } from '@/types'
 
 export function ChannelsPage() {
   const queryClient = useQueryClient()
+  const confirm = useConfirm()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<NotificationChannel | null>(null)
 
@@ -38,12 +42,20 @@ export function ChannelsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/api/admin/channels/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['channels'] }),
+    onSuccess: (_data, _id) => {
+      queryClient.invalidateQueries({ queryKey: ['channels'] })
+      toast.success('Channel deleted')
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : 'Failed to delete channel'),
   })
 
   const testMutation = useMutation({
     mutationFn: (id: string) => api.post(`/api/admin/channels/${id}/test`),
   })
+
+  const items = channels.data?.channels ?? []
+  const isLoading = channels.isLoading
 
   return (
     <div className="px-4 lg:px-6 flex flex-col gap-6">
@@ -55,15 +67,25 @@ export function ChannelsPage() {
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Channels</CardTitle>
-          <CardDescription>
-            {channels.data?.channels.length ?? 0} configured
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {channels.data && channels.data.channels.length > 0 ? (
+      {!isLoading && items.length === 0 ? (
+        <EmptyState
+          icon={Notification03Icon}
+          title="No notification channels yet"
+          description="Add a channel (webhook, Slack, Discord, ntfy, or email) so PingBoard can tell you when something goes down."
+          action={
+            <Button onClick={() => setOpen(true)}>
+              <HugeiconsIcon icon={PlusSignIcon} className="h-4 w-4" />
+              Add your first channel
+            </Button>
+          }
+        />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Channels</CardTitle>
+            <CardDescription>{items.length} configured</CardDescription>
+          </CardHeader>
+          <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -74,7 +96,7 @@ export function ChannelsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {channels.data.channels.map((c) => (
+                {items.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.name}</TableCell>
                     <TableCell className="uppercase text-xs text-muted-foreground">
@@ -90,10 +112,17 @@ export function ChannelsPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => {
+                          const id = toast.loading(`Sending test via ${c.name}…`)
                           testMutation.mutate(c.id, {
-                            onSuccess: () => alert(`Test sent via ${c.name}`),
+                            onSuccess: () =>
+                              toast.success(`Test sent via ${c.name}`, { id }),
                             onError: (err) =>
-                              alert(`Test failed: ${err instanceof Error ? err.message : err}`),
+                              toast.error(
+                                err instanceof Error
+                                  ? `Test failed: ${err.message}`
+                                  : 'Test failed',
+                                { id },
+                              ),
                           })
                         }}
                         disabled={testMutation.isPending}
@@ -112,10 +141,16 @@ export function ChannelsPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => {
-                          if (confirm(`Delete channel "${c.name}"?`)) {
-                            deleteMutation.mutate(c.id)
-                          }
+                        aria-label={`Delete ${c.name}`}
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: `Delete "${c.name}"?`,
+                            description:
+                              'Monitors linked to this channel will keep working, but stop notifying through it.',
+                            confirmLabel: 'Delete channel',
+                            destructive: true,
+                          })
+                          if (ok) deleteMutation.mutate(c.id)
                         }}
                       >
                         <HugeiconsIcon icon={Delete02Icon} className="h-3 w-3" />
@@ -125,13 +160,9 @@ export function ChannelsPage() {
                 ))}
               </TableBody>
             </Table>
-          ) : (
-            <p className="text-sm text-muted-foreground py-8 text-center">
-              No channels yet. Add one to start receiving alerts.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       <ChannelDialog open={open} onClose={() => setOpen(false)} />
       <ChannelDialog
@@ -190,6 +221,7 @@ function ChannelDialog({
         : api.post('/api/admin/channels', payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['channels'] })
+      toast.success(editing ? 'Channel updated' : 'Channel created')
       reset()
       onClose()
     },

@@ -42,6 +42,7 @@ import {
   listMonitors,
   listStatusPages,
   resolveIncident,
+  runMonitorCheck,
   testChannel,
   updateChannel,
   updateIncident,
@@ -134,6 +135,8 @@ async function main() {
             return listMonitors(adminDeps)
           if (path === '/api/admin/monitors' && method === 'POST')
             return createMonitor(req, adminDeps)
+          if (path === '/api/admin/monitors/run' && method === 'POST')
+            return runMonitorCheck(req, adminDeps)
           const monitorMatch = path.match(/^\/api\/admin\/monitors\/([\w-]+)$/)
           if (monitorMatch?.[1]) {
             const id = monitorMatch[1]
