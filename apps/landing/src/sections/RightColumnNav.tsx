@@ -4,7 +4,7 @@ const links = [
   { label: 'Features', href: '#features' },
   { label: 'Plugins', href: '#plugins' },
   { label: 'Dashboard', href: '#dashboard' },
-  { label: 'GitHub', href: 'https://github.com/' },
+  { label: 'GitHub', href: 'https://github.com/steiner-co/pingboard' },
 ]
 
 export function RightColumnNav() {
