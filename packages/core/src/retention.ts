@@ -51,7 +51,13 @@ export async function runRetention(
   return { aggregatedDays: rows.length, deletedRows: deleted.length }
 }
 
-export function startRetentionJob(db: DB): { stop: () => void } {
+/** Delay before the boot sweep, so it doesn't compete with startup. */
+export const RETENTION_BOOT_DELAY_MS = 10_000
+
+export function startRetentionJob(
+  db: DB,
+  { bootDelayMs = RETENTION_BOOT_DELAY_MS }: { bootDelayMs?: number } = {},
+): { stop: () => void } {
   const ONE_DAY_MS = 24 * 60 * 60 * 1000
   const tick = async () => {
     try {
@@ -61,8 +67,18 @@ export function startRetentionJob(db: DB): { stop: () => void } {
       console.error('Retention job failed:', err)
     }
   }
+  // Sweep shortly after boot as well as daily. With only the interval, an
+  // instance restarted more often than every 24h — which is any instance
+  // that gets upgraded — would never sweep at all, and the heartbeat table
+  // would grow without bound regardless of the configured retention.
+  const initial = setTimeout(() => void tick(), bootDelayMs)
   const handle = setInterval(() => void tick(), ONE_DAY_MS)
-  return { stop: () => clearInterval(handle) }
+  return {
+    stop: () => {
+      clearTimeout(initial)
+      clearInterval(handle)
+    },
+  }
 }
 
 // Silence unused-import warning for `gte` so it's available for future range queries.
