@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   ArrowDown01Icon,
   ArrowUp01Icon,
+  CheckmarkCircle01Icon,
+  Copy01Icon,
   Edit02Icon,
   GlobeIcon,
   LinkSquare02Icon,
@@ -15,9 +18,10 @@ import {
 } from '@hugeicons/core-free-icons'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/EmptyState'
+import { Panel } from '@/components/panel'
 import { QueryError } from '@/components/QueryError'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useConfirm } from '@/components/confirm-provider'
 import {
   Dialog,
@@ -31,6 +35,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -43,8 +48,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { api } from '@/lib/api'
+import { cn } from '@/lib/utils'
 import type { Monitor, StatusPage, Theme } from '@/types'
 
 // Sort: selected monitors in their explicit `order` first, then unselected
@@ -72,17 +77,62 @@ interface LinkedMonitor {
   sortOrder: number
 }
 
+interface PageDetail {
+  page: StatusPage
+  monitors: LinkedMonitor[]
+}
+
 export function StatusPagesPage() {
   const queryClient = useQueryClient()
   const confirm = useConfirm()
   const [open, setOpen] = useState(false)
   const [passwordTarget, setPasswordTarget] = useState<StatusPage | null>(null)
   const [editTarget, setEditTarget] = useState<StatusPage | null>(null)
+  // When the user fixes a coverage gap we open the edit dialog with that
+  // monitor already ticked, so "Add to page" is one click instead of a hunt.
+  const [presetMonitorId, setPresetMonitorId] = useState<string | null>(null)
 
   const pages = useQuery({
     queryKey: ['pages'],
     queryFn: () => api.get<{ pages: StatusPage[] }>('/api/admin/pages'),
   })
+
+  const monitors = useQuery({
+    queryKey: ['monitors'],
+    queryFn: () => api.get<{ monitors: Monitor[] }>('/api/admin/monitors'),
+  })
+
+  const pageList = pages.data?.pages ?? []
+
+  // Per-page monitor links. `/api/admin/pages` only carries a count, so the
+  // union of published monitors — the thing that reveals a coverage gap —
+  // has to come from the detail endpoint. Same query key the edit dialog
+  // uses, so these double as a warm cache for it.
+  const details = useQueries({
+    queries: pageList.map((p) => ({
+      queryKey: ['page', p.id],
+      queryFn: () => api.get<PageDetail>(`/api/admin/pages/${p.id}`),
+    })),
+  })
+
+  const publishedIds = new Set<string>()
+  for (const d of details) {
+    for (const m of d.data?.monitors ?? []) publishedIds.add(m.monitorId)
+  }
+  const coverageReady =
+    details.length === pageList.length && details.every((d) => d.data != null)
+
+  const allMonitors = monitors.data?.monitors ?? []
+  const unpublished = coverageReady
+    ? allMonitors
+        .filter((m) => !publishedIds.has(m.id))
+        // Live monitors first — a paused monitor missing from a page is a
+        // much smaller deal than a running one nobody can see.
+        .sort((a, b) => Number(a.paused) - Number(b.paused))
+    : []
+
+  const protectedCount = pageList.filter((p) => p.passwordSet).length
+  const emptyPages = pageList.filter((p) => (p.monitorCount ?? 0) === 0).length
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/api/admin/pages/${id}`),
@@ -106,6 +156,11 @@ export function StatusPagesPage() {
       toast.error(err instanceof Error ? err.message : 'Failed to update password'),
   })
 
+  const closeEdit = () => {
+    setEditTarget(null)
+    setPresetMonitorId(null)
+  }
+
   return (
     <div className="px-4 lg:px-6 flex flex-col gap-6">
       <div className="flex items-center justify-between gap-4">
@@ -118,7 +173,9 @@ export function StatusPagesPage() {
 
       {pages.isError ? (
         <QueryError subject="status pages" onRetry={() => void pages.refetch()} />
-      ) : !pages.isLoading && (pages.data?.pages.length ?? 0) === 0 ? (
+      ) : pages.isLoading ? (
+        <PagesSkeleton />
+      ) : pageList.length === 0 ? (
         <EmptyState
           icon={GlobeIcon}
           title="No status pages yet"
@@ -131,130 +188,120 @@ export function StatusPagesPage() {
           }
         />
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Pages</CardTitle>
-            <CardDescription>
-              {pages.data?.pages.length ?? 0} {(pages.data?.pages.length ?? 0) === 1 ? 'page' : 'pages'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Slug</TableHead>
-                  <TableHead>Theme</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(pages.data?.pages ?? []).map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        {p.title}
-                        {p.passwordSet && (
-                          <Badge variant="secondary" className="gap-1">
-                            <HugeiconsIcon
-                              icon={LockPasswordIcon}
-                              className="h-3 w-3"
-                              strokeWidth={2}
-                            />
-                            Password
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">/{p.slug}</TableCell>
-                    <TableCell className="capitalize text-muted-foreground text-sm">
-                      {p.theme}
-                    </TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button size="sm" variant="outline" asChild>
-                        <a href={`/${p.slug}`} target="_blank" rel="noreferrer">
-                          <HugeiconsIcon icon={LinkSquare02Icon} className="h-3 w-3" />
-                          View
-                        </a>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setEditTarget(p)}
-                      >
-                        <HugeiconsIcon icon={Edit02Icon} className="h-3 w-3" />
-                        Edit
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            aria-label={`More actions for ${p.title}`}
-                          >
-                            <HugeiconsIcon
-                              icon={MoreVerticalCircle01Icon}
-                              className="h-3.5 w-3.5"
-                              strokeWidth={2}
-                            />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onSelect={() => setPasswordTarget(p)}>
-                            <HugeiconsIcon
-                              icon={LockPasswordIcon}
-                              className="h-3.5 w-3.5"
-                            />
-                            {p.passwordSet ? 'Change password' : 'Set password'}
-                          </DropdownMenuItem>
-                          {p.passwordSet && (
-                            <DropdownMenuItem
-                              onSelect={async () => {
-                                const ok = await confirm({
-                                  title: `Remove password from "${p.title}"?`,
-                                  description:
-                                    'Anyone with the URL will be able to view this status page.',
-                                  confirmLabel: 'Remove password',
-                                  destructive: true,
-                                })
-                                if (ok) {
-                                  updatePassword.mutate({ id: p.id, password: null })
-                                }
-                              }}
-                            >
-                              Remove password
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            variant="destructive"
-                            onSelect={async () => {
-                              const ok = await confirm({
-                                title: `Delete "${p.title}"?`,
-                                description:
-                                  'The page at this slug will become unreachable. Linked monitors stay intact.',
-                                confirmLabel: 'Delete page',
-                                destructive: true,
-                              })
-                              if (ok) deleteMutation.mutate(p.id)
-                            }}
-                          >
-                            <HugeiconsIcon icon={Delete02Icon} className="h-3.5 w-3.5" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <>
+          <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
+            <StatCell
+              label="Status pages"
+              value={String(pageList.length)}
+              sub={
+                protectedCount === 0
+                  ? 'All publicly reachable'
+                  : `${pageList.length - protectedCount} public · ${protectedCount} protected`
+              }
+              className="border-b border-border/60 lg:border-b-0 border-r lg:border-r-0"
+            />
+            <StatCell
+              label="Monitors published"
+              value={coverageReady ? String(publishedIds.size) : '—'}
+              valueSuffix={coverageReady ? `/ ${allMonitors.length}` : undefined}
+              sub="Listed on at least one page"
+              className="border-b border-border/60 lg:border-b-0"
+            />
+            <StatCell
+              label="Unpublished"
+              value={coverageReady ? String(unpublished.length) : '—'}
+              tone={
+                !coverageReady
+                  ? 'muted'
+                  : unpublished.length > 0
+                    ? 'warn'
+                    : 'success'
+              }
+              sub={
+                !coverageReady
+                  ? 'Checking coverage…'
+                  : unpublished.length === 0
+                    ? 'Every monitor is visible'
+                    : 'Not on any status page'
+              }
+              className="border-r border-border/60 lg:border-r-0"
+            />
+            <StatCell
+              label="Empty pages"
+              value={String(emptyPages)}
+              tone={emptyPages > 0 ? 'warn' : 'muted'}
+              sub={
+                emptyPages > 0
+                  ? 'Render with nothing to show'
+                  : 'Every page lists monitors'
+              }
+            />
+          </Panel>
+
+          <Panel>
+            <div className="flex items-center justify-between gap-4 border-b border-border/60 px-4 py-3">
+              <div className="font-mono text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Pages
+              </div>
+              <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground tabular-nums">
+                {pageList.length} total
+              </div>
+            </div>
+            <div className="divide-y divide-border/60">
+              {pageList.map((p) => (
+                <PageRow
+                  key={p.id}
+                  page={p}
+                  onEdit={() => {
+                    setPresetMonitorId(null)
+                    setEditTarget(p)
+                  }}
+                  onSetPassword={() => setPasswordTarget(p)}
+                  onRemovePassword={async () => {
+                    const ok = await confirm({
+                      title: `Remove password from "${p.title}"?`,
+                      description:
+                        'Anyone with the URL will be able to view this status page.',
+                      confirmLabel: 'Remove password',
+                      destructive: true,
+                    })
+                    if (ok) updatePassword.mutate({ id: p.id, password: null })
+                  }}
+                  onDelete={async () => {
+                    const ok = await confirm({
+                      title: `Delete "${p.title}"?`,
+                      description:
+                        'The page at this slug will become unreachable. Linked monitors stay intact.',
+                      confirmLabel: 'Delete page',
+                      destructive: true,
+                    })
+                    if (ok) deleteMutation.mutate(p.id)
+                  }}
+                />
+              ))}
+            </div>
+          </Panel>
+
+          <CoveragePanel
+            ready={coverageReady}
+            unpublished={unpublished}
+            publishedCount={publishedIds.size}
+            totalCount={allMonitors.length}
+            pages={pageList}
+            onAddToPage={(page, monitorId) => {
+              setPresetMonitorId(monitorId)
+              setEditTarget(page)
+            }}
+          />
+        </>
       )}
 
       <PageDialog open={open} onClose={() => setOpen(false)} />
-      <EditPageDialog page={editTarget} onClose={() => setEditTarget(null)} />
+      <EditPageDialog
+        page={editTarget}
+        presetMonitorId={presetMonitorId}
+        onClose={closeEdit}
+      />
       <PasswordDialog
         page={passwordTarget}
         onClose={() => setPasswordTarget(null)}
@@ -265,6 +312,316 @@ export function StatusPagesPage() {
         pending={updatePassword.isPending}
       />
     </div>
+  )
+}
+
+function StatCell({
+  label,
+  value,
+  valueSuffix,
+  sub,
+  tone = 'default',
+  className,
+}: {
+  label: string
+  value: string
+  valueSuffix?: string
+  sub: string
+  tone?: 'default' | 'success' | 'destructive' | 'warn' | 'muted'
+  className?: string
+}) {
+  const valueTone =
+    tone === 'success'
+      ? 'text-success'
+      : tone === 'destructive'
+        ? 'text-destructive'
+        : tone === 'warn'
+          ? 'text-warning'
+          : tone === 'muted'
+            ? 'text-muted-foreground'
+            : 'text-foreground'
+
+  return (
+    <div className={cn('flex flex-col gap-2.5 p-4 sm:p-5', className)}>
+      <div className="font-mono text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        {label}
+      </div>
+      <div className="flex items-baseline gap-1.5">
+        <span
+          className={cn(
+            'text-3xl font-semibold tracking-tight tabular-nums',
+            valueTone,
+          )}
+        >
+          {value}
+        </span>
+        {valueSuffix && (
+          <span className="text-sm font-medium text-muted-foreground tabular-nums">
+            {valueSuffix}
+          </span>
+        )}
+      </div>
+      <div className="text-xs text-muted-foreground line-clamp-1">{sub}</div>
+    </div>
+  )
+}
+
+function PagesSkeleton() {
+  return (
+    <>
+      <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="flex flex-col gap-2.5 p-4 sm:p-5">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-8 w-16" />
+            <Skeleton className="h-3 w-32" />
+          </div>
+        ))}
+      </Panel>
+      <Panel>
+        <div className="divide-y divide-border/60">
+          {[0, 1].map((i) => (
+            <div key={i} className="space-y-2 p-4">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-6 w-64" />
+              <Skeleton className="h-3 w-48" />
+            </div>
+          ))}
+        </div>
+      </Panel>
+    </>
+  )
+}
+
+function PageRow({
+  page,
+  onEdit,
+  onSetPassword,
+  onRemovePassword,
+  onDelete,
+}: {
+  page: StatusPage
+  onEdit: () => void
+  onSetPassword: () => void
+  onRemovePassword: () => void
+  onDelete: () => void
+}) {
+  const count = page.monitorCount ?? 0
+
+  return (
+    <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+      <div className="min-w-0 flex-1 space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-medium truncate">{page.title}</span>
+          {page.passwordSet && (
+            <Badge variant="warning" className="gap-1">
+              <HugeiconsIcon
+                icon={LockPasswordIcon}
+                className="h-3 w-3"
+                strokeWidth={2}
+              />
+              Password
+            </Badge>
+          )}
+        </div>
+
+        <PublicUrl slug={page.slug} />
+
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+          <span className={cn('tabular-nums', count === 0 && 'text-warning')}>
+            {count === 0 ? 'No monitors' : `${count} ${count === 1 ? 'monitor' : 'monitors'}`}
+          </span>
+          <span aria-hidden>·</span>
+          <span>Theme {page.theme}</span>
+          <span aria-hidden>·</span>
+          <span>{page.passwordSet ? 'Protected' : 'Public'}</span>
+        </div>
+      </div>
+
+      <div className="flex shrink-0 items-center gap-2">
+        <Button size="sm" variant="outline" asChild>
+          <a href={`/${page.slug}`} target="_blank" rel="noreferrer">
+            <HugeiconsIcon icon={LinkSquare02Icon} className="h-3 w-3" />
+            View
+          </a>
+        </Button>
+        <Button size="sm" variant="outline" onClick={onEdit}>
+          <HugeiconsIcon icon={Edit02Icon} className="h-3 w-3" />
+          Edit
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-label={`More actions for ${page.title}`}
+            >
+              <HugeiconsIcon
+                icon={MoreVerticalCircle01Icon}
+                className="h-3.5 w-3.5"
+                strokeWidth={2}
+              />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={onSetPassword}>
+              <HugeiconsIcon icon={LockPasswordIcon} className="h-3.5 w-3.5" />
+              {page.passwordSet ? 'Change password' : 'Set password'}
+            </DropdownMenuItem>
+            {page.passwordSet && (
+              <DropdownMenuItem onSelect={onRemovePassword}>
+                Remove password
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+              <HugeiconsIcon icon={Delete02Icon} className="h-3.5 w-3.5" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  )
+}
+
+// The public URL is the whole point of a status page, so it's shown in full
+// and copies on click rather than hiding behind a "View" button.
+function PublicUrl({ slug }: { slug: string }) {
+  const [copied, setCopied] = useState(false)
+  const origin = typeof window === 'undefined' ? '' : window.location.origin
+  const url = `${origin}/${slug}`
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        void navigator.clipboard.writeText(url)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1500)
+      }}
+      aria-label={`Copy public URL for /${slug}`}
+      className="group inline-flex max-w-full items-center gap-2 rounded-md border border-border/70 bg-muted/40 px-2 py-1 font-mono text-xs transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+    >
+      <span className="truncate text-muted-foreground">{origin}</span>
+      <span className="-ml-2 truncate font-medium text-foreground">/{slug}</span>
+      <HugeiconsIcon
+        icon={copied ? CheckmarkCircle01Icon : Copy01Icon}
+        className={cn(
+          'h-3 w-3 shrink-0 transition-colors',
+          copied ? 'text-success' : 'text-muted-foreground/70',
+        )}
+        strokeWidth={2}
+      />
+      <span className="sr-only">{copied ? 'Copied' : 'Copy'}</span>
+    </button>
+  )
+}
+
+function CoveragePanel({
+  ready,
+  unpublished,
+  publishedCount,
+  totalCount,
+  pages,
+  onAddToPage,
+}: {
+  ready: boolean
+  unpublished: Monitor[]
+  publishedCount: number
+  totalCount: number
+  pages: StatusPage[]
+  onAddToPage: (page: StatusPage, monitorId: string) => void
+}) {
+  return (
+    <Panel>
+      <div className="flex items-center justify-between gap-4 border-b border-border/60 px-4 py-3">
+        <div className="font-mono text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          Monitor coverage
+        </div>
+        <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground tabular-nums">
+          {ready ? `${publishedCount} / ${totalCount} published` : 'Checking…'}
+        </div>
+      </div>
+
+      {!ready ? (
+        <div className="px-4 py-3.5 text-sm text-muted-foreground">
+          Checking which monitors appear on a status page…
+        </div>
+      ) : unpublished.length === 0 ? (
+        <div className="flex items-center gap-2.5 px-4 py-3.5">
+          <HugeiconsIcon
+            icon={CheckmarkCircle01Icon}
+            className="h-4 w-4 shrink-0 text-success"
+            strokeWidth={2}
+          />
+          <span className="text-sm text-muted-foreground">
+            {totalCount === 0
+              ? 'No monitors yet — nothing to publish.'
+              : `All ${totalCount} monitors appear on at least one status page.`}
+          </span>
+        </div>
+      ) : (
+        <>
+          <p className="border-b border-border/60 px-4 py-3 text-sm text-muted-foreground">
+            {unpublished.length === 1 ? 'This monitor is' : 'These monitors are'}{' '}
+            not listed on any status page, so customers can&apos;t see{' '}
+            {unpublished.length === 1 ? 'its' : 'their'} status.
+          </p>
+          <div className="divide-y divide-border/60">
+            {unpublished.map((m) => (
+              <div
+                key={m.id}
+                className="flex items-center justify-between gap-3 px-4 py-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      to={`/admin/monitors/${m.id}`}
+                      className="truncate text-sm font-medium hover:underline underline-offset-4"
+                    >
+                      {m.name}
+                    </Link>
+                    {m.paused && <Badge variant="secondary">Paused</Badge>}
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground">
+                    <span className="uppercase tracking-wider">{m.type}</span>
+                    {/* Push monitors carry "push" as their target — repeating
+                        it would just read as "PUSH · PUSH". */}
+                    {m.target && m.target.toLowerCase() !== m.type && (
+                      <>
+                        <span aria-hidden>·</span>
+                        <span className="truncate">{m.target}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="outline" className="shrink-0">
+                      <HugeiconsIcon icon={PlusSignIcon} className="h-3 w-3" />
+                      Add to page
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Add to status page</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {pages.map((p) => (
+                      <DropdownMenuItem
+                        key={p.id}
+                        onSelect={() => onAddToPage(p, m.id)}
+                      >
+                        {p.title}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </Panel>
   )
 }
 
@@ -474,9 +831,11 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
 
 function EditPageDialog({
   page,
+  presetMonitorId,
   onClose,
 }: {
   page: StatusPage | null
+  presetMonitorId?: string | null
   onClose: () => void
 }) {
   const queryClient = useQueryClient()
@@ -484,10 +843,7 @@ function EditPageDialog({
 
   const detail = useQuery({
     queryKey: ['page', page?.id],
-    queryFn: () =>
-      api.get<{ page: StatusPage; monitors: LinkedMonitor[] }>(
-        `/api/admin/pages/${page!.id}`,
-      ),
+    queryFn: () => api.get<PageDetail>(`/api/admin/pages/${page!.id}`),
     enabled: open,
   })
 
@@ -505,7 +861,9 @@ function EditPageDialog({
   const [order, setOrder] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
 
-  // Hydrate when the detail query lands.
+  // Hydrate when the detail query lands. `presetMonitorId` is in the deps so
+  // that opening via "Add to page" re-hydrates from cache with that monitor
+  // already ticked; once open, unticking it sticks because neither dep changes.
   useEffect(() => {
     if (!detail.data) return
     setTitle(detail.data.page.title)
@@ -514,10 +872,18 @@ function EditPageDialog({
     const sorted = [...detail.data.monitors].sort(
       (a, b) => a.sortOrder - b.sortOrder,
     )
-    setOrder(sorted.map((m) => m.monitorId))
-    setSelected(new Map(sorted.map((m) => [m.monitorId, m.groupName ?? ''])))
+    const nextOrder = sorted.map((m) => m.monitorId)
+    const nextSelected = new Map(
+      sorted.map((m) => [m.monitorId, m.groupName ?? '']),
+    )
+    if (presetMonitorId && !nextSelected.has(presetMonitorId)) {
+      nextOrder.push(presetMonitorId)
+      nextSelected.set(presetMonitorId, '')
+    }
+    setOrder(nextOrder)
+    setSelected(nextSelected)
     setError(null)
-  }, [detail.data])
+  }, [detail.data, presetMonitorId])
 
   const save = useMutation({
     mutationFn: (payload: object) =>
@@ -627,7 +993,7 @@ function EditPageDialog({
                 {/* Selected monitors first, in display order — so the up/down
                     buttons make visual sense. Unselected appear below. */}
                 {orderedMonitorList(monitors.data?.monitors ?? [], order).map(
-                  (m, idx, list) => {
+                  (m) => {
                     const checked = selected.has(m.id)
                     return (
                       <div key={m.id} className="p-3 flex items-center gap-3">
@@ -686,12 +1052,6 @@ function EditPageDialog({
                               className="w-32 text-xs"
                             />
                           </>
-                        )}
-                        {!checked && idx > 0 && list[idx - 1] && (
-                          // Visual separator between selected and unselected
-                          // groups handled by the divide-y above; nothing to
-                          // render here.
-                          null
                         )}
                       </div>
                     )
