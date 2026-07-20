@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 const installs = {
   docker: { prefix: 'docker', rest: ' run -d -p 3000:3000 -v pingboard_data:/data ghcr.io/steiner-co/pingboard' },
-  compose: { prefix: 'curl', rest: ' -fsSL get.pingboard.dev | sh' },
+  compose: { prefix: 'git', rest: ' clone github.com/steiner-co/pingboard && docker compose up -d' },
   source: { prefix: 'git', rest: ' clone github.com/steiner-co/pingboard && bun install && bun dev' },
 }
 
@@ -45,14 +45,14 @@ export function Readme() {
   }
 
   return (
-    <section id="readme" className="border-b border-border/60 px-8 py-12 sm:px-12 lg:px-16">
+    <section id="readme" className="scroll-mt-12 border-b border-border/60 px-8 py-12 sm:px-12 lg:px-16">
       <div className="mb-6 text-[0.6875rem] uppercase tracking-[0.18em] text-muted-foreground">
         README
       </div>
 
       <p className="max-w-3xl text-[0.9375rem] leading-relaxed text-muted-foreground">
-        Uptime monitoring that lives <span className="text-foreground">inside your infra</span>. Single binary,
-        plugin-based, and built to scale — for personal sites, homelabs, and{' '}
+        Uptime monitoring that lives <span className="text-foreground">inside your infra</span>. One container,
+        one SQLite file, no Redis or queue — for personal sites, homelabs, and{' '}
         <span className="text-foreground">production stacks</span>.
       </p>
 
@@ -67,13 +67,13 @@ export function Readme() {
                 setStatus('idle')
               }}
               className={
-                'relative flex items-center px-4 py-2.5 text-[0.6875rem] font-medium uppercase tracking-[0.14em] transition-colors hover:text-foreground' +
+                'relative flex items-center px-4 py-2.5 text-[0.6875rem] font-medium uppercase tracking-[0.14em] transition-[color,transform] duration-150 ease-out hover:text-foreground active:scale-[0.98]' +
                 (tab === key
                   ? ' text-foreground after:absolute after:inset-x-3 after:bottom-[-1px] after:h-[2px] after:bg-foreground'
                   : ' text-muted-foreground')
               }
             >
-              {key === 'docker' ? 'Docker' : key === 'compose' ? 'Quickstart' : 'Source'}
+              {key === 'docker' ? 'Docker' : key === 'compose' ? 'Compose' : 'Source'}
             </button>
           ))}
         </div>

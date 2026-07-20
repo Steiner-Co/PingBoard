@@ -24,16 +24,16 @@ function Pill({ label, badge }: { label: string; badge: string }) {
 
 export function PluginStrip() {
   return (
-    <section id="plugins" className="border-b border-border/60 px-8 py-14 sm:px-12 lg:px-16">
+    <section id="plugins" className="scroll-mt-12 border-b border-border/60 px-8 py-14 sm:px-12 lg:px-16">
       <div className="mb-6 flex items-end justify-between">
         <div className="text-[0.6875rem] uppercase tracking-[0.18em] text-muted-foreground">
-          Plugin ecosystem
+          Built-in checks &amp; channels
         </div>
         <a
-          href="#docs"
-          className="text-[0.6875rem] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground"
+          href="https://github.com/steiner-co/pingboard#what-it-does"
+          className="text-[0.6875rem] uppercase tracking-[0.18em] text-muted-foreground transition-[color,transform] duration-150 ease-out hover:text-foreground active:scale-[0.98]"
         >
-          Browse all →
+          Browse all <span aria-hidden>↗</span>
         </a>
       </div>
 

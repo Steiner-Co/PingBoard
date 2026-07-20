@@ -129,6 +129,10 @@
 /* The clip-path wipe is the largest motion in the product — a full-screen
    circle sweep. Reduced-motion users get the default instant swap instead. */
 @media (prefers-reduced-motion: no-preference) {
+  /* Anchor jumps from the section nav glide; reduced motion gets the hard cut. */
+  html {
+    scroll-behavior: smooth;
+  }
   ::view-transition-new(root) {
     animation: theme-reveal 0.45s ease-out;
   }

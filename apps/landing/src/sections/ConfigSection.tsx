@@ -98,7 +98,7 @@ es.addEventListener('heartbeat', (e) => {
 
 export function ConfigSection() {
   return (
-    <section id="docs" className="border-b border-border/60 px-8 py-14 sm:px-12 lg:px-16">
+    <section id="docs" className="scroll-mt-12 border-b border-border/60 px-8 py-14 sm:px-12 lg:px-16">
       <div className="mb-3 text-[0.6875rem] uppercase tracking-[0.18em] text-muted-foreground">
         Framework
       </div>

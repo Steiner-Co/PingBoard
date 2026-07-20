@@ -271,7 +271,7 @@ const features: Array<{ n: string; title: string; body: string; demo: ReactNode 
 
 export function FeaturesGrid() {
   return (
-    <section id="features" className="border-b border-border/60 px-8 py-14 sm:px-12 lg:px-16">
+    <section id="features" className="scroll-mt-12 border-b border-border/60 px-8 py-14 sm:px-12 lg:px-16">
       <div className="mb-8 text-[0.6875rem] uppercase tracking-[0.18em] text-muted-foreground">
         Features
       </div>
