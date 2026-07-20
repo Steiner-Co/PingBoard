@@ -5,7 +5,7 @@ import { resolve } from 'node:path'
 
 // Mirror packages/shared/src/constants.ts — kept inline because vite.config
 // is loaded by Node before workspace TS resolution.
-const RESERVED_SLUGS = new Set(['admin', 'api', 'auth', '_health', 'static', 'assets', 'favicon.ico'])
+const RESERVED_SLUGS = new Set(['admin', 'api', 'auth', 'login', 'setup', '_health', 'static', 'assets', 'favicon.ico'])
 
 // Match the backend's path-aware shell selection (apps/pingboard/src/server.ts)
 // so /<slug> serves public.html in dev too — otherwise React Router's catch-all
