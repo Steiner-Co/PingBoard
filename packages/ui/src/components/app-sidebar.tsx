@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Link } from "react-router-dom"
+import { GuardedLink } from "@/components/guarded-link"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -56,12 +56,12 @@ export function AppSidebar({ user, onLogout, ...props }: AppSidebarProps) {
               asChild
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
-              <Link to="/admin">
+              <GuardedLink to="/admin">
                 {/* No pulse: constant motion in a dashboard fatigues. The dot
                     is still the brand mark; quiet is part of "all good". */}
                 <span className="inline-block size-2.5 rounded-full bg-success" />
                 <span className="text-base font-semibold">PingBoard</span>
-              </Link>
+              </GuardedLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

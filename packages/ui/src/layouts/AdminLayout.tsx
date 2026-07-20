@@ -4,6 +4,7 @@ import { AppSidebar } from '@/components/app-sidebar'
 import { SiteHeader } from '@/components/site-header'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { useAuth } from '@/contexts/auth'
+import { UnsavedChangesProvider } from '@/contexts/unsaved-changes'
 
 const ROUTE_TITLES: Record<string, string> = {
   '/admin': 'Dashboard',
@@ -46,6 +47,7 @@ export function AdminLayout() {
   }
 
   return (
+    <UnsavedChangesProvider>
     <SidebarProvider
       style={{
         // Block ships these as scoped CSS vars; declare them on the provider.
@@ -65,5 +67,6 @@ export function AdminLayout() {
         </div>
       </SidebarInset>
     </SidebarProvider>
+    </UnsavedChangesProvider>
   )
 }

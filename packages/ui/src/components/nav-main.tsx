@@ -1,4 +1,6 @@
-import { Link, useLocation } from "react-router-dom"
+import { useLocation } from "react-router-dom"
+
+import { GuardedLink } from "@/components/guarded-link"
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import { PlusSignCircleIcon } from "@hugeicons/core-free-icons"
 
@@ -30,10 +32,10 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                 tooltip="Add monitor"
                 className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground active:scale-[0.98]"
               >
-                <Link to="/admin/monitors/new">
+                <GuardedLink to="/admin/monitors/new">
                   <HugeiconsIcon icon={PlusSignCircleIcon} strokeWidth={2} />
                   <span>Add monitor</span>
-                </Link>
+                </GuardedLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -61,10 +63,10 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                       isActive={isActive}
                       className="data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium"
                     >
-                      <Link to={item.url}>
+                      <GuardedLink to={item.url}>
                         <HugeiconsIcon icon={item.icon} strokeWidth={2} />
                         <span>{item.title}</span>
-                      </Link>
+                      </GuardedLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -24,6 +24,7 @@ import { cn, formatIntervalLabel } from '@/lib/utils'
 import type { Heartbeat, Incident, Monitor, NotificationChannel } from '@/types'
 import { TagInput } from '@/pages/MonitorWizardPage'
 import { useConfirm } from '@/components/confirm-provider'
+import { useUnsavedGuard } from '@/contexts/unsaved-changes'
 
 interface DetailResponse {
   monitor: Monitor
@@ -133,9 +134,24 @@ export function MonitorEditPage() {
     config,
   ])
 
-  // Warn before page unload (tab close, refresh, hard link). React Router v6's
-  // useBlocker handles in-app nav, but beforeunload catches the rest. Both are
-  // valuable; do both.
+  const confirmDiscard = useCallback(
+    () =>
+      confirm({
+        title: 'Discard unsaved changes?',
+        description:
+          "You have edits that haven't been saved yet. Leaving now will lose them.",
+        confirmLabel: 'Discard changes',
+        cancelLabel: 'Keep editing',
+        destructive: true,
+      }),
+    [confirm],
+  )
+
+  // Two guards, two escape routes: `useUnsavedGuard` claims the shell's
+  // nav links (sidebar, wordmark) while dirty, `beforeunload` covers tab
+  // close and reload. Browser Back still isn't interceptable without a data
+  // router — see contexts/unsaved-changes.tsx.
+  useUnsavedGuard(isDirty, confirmDiscard)
   useEffect(() => {
     if (!isDirty) return
     const handler = (e: BeforeUnloadEvent) => {
@@ -229,17 +245,7 @@ export function MonitorEditPage() {
   // Helper for any in-app nav away from this form — confirms before discarding
   // unsaved changes. Submit is the only path that should bypass the guard.
   const guardedNavigate = async (target: string) => {
-    if (isDirty) {
-      const ok = await confirm({
-        title: 'Discard unsaved changes?',
-        description:
-          'You have edits that haven\'t been saved yet. Leaving now will lose them.',
-        confirmLabel: 'Discard changes',
-        cancelLabel: 'Keep editing',
-        destructive: true,
-      })
-      if (!ok) return
-    }
+    if (isDirty && !(await confirmDiscard())) return
     navigate(target)
   }
 
