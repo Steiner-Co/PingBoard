@@ -37,6 +37,7 @@ export interface Heartbeat {
 
 export interface MonitorWithLatest extends Monitor {
   latest: Heartbeat | null
+  channelIds: string[]
 }
 
 export interface Incident {
@@ -57,6 +58,7 @@ export interface NotificationChannel {
 }
 
 export interface StatusPage {
+  monitorCount?: number
   id: string
   slug: string
   title: string

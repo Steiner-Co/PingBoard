@@ -41,6 +41,15 @@ interface AdminDeps {
 
 export async function listMonitors(deps: AdminDeps): Promise<Response> {
   const rows = await deps.db.select().from(monitors)
+  // Channel links come along so the UI can answer "who gets paged for this?"
+  // — and, more usefully, flag monitors that would page nobody.
+  const links = await deps.db.select().from(monitorChannels)
+  const byMonitor = new Map<string, string[]>()
+  for (const l of links) {
+    const list = byMonitor.get(l.monitorId) ?? []
+    list.push(l.channelId)
+    byMonitor.set(l.monitorId, list)
+  }
   const enriched = await Promise.all(
     rows.map(async (m) => {
       const [latest] = await deps.db
@@ -49,7 +58,7 @@ export async function listMonitors(deps: AdminDeps): Promise<Response> {
         .where(eq(heartbeats.monitorId, m.id))
         .orderBy(desc(heartbeats.checkedAt))
         .limit(1)
-      return { ...m, latest: latest ?? null }
+      return { ...m, latest: latest ?? null, channelIds: byMonitor.get(m.id) ?? [] }
     }),
   )
   return json({ monitors: enriched })
@@ -434,7 +443,19 @@ export async function resolveIncident(id: string, deps: AdminDeps): Promise<Resp
 
 export async function listStatusPages(deps: AdminDeps): Promise<Response> {
   const rows = await deps.db.select().from(statusPages)
-  return json({ pages: rows.map(publicPage) })
+  // Monitor counts per page: the list is meaningless without knowing whether
+  // a page actually shows anything.
+  const links = await deps.db.select().from(statusPageMonitors)
+  const counts = new Map<string, number>()
+  for (const l of links) {
+    counts.set(l.statusPageId, (counts.get(l.statusPageId) ?? 0) + 1)
+  }
+  return json({
+    pages: rows.map((r) => ({
+      ...publicPage(r),
+      monitorCount: counts.get(r.id) ?? 0,
+    })),
+  })
 }
 
 export async function getStatusPage(id: string, deps: AdminDeps): Promise<Response> {
