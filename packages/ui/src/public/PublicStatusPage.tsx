@@ -101,7 +101,17 @@ export function PublicStatusPage({ slug }: { slug: string }) {
   useDocumentMeta(page, query.data?.monitors)
 
   if (query.isLoading) {
-    return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading…</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center" aria-label="Loading">
+        <span className="relative inline-flex h-2.5 w-2.5">
+          <span
+            className="absolute inset-0 rounded-full bg-success opacity-40 motion-safe:animate-ping"
+            style={{ animationDuration: '1.5s' }}
+          />
+          <span className="relative inline-block h-2.5 w-2.5 rounded-full bg-success" />
+        </span>
+      </div>
+    )
   }
   if (query.error instanceof GateError && query.error.kind === 'password') {
     return (
@@ -130,20 +140,31 @@ export function PublicStatusPage({ slug }: { slug: string }) {
   )
   const inMaintenance = new Set(activeMaintenance.map((w) => w.monitorId))
   const allUp = monitors.length > 0 && monitors.every((m) => m.currentStatus === 'up')
-  const anyDown = monitors.some(
+  const downCount = monitors.filter(
     (m) => m.currentStatus === 'down' && !inMaintenance.has(m.id),
+  ).length
+  const anyDegraded = monitors.some(
+    (m) => m.currentStatus === 'degraded' && !inMaintenance.has(m.id),
   )
 
   const overallText = allUp
     ? 'All systems operational'
-    : anyDown
-      ? 'Some systems are degraded'
-      : 'Status unknown'
-  const overallTone: 'up' | 'down' | 'unknown' = allUp
+    : downCount > 0
+      ? 'Some systems are down'
+      : anyDegraded
+        ? 'Some systems are degraded'
+        : 'Status unknown'
+  const overallTone: 'up' | 'down' | 'degraded' | 'unknown' = allUp
     ? 'up'
-    : anyDown
+    : downCount > 0
       ? 'down'
-      : 'unknown'
+      : anyDegraded
+        ? 'degraded'
+        : 'unknown'
+  const overallDetail =
+    downCount > 0
+      ? `${downCount} of ${monitors.length} ${monitors.length === 1 ? 'system' : 'systems'} affected`
+      : null
 
   // Group monitors
   const grouped = monitors.reduce<Record<string, PublicMonitor[]>>((acc, m) => {
@@ -155,7 +176,7 @@ export function PublicStatusPage({ slug }: { slug: string }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-3xl mx-auto px-5 py-10 sm:px-6 sm:py-14 space-y-8">
+      <div className="max-w-3xl mx-auto px-5 py-10 sm:px-6 sm:py-14 space-y-8 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-500">
         <header className="flex items-start justify-between gap-3 sm:gap-4">
           <div className="space-y-2 min-w-0">
             <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
@@ -170,7 +191,7 @@ export function PublicStatusPage({ slug }: { slug: string }) {
           <ThemeToggle />
         </header>
 
-        <OverallStatusBanner tone={overallTone} text={overallText} />
+        <OverallStatusBanner tone={overallTone} text={overallText} detail={overallDetail} />
 
         {(activeMaintenance.length > 0 || upcomingMaintenance.length > 0) && (
           <MaintenanceBanner
@@ -203,16 +224,19 @@ export function PublicStatusPage({ slug }: { slug: string }) {
 
         <IncidentHistory incidents={incidents} />
 
-        <footer className="text-center text-xs text-muted-foreground pt-8">
-          Powered by{' '}
-          <a
-            href="https://github.com/steiner-co/pingboard"
-            target="_blank"
-            rel="noreferrer noopener"
-            className="hover:text-foreground hover:underline underline-offset-4"
-          >
-            PingBoard
-          </a>
+        <footer className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground pt-8">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
+          <span>
+            Powered by{' '}
+            <a
+              href="https://github.com/steiner-co/pingboard"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="hover:text-foreground hover:underline underline-offset-4"
+            >
+              PingBoard
+            </a>
+          </span>
         </footer>
       </div>
     </div>
@@ -222,32 +246,48 @@ export function PublicStatusPage({ slug }: { slug: string }) {
 function OverallStatusBanner({
   tone,
   text,
+  detail,
 }: {
-  tone: 'up' | 'down' | 'unknown'
+  tone: 'up' | 'down' | 'degraded' | 'unknown'
   text: string
+  detail: string | null
 }) {
   const dot =
     tone === 'up'
       ? 'bg-success'
       : tone === 'down'
         ? 'bg-destructive'
-        : 'bg-muted-foreground'
+        : tone === 'degraded'
+          ? 'bg-amber-500'
+          : 'bg-muted-foreground'
   const surface =
     tone === 'up'
       ? 'border-success/30 bg-success/5'
       : tone === 'down'
         ? 'border-destructive/30 bg-destructive/5'
-        : 'border-border bg-muted/40'
+        : tone === 'degraded'
+          ? 'border-amber-500/30 bg-amber-500/5'
+          : 'border-border bg-muted/40'
 
   return (
     <div className={cn('rounded-xl border p-5 sm:p-6', surface)}>
       <div className="flex items-center gap-3">
-        <span className={cn('inline-block h-2.5 w-2.5 rounded-full', dot)} />
+        <span className="relative inline-flex h-2.5 w-2.5 shrink-0">
+          <span
+            className={cn(
+              'absolute inset-0 rounded-full opacity-40 motion-safe:animate-ping',
+              dot,
+            )}
+            style={{ animationDuration: '3s' }}
+          />
+          <span className={cn('relative inline-block h-2.5 w-2.5 rounded-full', dot)} />
+        </span>
         <div className="text-xl sm:text-2xl font-semibold tracking-tight">
           {text}
         </div>
       </div>
       <div className="text-xs sm:text-sm text-muted-foreground mt-2 ml-5">
+        {detail && <>{detail} · </>}
         Updated {formatRelative(new Date())}
       </div>
     </div>
@@ -266,7 +306,9 @@ function MonitorRow({
       ? 'bg-success'
       : monitor.currentStatus === 'down'
         ? 'bg-destructive'
-        : 'bg-muted-foreground'
+        : monitor.currentStatus === 'degraded'
+          ? 'bg-amber-500'
+          : 'bg-muted-foreground'
 
   return (
     <div className="p-4 sm:p-5 flex flex-col gap-3">
@@ -302,6 +344,8 @@ function UptimeTimeline({
 }: {
   timeline: PublicMonitor['timeline']
 }) {
+  const [hovered, setHovered] = useState<number | null>(null)
+
   if (timeline.length === 0) {
     return (
       <div className="text-xs text-muted-foreground italic">
@@ -309,28 +353,58 @@ function UptimeTimeline({
       </div>
     )
   }
+  // Mobile shows the most recent 30 days; 90 bars under ~400px are sub-3px
+  // slivers that can't be read or touched.
+  const mobileStart = Math.max(0, timeline.length - 30)
   const first = timeline[0]
-  const last = timeline[timeline.length - 1]
+  const mobileFirst = timeline[mobileStart]
+  const active = hovered != null ? timeline[hovered] : null
+
   return (
     <div className="space-y-1">
-      <div className="flex items-end gap-px h-6">
-        {timeline.map((d) => (
+      <div className="relative">
+        {active && (
           <div
-            key={d.date}
-            title={titleFor(d)}
-            className={cn(
-              'flex-1 h-full rounded-sm',
-              d.uptimePct == null && 'bg-muted',
-              d.uptimePct != null && d.uptimePct >= 99 && 'bg-success/90',
-              d.uptimePct != null && d.uptimePct >= 80 && d.uptimePct < 99 &&
-                'bg-amber-500/80',
-              d.uptimePct != null && d.uptimePct < 80 && 'bg-destructive/90',
-            )}
-          />
-        ))}
+            className="pointer-events-none absolute -top-8 z-10 -translate-x-1/2 rounded-md border bg-popover px-2 py-1 text-[11px] whitespace-nowrap text-popover-foreground shadow-sm tabular-nums motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-100"
+            style={{
+              left: `clamp(3.5rem, ${((hovered! + 0.5) / timeline.length) * 100}%, calc(100% - 3.5rem))`,
+            }}
+          >
+            <span className="font-medium">{humanDate(active.date)}</span>
+            <span className="text-muted-foreground">
+              {' · '}
+              {active.uptimePct == null
+                ? 'no data'
+                : `${active.uptimePct.toFixed(2)}% uptime`}
+            </span>
+          </div>
+        )}
+        <div
+          className="flex h-6 items-end gap-px"
+          onPointerLeave={() => setHovered(null)}
+        >
+          {timeline.map((d, i) => (
+            <div
+              key={d.date}
+              aria-label={titleFor(d)}
+              onPointerEnter={() => setHovered(i)}
+              className={cn(
+                'h-full flex-1 rounded-sm transition-[filter] duration-100',
+                i < mobileStart && 'max-sm:hidden',
+                d.uptimePct == null && 'bg-muted-foreground/15',
+                d.uptimePct != null && d.uptimePct >= 99 && 'bg-success/90',
+                d.uptimePct != null && d.uptimePct >= 80 && d.uptimePct < 99 &&
+                  'bg-amber-500/80',
+                d.uptimePct != null && d.uptimePct < 80 && 'bg-destructive/90',
+                hovered === i && 'brightness-125 dark:brightness-150',
+              )}
+            />
+          ))}
+        </div>
       </div>
       <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
-        <span>{first?.date && humanDate(first.date)}</span>
+        <span className="sm:hidden">{mobileFirst?.date && humanDate(mobileFirst.date)}</span>
+        <span className="hidden sm:inline">{first?.date && humanDate(first.date)}</span>
         <span>Today</span>
       </div>
     </div>
@@ -542,7 +616,7 @@ function PasswordGate({
         <button
           type="submit"
           disabled={!password || submitting}
-          className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+          className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-[background-color,transform] duration-150 ease-out active:scale-[0.98]"
         >
           {submitting ? 'Checking…' : 'Continue'}
         </button>
@@ -569,7 +643,7 @@ function ThemeToggle() {
         <button
           type="button"
           aria-label="Theme"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-accent transition-colors"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-accent transition-[color,background-color,transform] duration-150 ease-out active:scale-95"
         >
           <HugeiconsIcon icon={Icon} strokeWidth={2} className="h-4 w-4" />
         </button>
