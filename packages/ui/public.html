@@ -4,7 +4,20 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--pingboard:meta-->
+    <!-- The server swaps this whole block (markers included) for the status
+         page's own tags. What's here is the unreplaced fallback — Vite serves
+         this file raw in dev. -->
+
     <title>Status</title>
+    <meta name="description" content="Live service status." />
+    <meta property="og:title" content="Status" />
+    <meta property="og:description" content="Live service status." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Status" />
+    <meta name="twitter:description" content="Live service status." />
+    <!--/pingboard:meta-->
   </head>
   <body class="min-h-screen bg-background font-sans antialiased">
     <div id="root"></div>

@@ -55,6 +55,7 @@ import {
   authStatusPagePublic,
   getStatusPagePublic,
   handlePushHeartbeat,
+  injectPublicShellMeta,
   streamStatusPagePublic,
 } from './routes/public'
 import { changePassword, getSettings, updateSettings } from './routes/settings'
@@ -283,14 +284,25 @@ async function main() {
             if (await file.exists()) return new Response(file)
           }
 
-          // 2. Public status page slug? Serve public.html shell.
+          // 2. Public status page slug? Serve public.html shell with the
+          //    page's own share-preview meta rendered in.
           const slugMatch = path.match(/^\/([a-z0-9-]+)\/?$/)
           if (
             slugMatch?.[1] &&
             !(RESERVED_SLUGS as readonly string[]).includes(slugMatch[1])
           ) {
             const publicShell = Bun.file(join(config.publicStaticDir, 'public.html'))
-            if (await publicShell.exists()) return new Response(publicShell)
+            if (await publicShell.exists()) {
+              const html = await injectPublicShellMeta(
+                await publicShell.text(),
+                slugMatch[1],
+                config.baseUrl ?? url.origin,
+                { db },
+              )
+              return new Response(html, {
+                headers: { 'content-type': 'text/html; charset=utf-8' },
+              })
+            }
           }
 
           // 3. Anything else → admin SPA shell.

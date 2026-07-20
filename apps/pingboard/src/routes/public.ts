@@ -228,6 +228,70 @@ export async function getStatusPagePublic(
   })
 }
 
+const META_START = '<!--pingboard:meta-->'
+const META_END = '<!--/pingboard:meta-->'
+
+/**
+ * Bake the status page's share-preview tags into the public shell. Slack,
+ * Discord and Twitter unfurlers don't execute JS, so the client-side meta hook
+ * alone leaves every shared link previewing as a bare "Status" — during an
+ * incident, exactly when the link is being passed around.
+ */
+export async function injectPublicShellMeta(
+  html: string,
+  slug: string,
+  origin: string,
+  deps: { db: DB },
+): Promise<string> {
+  const start = html.indexOf(META_START)
+  const end = html.indexOf(META_END)
+  if (start === -1 || end === -1 || end < start) return html
+
+  const [page] = await deps.db
+    .select({
+      title: statusPages.title,
+      description: statusPages.description,
+      passwordHash: statusPages.passwordHash,
+    })
+    .from(statusPages)
+    .where(eq(statusPages.slug, slug))
+  if (!page) return html
+
+  const generic = `Live service status for ${page.title}.`
+  // A protected page's own description is behind the password gate — an
+  // unauthenticated unfurler only gets the title.
+  const description = page.passwordHash ? generic : (page.description ?? generic)
+
+  const tags = [
+    `<title>${escapeHtml(page.title)} — Status</title>`,
+    metaTag('name', 'description', description),
+    metaTag('property', 'og:title', page.title),
+    metaTag('property', 'og:description', description),
+    metaTag('property', 'og:type', 'website'),
+    metaTag('property', 'og:url', `${origin.replace(/\/+$/, '')}/${slug}`),
+    // useDocumentMeta updates these in place rather than appending, so the
+    // attribute names have to match what it queries for (name=, not property=).
+    metaTag('name', 'twitter:card', 'summary'),
+    metaTag('name', 'twitter:title', page.title),
+    metaTag('name', 'twitter:description', description),
+  ].join('\n    ')
+
+  return html.slice(0, start) + tags + html.slice(end + META_END.length)
+}
+
+function metaTag(attr: 'name' | 'property', key: string, content: string): string {
+  return `<meta ${attr}="${key}" content="${escapeHtml(content)}" />`
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function isoDate(d: Date): string {
   // YYYY-MM-DD in UTC, matching daily_stats.date.
   return d.toISOString().slice(0, 10)
