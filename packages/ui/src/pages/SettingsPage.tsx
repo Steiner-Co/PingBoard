@@ -14,8 +14,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useConfirm } from '@/components/confirm-provider'
+import { Panel } from '@/components/panel'
+import { Skeleton } from '@/components/ui/skeleton'
 import { api } from '@/lib/api'
 import { useAuth } from '@/contexts/auth'
+import { useNow } from '@/hooks/use-now'
+import { formatDateTime, formatDuration } from '@/lib/utils'
 
 interface SmtpView {
   host: string | null
@@ -39,12 +43,107 @@ export function SettingsPage() {
   const { user } = useAuth()
 
   return (
-    <div className="px-4 lg:px-6 flex flex-col gap-6 max-w-3xl">
-      <p className="text-muted-foreground">Instance-wide preferences.</p>
-      <AccountCard email={user?.email ?? ''} />
-      <RetentionCard />
-      <SmtpCard />
+    <div className="px-4 lg:px-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="flex min-w-0 flex-col gap-6">
+        <p className="text-muted-foreground">Instance-wide preferences.</p>
+        <AccountCard email={user?.email ?? ''} />
+        <RetentionCard />
+        <SmtpCard />
+      </div>
+      <aside className="flex min-w-0 flex-col gap-4">
+        <InstanceCard />
+      </aside>
     </div>
+  )
+}
+
+interface InstanceInfo {
+  version: string
+  dataDir: string
+  dbBytes: number | null
+  startedAt: string
+  heartbeats: number
+  oldestHeartbeat: string | null
+  monitors: number
+  channels: number
+  statusPages: number
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  const units = ['KB', 'MB', 'GB']
+  let value = bytes / 1024
+  let unit = 0
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024
+    unit++
+  }
+  return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${units[unit]}`
+}
+
+/**
+ * "How big is this getting?" is the question a self-hoster has next to the
+ * retention setting, and nothing else in the UI answers it.
+ */
+function InstanceCard() {
+  const query = useQuery({
+    queryKey: ['instance'],
+    queryFn: () => api.get<InstanceInfo>('/api/admin/instance'),
+    staleTime: 30_000,
+  })
+  useNow()
+  const info = query.data
+
+  const rows: [string, string][] = info
+    ? [
+        ['Version', info.version],
+        ['Data dir', info.dataDir],
+        ['Database', info.dbBytes == null ? '—' : formatBytes(info.dbBytes)],
+        ['Heartbeats', info.heartbeats.toLocaleString()],
+        [
+          'History from',
+          info.oldestHeartbeat ? formatDateTime(info.oldestHeartbeat) : '—',
+        ],
+        ['Monitors', String(info.monitors)],
+        ['Channels', String(info.channels)],
+        ['Status pages', String(info.statusPages)],
+        ['Uptime', formatDuration(Date.now() - new Date(info.startedAt).getTime())],
+      ]
+    : []
+
+  return (
+    <Panel>
+      <header className="border-b border-border/60 px-4 py-2.5">
+        <h2 className="text-sm font-medium">Instance</h2>
+      </header>
+      {query.isError ? (
+        <p className="px-4 py-5 text-xs text-muted-foreground">
+          Couldn't load instance details.
+        </p>
+      ) : !info ? (
+        <div className="space-y-2 p-4">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-4 w-full" />
+          ))}
+        </div>
+      ) : (
+        <dl className="divide-y divide-border/60">
+          {rows.map(([label, value]) => (
+            <div
+              key={label}
+              className="flex items-baseline justify-between gap-3 px-4 py-2"
+            >
+              <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                {label}
+              </dt>
+              <dd className="truncate text-xs tabular-nums" title={value}>
+                {value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </Panel>
   )
 }
 

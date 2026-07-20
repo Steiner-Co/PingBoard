@@ -1,5 +1,10 @@
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
+import { statSync } from 'node:fs'
 import {
+  heartbeats,
+  monitors,
+  notificationChannels,
+  statusPages,
   getRetentionDays,
   getSmtpDefaults,
   setRetentionDays,
@@ -13,6 +18,62 @@ import { error, json, noContent } from '../lib/responses'
 
 interface SettingsDeps {
   db: DB
+}
+
+interface InstanceDeps {
+  db: DB
+  dbPath: string
+  dataDir: string
+  version: string
+  startedAt: number
+}
+
+/**
+ * Facts a self-hoster actually needs and can't get from the UI otherwise:
+ * how large the database has grown, how far back raw history reaches, and
+ * whether retention is doing its job. Sits next to the retention setting.
+ */
+export async function getInstanceInfo(deps: InstanceDeps): Promise<Response> {
+  const [hb] = await deps.db
+    .select({
+      total: sql<number>`count(*)`.as('total'),
+      oldest: sql<number | null>`min(${heartbeats.checkedAt})`.as('oldest'),
+    })
+    .from(heartbeats)
+  const [mon] = await deps.db
+    .select({ total: sql<number>`count(*)`.as('total') })
+    .from(monitors)
+  const [ch] = await deps.db
+    .select({ total: sql<number>`count(*)`.as('total') })
+    .from(notificationChannels)
+  const [pg] = await deps.db
+    .select({ total: sql<number>`count(*)`.as('total') })
+    .from(statusPages)
+
+  let dbBytes: number | null = null
+  try {
+    // Include the WAL — on a busy instance it's a real share of disk use.
+    dbBytes = statSync(deps.dbPath).size
+    try {
+      dbBytes += statSync(`${deps.dbPath}-wal`).size
+    } catch {
+      // No WAL file yet; the main file alone is the honest number.
+    }
+  } catch {
+    dbBytes = null
+  }
+
+  return json({
+    version: deps.version,
+    dataDir: deps.dataDir,
+    dbBytes,
+    startedAt: new Date(deps.startedAt).toISOString(),
+    heartbeats: hb?.total ?? 0,
+    oldestHeartbeat: hb?.oldest ? new Date(hb.oldest).toISOString() : null,
+    monitors: mon?.total ?? 0,
+    channels: ch?.total ?? 0,
+    statusPages: pg?.total ?? 0,
+  })
 }
 
 interface AccountDeps {

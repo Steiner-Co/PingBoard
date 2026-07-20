@@ -58,7 +58,12 @@ import {
   injectPublicShellMeta,
   streamStatusPagePublic,
 } from './routes/public'
-import { changePassword, getSettings, updateSettings } from './routes/settings'
+import {
+  changePassword,
+  getInstanceInfo,
+  getSettings,
+  updateSettings,
+} from './routes/settings'
 import { requireAuth } from './middleware/auth'
 import { error } from './lib/responses'
 import { createSseResponse } from './lib/sse'
@@ -71,8 +76,11 @@ declare global {
   var __pingboardHotCleanup: (() => Promise<void>) | undefined
 }
 
+const PINGBOARD_VERSION = '0.0.0'
+
 async function main() {
   await globalThis.__pingboardHotCleanup?.()
+  const bootedAt = Date.now()
   const config = loadConfig()
   mkdirSync(config.dataDir, { recursive: true })
 
@@ -184,6 +192,14 @@ async function main() {
           // Settings
           if (path === '/api/admin/settings' && method === 'GET')
             return getSettings({ db })
+          if (path === '/api/admin/instance' && method === 'GET')
+            return getInstanceInfo({
+              db,
+              dbPath: config.dbPath,
+              dataDir: config.dataDir,
+              version: PINGBOARD_VERSION,
+              startedAt: bootedAt,
+            })
           if (
             path === '/api/admin/settings' &&
             (method === 'PATCH' || method === 'PUT')
