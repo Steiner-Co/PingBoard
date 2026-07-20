@@ -8,6 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 export function formatRelative(date: Date | string | number): string {
   const ms = Date.now() - new Date(date).getTime()
   const sec = Math.round(ms / 1000)
+  if (sec < 10) return 'just now'
   if (sec < 60) return `${sec}s ago`
   const min = Math.round(sec / 60)
   if (min < 60) return `${min}m ago`

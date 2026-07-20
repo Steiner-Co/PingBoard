@@ -131,7 +131,9 @@ export function StatusPagesPage() {
         <Card>
           <CardHeader>
             <CardTitle>Pages</CardTitle>
-            <CardDescription>{pages.data?.pages.length ?? 0} pages</CardDescription>
+            <CardDescription>
+              {pages.data?.pages.length ?? 0} {(pages.data?.pages.length ?? 0) === 1 ? 'page' : 'pages'}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>

@@ -206,7 +206,7 @@ export function PublicStatusPage({ slug }: { slug: string }) {
         <footer className="text-center text-xs text-muted-foreground pt-8">
           Powered by{' '}
           <a
-            href="https://github.com/pingboard/pingboard"
+            href="https://github.com/steiner-co/pingboard"
             target="_blank"
             rel="noreferrer noopener"
             className="hover:text-foreground hover:underline underline-offset-4"
@@ -283,7 +283,7 @@ function MonitorRow({
         </div>
         <div className="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground shrink-0">
           {monitor.avgResponseMs != null && (
-            <span className="tabular-nums">{monitor.avgResponseMs} ms</span>
+            <span className="tabular-nums">{Math.round(monitor.avgResponseMs)} ms</span>
           )}
           <span className="tabular-nums">
             {monitor.uptimePct == null
