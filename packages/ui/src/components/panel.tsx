@@ -18,7 +18,7 @@ function Tick({ className }: { className: string }) {
     <svg
       aria-hidden
       className={cn(
-        "pointer-events-none absolute z-10 size-[9px] text-muted-foreground/40",
+        "pointer-events-none absolute z-10 size-[9px] text-muted-foreground/60 dark:text-muted-foreground/40",
         className,
       )}
       viewBox="0 0 9 9"

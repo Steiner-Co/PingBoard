@@ -276,7 +276,7 @@ export function DataTable({
     <div className="w-full flex flex-col justify-start gap-4">
       <div className="relative flex flex-col gap-4 overflow-auto">
         <Panel>
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto sm:block">
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-muted">
               {table.getHeaderGroups().map((headerGroup) => (
@@ -334,6 +334,17 @@ export function DataTable({
             </TableBody>
           </Table>
           </div>
+          <ul className="divide-y divide-border/60 sm:hidden">
+            {table.getRowModel().rows.length === 0 ? (
+              <li className="p-4 text-center text-sm text-muted-foreground">
+                No results.
+              </li>
+            ) : (
+              table.getRowModel().rows.map((row) => (
+                <MonitorCard key={row.id} row={row.original} />
+              ))
+            )}
+          </ul>
         </Panel>
         <div className="flex items-center justify-between">
           <div className="text-xs tabular-nums text-muted-foreground">
@@ -371,6 +382,45 @@ export function DataTable({
         </div>
       </div>
     </div>
+  )
+}
+
+function MonitorCard({ row }: { row: MonitorRow }) {
+  return (
+    <li className="flex items-start gap-3 p-3">
+      <Link
+        to={`/admin/monitors/${row.id}`}
+        className="min-w-0 flex-1 space-y-1"
+      >
+        <div className="flex items-center gap-2">
+          <span className="truncate font-medium text-foreground">{row.name}</span>
+          {row.tags.map((tag) => (
+            <Badge
+              key={tag}
+              variant="secondary"
+              className="shrink-0 px-1.5 py-0 font-mono text-[10px] text-muted-foreground"
+            >
+              {tag}
+            </Badge>
+          ))}
+        </div>
+        <div className="truncate font-mono text-xs text-muted-foreground">
+          {row.target}
+        </div>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] tabular-nums text-muted-foreground">
+          <StatusCell status={row.status} />
+          <span aria-hidden>·</span>
+          <span>{row.responseMs == null ? '—' : `${row.responseMs} ms`}</span>
+          <span aria-hidden>·</span>
+          <span>{row.lastCheck ?? '—'}</span>
+          <span aria-hidden>·</span>
+          <span>{row.interval}</span>
+        </div>
+      </Link>
+      <div className="shrink-0">
+        <RowActions row={row} />
+      </div>
+    </li>
   )
 }
 
