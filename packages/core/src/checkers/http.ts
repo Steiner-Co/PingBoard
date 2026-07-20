@@ -14,7 +14,13 @@ export async function checkHttp(monitor: Monitor): Promise<CheckResult> {
   try {
     const response = await fetch(monitor.target, {
       method: config.method ?? 'GET',
-      headers: config.headers,
+      // Identify ourselves: UA-less requests get 403'd by many WAFs and
+      // UA policies (Wikimedia, Cloudflare rules), reading as false downs.
+      headers: {
+        'user-agent':
+          'PingBoard/1.0 (uptime monitor; +https://github.com/steiner-co/pingboard)',
+        ...(config.headers ?? {}),
+      },
       body: config.body,
       redirect: config.followRedirects === false ? 'manual' : 'follow',
       signal: controller.signal,
