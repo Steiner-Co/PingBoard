@@ -63,7 +63,15 @@ import { error } from './lib/responses'
 import { createSseResponse } from './lib/sse'
 import { checkRateLimit } from './lib/rate-limit'
 
+// `bun --hot` re-runs this module on every reload without tearing down the
+// previous generation's timers. Without this guard, each reload stacks another
+// scheduler + background jobs — ghost check loops running stale configs.
+declare global {
+  var __pingboardHotCleanup: (() => Promise<void>) | undefined
+}
+
 async function main() {
+  await globalThis.__pingboardHotCleanup?.()
   const config = loadConfig()
   mkdirSync(config.dataDir, { recursive: true })
 
@@ -302,17 +310,29 @@ async function main() {
 
   console.log(`✓ PingBoard listening on http://localhost:${server.port}`)
 
-  const shutdown = async () => {
-    console.log('Shutting down…')
+  const stopBackground = async () => {
     notifier.stop()
     retention.stop()
     pushOverdue.stop()
     await scheduler.drain()
+  }
+
+  const shutdown = async () => {
+    console.log('Shutting down…')
+    await stopBackground()
     server.stop()
     process.exit(0)
   }
   process.on('SIGINT', shutdown)
   process.on('SIGTERM', shutdown)
+
+  globalThis.__pingboardHotCleanup = async () => {
+    console.log('Hot reload: stopping previous scheduler and jobs…')
+    process.off('SIGINT', shutdown)
+    process.off('SIGTERM', shutdown)
+    await stopBackground()
+    server.stop()
+  }
 }
 
 function makeHeartbeatHandler(db: DB) {
