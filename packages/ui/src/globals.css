@@ -138,6 +138,32 @@
   --sidebar-ring: oklch(0.65 0.19 152);
 }
 
+/* Bklit chart variables mapped onto the blueprint tokens, so charts inherit
+   the app's palette and theme switching without per-chart color props. These
+   reference theme-aware vars, so one definition covers light and dark. */
+:root,
+.dark {
+  --chart-background: transparent;
+  --chart-foreground: var(--foreground);
+  --chart-foreground-muted: var(--muted-foreground);
+  --chart-label: var(--muted-foreground);
+  --chart-line-primary: var(--success);
+  --chart-line-secondary: var(--chart-1);
+  --chart-crosshair: var(--muted-foreground);
+  --chart-grid: var(--border);
+  --chart-indicator-color: var(--success);
+  --chart-indicator-secondary-color: var(--chart-1);
+  --chart-marker-background: var(--popover);
+  --chart-marker-border: var(--border);
+  --chart-marker-foreground: var(--popover-foreground);
+  --chart-marker-badge-background: var(--muted);
+  --chart-marker-badge-foreground: var(--muted-foreground);
+  --chart-segment-background: var(--muted);
+  --chart-segment-line: var(--border);
+  --chart-brush-border: var(--border);
+  --chart-tooltip-background: var(--popover);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

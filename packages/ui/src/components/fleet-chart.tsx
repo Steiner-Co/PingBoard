@@ -1,19 +1,8 @@
 import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-} from "recharts"
+import { curveMonotoneX } from "@visx/curve"
 
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart"
+import { Area, AreaChart, ChartTooltip, Grid, XAxis } from "@/components/charts"
 import { Panel } from "@/components/panel"
 import { api } from "@/lib/api"
 
@@ -24,10 +13,6 @@ interface SummaryBucket {
   down: number
 }
 
-const chartConfig = {
-  ms: { label: "Avg response", color: "var(--success)" },
-} satisfies ChartConfig
-
 export function FleetChart() {
   const query = useQuery({
     queryKey: ["heartbeat-summary"],
@@ -36,27 +21,34 @@ export function FleetChart() {
     refetchInterval: 60_000,
   })
 
+  // Bklit is time-series native: it wants real Dates on the x key and derives
+  // its own ticks, so no pre-formatted label column.
   const data = useMemo(
     () =>
       (query.data?.buckets ?? [])
         .filter((b) => b.avgMs != null)
         .map((b) => ({
-          time: new Date(b.bucket).toLocaleTimeString(undefined, {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
+          date: new Date(b.bucket),
           ms: Math.round(b.avgMs!),
-          down: b.down,
         })),
     [query.data],
   )
 
+  // Bklit's charts are deliberately axis-light — exact values come from the
+  // tooltip. Surfacing the range in the header keeps the line readable at a
+  // glance without reintroducing a y-axis that fights that aesthetic.
+  const range = useMemo(() => {
+    if (data.length === 0) return null
+    const values = data.map((d) => d.ms)
+    return { min: Math.min(...values), max: Math.max(...values) }
+  }, [data])
+
   return (
     <Panel>
-      <header className="flex items-baseline justify-between border-b border-border/60 px-4 py-2.5">
+      <header className="flex items-baseline justify-between gap-3 border-b border-border/60 px-4 py-2.5">
         <h2 className="text-sm font-medium">Response time</h2>
         <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-          Fleet avg · 24h
+          {range ? `${range.min}–${range.max} ms · ` : ''}Fleet avg · 24h
         </span>
       </header>
       <div className="px-2 pt-3 pb-1">
@@ -76,45 +68,23 @@ export function FleetChart() {
             Not enough data yet — the chart fills in as checks land.
           </div>
         ) : (
-          <ChartContainer config={chartConfig} className="aspect-auto h-[150px] w-full">
-            <AreaChart data={data} margin={{ top: 4, right: 10, bottom: 0, left: 0 }}>
-              <defs>
-                <linearGradient id="fillFleetMs" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--color-ms)" stopOpacity={0.45} />
-                  <stop offset="95%" stopColor="var(--color-ms)" stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-              <XAxis
-                dataKey="time"
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                minTickGap={48}
-                fontSize={10}
-                className="font-mono"
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                fontSize={10}
-                unit="ms"
-                width={44}
-                className="font-mono"
-              />
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent indicator="dot" />}
-              />
-              <Area
-                dataKey="ms"
-                type="monotone"
-                fill="url(#fillFleetMs)"
-                stroke="var(--color-ms)"
-                strokeWidth={1.5}
-              />
-            </AreaChart>
-          </ChartContainer>
+          <AreaChart
+            data={data}
+            aspectRatio="6 / 1"
+            className="min-h-[150px]"
+            status={query.isPending ? "loading" : "ready"}
+            loadingLabel="Reading heartbeats"
+          >
+            <Grid horizontal />
+            <Area
+              dataKey="ms"
+              curve={curveMonotoneX}
+              strokeWidth={1.5}
+              fillOpacity={0.35}
+            />
+            <XAxis numTicks={5} />
+            <ChartTooltip />
+          </AreaChart>
         )}
       </div>
     </Panel>
