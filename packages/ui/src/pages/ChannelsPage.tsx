@@ -189,6 +189,9 @@ function ChannelDialog({
   const [config, setConfig] = useState<Record<string, string>>({})
   const [enabled, setEnabled] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Which field blocked the last submit, so the message sits next to the input
+  // rather than at the bottom of the dialog.
+  const [invalid, setInvalid] = useState<{ field: string; message: string } | null>(null)
 
   const isEdit = !!editing
 
@@ -198,6 +201,7 @@ function ChannelDialog({
     setConfig({})
     setEnabled(true)
     setError(null)
+    setInvalid(null)
   }
 
   // Hydrate from the editing target whenever it changes (and reset when the
@@ -209,6 +213,7 @@ function ChannelDialog({
       setConfig(configToFormState(editing.config))
       setEnabled(editing.enabled)
       setError(null)
+      setInvalid(null)
     } else {
       reset()
     }
@@ -228,26 +233,33 @@ function ChannelDialog({
     onError: (err) => setError(err instanceof Error ? err.message : 'Failed'),
   })
 
-  const handleSubmit = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
     setError(null)
-    const cfg = buildConfig(type, config)
-    if ('error' in cfg) {
-      setError(cfg.error)
+    if (!name.trim()) {
+      setInvalid({ field: 'ch-name', message: 'Give the channel a name.' })
+      document.getElementById('ch-name')?.focus()
       return
     }
+    const cfg = buildConfig(type, config)
+    if ('error' in cfg) {
+      setInvalid({ field: cfg.field, message: cfg.error })
+      document.getElementById(cfg.field)?.focus()
+      return
+    }
+    setInvalid(null)
     save.mutate({ name: name.trim(), type, config: cfg.value, enabled })
   }
 
+  // Every exit — Esc, overlay, X, and the footer Cancel — clears the draft, so
+  // a cancelled create doesn't reappear the next time the dialog opens.
+  const cancel = () => {
+    reset()
+    onClose()
+  }
+
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(v) => {
-        if (!v) {
-          reset()
-          onClose()
-        }
-      }}
-    >
+    <Dialog open={open} onOpenChange={(v) => !v && cancel()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
@@ -259,15 +271,27 @@ function ChannelDialog({
               : 'Channels can be linked to one or more monitors.'}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
+        {/* Wrapping the body means Enter in any field submits, which is what a
+            two-field dialog reads like. */}
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="ch-name">Name</Label>
             <Input
               id="ch-name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value)
+                setInvalid(null)
+              }}
+              aria-invalid={invalid?.field === 'ch-name'}
+              aria-describedby={invalid?.field === 'ch-name' ? 'ch-name-error' : undefined}
               placeholder="e.g. On-call Discord"
             />
+            {invalid?.field === 'ch-name' && (
+              <p id="ch-name-error" role="alert" className="text-xs text-destructive">
+                {invalid.message}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Type</Label>
@@ -291,7 +315,15 @@ function ChannelDialog({
               </SelectContent>
             </Select>
           </div>
-          <ConfigFields type={type} config={config} setConfig={setConfig} />
+          <ConfigFields
+            type={type}
+            config={config}
+            setConfig={(next) => {
+              setConfig(next)
+              setInvalid(null)
+            }}
+            invalid={invalid}
+          />
           {isEdit && (
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -303,14 +335,22 @@ function ChannelDialog({
               Enabled (receives notifications)
             </label>
           )}
-          {error && <p className="text-sm text-destructive">{error}</p>}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!name.trim() || save.isPending}>
-            {save.isPending ? 'Saving…' : isEdit ? 'Save changes' : 'Create channel'}
-          </Button>
-        </DialogFooter>
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={cancel}>
+              Cancel
+            </Button>
+            {/* Stays enabled with an empty name — submitting names the missing
+                field instead of leaving a dead button. */}
+            <Button type="submit" disabled={save.isPending}>
+              {save.isPending ? 'Saving…' : isEdit ? 'Save changes' : 'Create channel'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )
@@ -329,19 +369,40 @@ function ConfigFields({
   type,
   config,
   setConfig,
+  invalid,
 }: {
   type: ChannelType
   config: Record<string, string>
   setConfig: (v: Record<string, string>) => void
+  invalid: { field: string; message: string } | null
 }) {
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setConfig({ ...config, [k]: e.target.value })
+
+  // Marks the field `buildConfig` rejected and renders the reason beside it.
+  const flag = (id: string) => ({
+    'aria-invalid': invalid?.field === id,
+    'aria-describedby': invalid?.field === id ? `${id}-error` : undefined,
+  })
+  const message = (id: string) =>
+    invalid?.field === id ? (
+      <p id={`${id}-error`} role="alert" className="text-xs text-destructive">
+        {invalid.message}
+      </p>
+    ) : null
 
   if (type === 'webhook') {
     return (
       <div className="space-y-2">
         <Label htmlFor="ch-url">Webhook URL</Label>
-        <Input id="ch-url" value={config.url ?? ''} onChange={set('url')} placeholder="https://…" />
+        <Input
+          id="ch-url"
+          value={config.url ?? ''}
+          onChange={set('url')}
+          placeholder="https://…"
+          {...flag('ch-url')}
+        />
+        {message('ch-url')}
       </div>
     )
   }
@@ -354,7 +415,9 @@ function ConfigFields({
           value={config.webhookUrl ?? ''}
           onChange={set('webhookUrl')}
           placeholder={type === 'discord' ? 'https://discord.com/api/webhooks/…' : 'https://hooks.slack.com/services/…'}
+          {...flag('ch-webhook')}
         />
+        {message('ch-webhook')}
       </div>
     )
   }
@@ -368,11 +431,19 @@ function ConfigFields({
             value={config.serverUrl ?? ''}
             onChange={set('serverUrl')}
             placeholder="https://ntfy.sh"
+            {...flag('ch-server')}
           />
+          {message('ch-server')}
         </div>
         <div className="space-y-2">
           <Label htmlFor="ch-topic">Topic</Label>
-          <Input id="ch-topic" value={config.topic ?? ''} onChange={set('topic')} />
+          <Input
+            id="ch-topic"
+            value={config.topic ?? ''}
+            onChange={set('topic')}
+            {...flag('ch-topic')}
+          />
+          {message('ch-topic')}
         </div>
       </>
     )
@@ -382,7 +453,14 @@ function ConfigFields({
       <>
         <div className="space-y-2">
           <Label htmlFor="ch-to">Send alerts to</Label>
-          <Input id="ch-to" value={config.to ?? ''} onChange={set('to')} placeholder="you@your.org" />
+          <Input
+            id="ch-to"
+            value={config.to ?? ''}
+            onChange={set('to')}
+            placeholder="you@your.org"
+            {...flag('ch-to')}
+          />
+          {message('ch-to')}
         </div>
         <p className="text-xs text-muted-foreground">
           SMTP fields below are optional — leave blank to use the defaults
@@ -418,26 +496,33 @@ function ConfigFields({
   return null
 }
 
+// `field` is the DOM id of the offending input so the caller can anchor the
+// message to it and move focus there.
 function buildConfig(
   type: ChannelType,
   config: Record<string, string>,
-): { value: Record<string, unknown> } | { error: string } {
+): { value: Record<string, unknown> } | { error: string; field: string } {
   if (type === 'webhook') {
-    if (!config.url?.trim()) return { error: 'Webhook URL required' }
+    if (!config.url?.trim()) return { error: 'Webhook URL required.', field: 'ch-url' }
     return { value: { url: config.url.trim() } }
   }
   if (type === 'discord' || type === 'slack') {
-    if (!config.webhookUrl?.trim()) return { error: 'Webhook URL required' }
+    if (!config.webhookUrl?.trim()) {
+      return { error: 'Webhook URL required.', field: 'ch-webhook' }
+    }
     return { value: { webhookUrl: config.webhookUrl.trim() } }
   }
   if (type === 'ntfy') {
-    if (!config.serverUrl?.trim() || !config.topic?.trim()) {
-      return { error: 'Server URL and topic required' }
+    if (!config.serverUrl?.trim()) {
+      return { error: 'Server URL required.', field: 'ch-server' }
     }
+    if (!config.topic?.trim()) return { error: 'Topic required.', field: 'ch-topic' }
     return { value: { serverUrl: config.serverUrl.trim(), topic: config.topic.trim() } }
   }
   if (type === 'email') {
-    if (!config.to?.trim()) return { error: 'Recipient address required' }
+    if (!config.to?.trim()) {
+      return { error: 'Recipient address required.', field: 'ch-to' }
+    }
     const value: Record<string, unknown> = { to: config.to.trim() }
     // Only persist SMTP fields the user filled in; the rest fall back to
     // instance-wide defaults at send time.
@@ -448,5 +533,5 @@ function buildConfig(
     if (config.smtpFrom?.trim()) value.smtpFrom = config.smtpFrom.trim()
     return { value }
   }
-  return { error: 'Unknown type' }
+  return { error: 'Unknown type', field: 'ch-name' }
 }

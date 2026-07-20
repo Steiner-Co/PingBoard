@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -25,11 +25,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useConfirm } from '@/components/confirm-provider'
+import { useUnsavedGuard } from '@/contexts/unsaved-changes'
 import { api } from '@/lib/api'
 import { cn, formatIntervalLabel } from '@/lib/utils'
 import type { MonitorType, NotificationChannel } from '@/types'
 
 const STEPS = ['Target', 'Schedule', 'Notify'] as const
+const STEP_TITLES = ['What to check?', 'How often?', 'Where to alert?'] as const
+const DEFAULT_INTERVAL_SECONDS = 60
 
 interface TestResult {
   status: 'up' | 'down' | 'degraded'
@@ -41,15 +45,20 @@ interface TestResult {
 export function MonitorWizardPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const confirm = useConfirm()
   const [step, setStep] = useState(0)
   const [target, setTarget] = useState('')
   const [typeOverride, setTypeOverride] = useState<MonitorType | 'auto'>('auto')
   const [name, setName] = useState('')
-  const [intervalSeconds, setIntervalSeconds] = useState(60)
+  const [intervalSeconds, setIntervalSeconds] = useState(DEFAULT_INTERVAL_SECONDS)
   const [tags, setTags] = useState<string[]>([])
   const [selectedChannels, setSelectedChannels] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [testResult, setTestResult] = useState<TestResult | null>(null)
+  // Which field blocked the last Continue/Create attempt, so the message can
+  // sit next to the input instead of at the bottom of the card.
+  const [invalid, setInvalid] = useState<{ field: 'target' | 'name'; message: string } | null>(null)
+  const headingRef = useRef<HTMLHeadingElement>(null)
 
   const autoDetected = useMemo(() => detectType(target), [target])
   const effectiveType: MonitorType | null =
@@ -106,14 +115,91 @@ export function MonitorWizardPage() {
     onError: (err) => setError(err instanceof Error ? err.message : 'Failed to create'),
   })
 
-  const canAdvance = () => {
-    if (step === 0) return Boolean(target.trim() && effectiveType)
-    if (step === 1) return Boolean(name.trim())
-    return true
+  // Anything the user typed or picked is worth confirming before we throw it
+  // away — the wizard has no draft persistence.
+  const isDirty =
+    !createMutation.isSuccess &&
+    Boolean(
+      target.trim() ||
+        name.trim() ||
+        tags.length > 0 ||
+        selectedChannels.length > 0 ||
+        typeOverride !== 'auto' ||
+        intervalSeconds !== DEFAULT_INTERVAL_SECONDS,
+    )
+
+  const confirmDiscard = useCallback(
+    () =>
+      confirm({
+        title: 'Discard this monitor?',
+        description:
+          "You haven't created this monitor yet. Leaving now will lose what you've filled in.",
+        confirmLabel: 'Discard',
+        cancelLabel: 'Keep editing',
+        destructive: true,
+      }),
+    [confirm],
+  )
+
+  // Mirrors MonitorEditPage: the guard claims the shell's nav links while
+  // dirty, `beforeunload` covers tab close and reload.
+  useUnsavedGuard(isDirty, confirmDiscard)
+  useEffect(() => {
+    if (!isDirty) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
+
+  // Steps 0 and 1 autofocus their first input, which pulls focus into the new
+  // step on its own. Step 2 has no such control, so send focus to the heading
+  // instead of leaving it parked on Continue.
+  useEffect(() => {
+    if (step === 2) headingRef.current?.focus()
+  }, [step])
+
+  // Returns the blocking field for the current step, or null when it's clear.
+  const validateStep = (): { field: 'target' | 'name'; message: string } | null => {
+    if (step === 0) {
+      if (!target.trim()) return { field: 'target', message: 'Enter a URL or host to continue.' }
+      if (!effectiveType) {
+        return {
+          field: 'target',
+          message: "That doesn't look like a URL, host, or host:port — pick a type below.",
+        }
+      }
+    }
+    if (step === 1 && !name.trim()) {
+      return { field: 'name', message: 'Give the monitor a display name.' }
+    }
+    return null
   }
 
-  const handleSubmit = () => {
+  // Single submit path for every step: Enter in a field and the footer button
+  // both land here, so Enter advances the wizard the way it reads.
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
     setError(null)
+    const blocking = validateStep()
+    if (blocking) {
+      setInvalid(blocking)
+      // `Input` isn't forwardRef-wrapped, so a ref never reaches the DOM node —
+      // focus through the id the Label already points at.
+      document.getElementById(blocking.field)?.focus()
+      return
+    }
+    setInvalid(null)
+    if (step < STEPS.length - 1) {
+      setStep(step + 1)
+      return
+    }
+    handleCreate()
+  }
+
+  const handleCreate = () => {
     if (!effectiveType) {
       setError('Pick a monitor type to continue')
       return
@@ -131,15 +217,37 @@ export function MonitorWizardPage() {
     })
   }
 
+  // Any in-app nav away from the wizard goes through here so a half-filled
+  // form can't vanish on a stray click.
+  const guardedNavigate = async (to: string) => {
+    if (isDirty && !(await confirmDiscard())) return
+    navigate(to)
+  }
+
   return (
-    <div className="px-4 lg:px-6 max-w-2xl mx-auto flex flex-col gap-6">
-      <p className="text-muted-foreground">A few quick steps and you're tracking uptime.</p>
+    <form onSubmit={handleFormSubmit} className="px-4 lg:px-6 max-w-3xl flex flex-col gap-6">
+      <header>
+        <h1 className="text-3xl font-semibold tracking-tight">Add monitor</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          A few quick steps and you're tracking uptime.
+        </p>
+      </header>
 
       <Stepper current={step} />
 
+      {/* Focus moves into the step's first input, which says nothing about the
+          step itself — this carries the position and title to screen readers. */}
+      <div aria-live="polite" className="sr-only">
+        Step {step + 1} of {STEPS.length}: {STEP_TITLES[step]}
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle>{['What to check?', 'How often?', 'Where to alert?'][step]}</CardTitle>
+          <CardTitle>
+            <h2 ref={headingRef} tabIndex={-1} className="outline-none">
+              {STEP_TITLES[step]}
+            </h2>
+          </CardTitle>
           <CardDescription>
             {step === 0 && 'Paste a URL, host, or host:port. Type is auto-detected, or pick one.'}
             {step === 1 && 'Sensible defaults are pre-filled.'}
@@ -155,9 +263,19 @@ export function MonitorWizardPage() {
                   id="target"
                   placeholder={targetPlaceholder(effectiveType)}
                   value={target}
-                  onChange={(e) => setTarget(e.target.value)}
+                  onChange={(e) => {
+                    setTarget(e.target.value)
+                    setInvalid(null)
+                  }}
+                  aria-invalid={invalid?.field === 'target'}
+                  aria-describedby={invalid?.field === 'target' ? 'target-error' : undefined}
                   autoFocus
                 />
+                {invalid?.field === 'target' && (
+                  <p id="target-error" role="alert" className="text-xs text-destructive">
+                    {invalid.message}
+                  </p>
+                )}
                 {typeOverride === 'auto' && autoDetected.type && (
                   <p className="text-xs text-muted-foreground">
                     Detected: <span className="font-medium uppercase">{autoDetected.type}</span> check on{' '}
@@ -226,9 +344,19 @@ export function MonitorWizardPage() {
                   id="name"
                   placeholder={defaultName(effectiveTarget) ?? 'My monitor'}
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value)
+                    setInvalid(null)
+                  }}
+                  aria-invalid={invalid?.field === 'name'}
+                  aria-describedby={invalid?.field === 'name' ? 'name-error' : undefined}
                   autoFocus
                 />
+                {invalid?.field === 'name' && (
+                  <p id="name-error" role="alert" className="text-xs text-destructive">
+                    {invalid.message}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="interval">Check interval</Label>
@@ -308,32 +436,45 @@ export function MonitorWizardPage() {
               )}
             </>
           )}
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
         </CardContent>
       </Card>
 
       <div className="flex justify-between">
         <Button
+          type="button"
           variant="ghost"
-          onClick={() => (step === 0 ? navigate('/admin') : setStep(step - 1))}
+          onClick={() => {
+            setInvalid(null)
+            if (step === 0) void guardedNavigate('/admin')
+            else setStep(step - 1)
+          }}
           disabled={createMutation.isPending}
         >
           <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
           {step === 0 ? 'Cancel' : 'Back'}
         </Button>
-        {step < STEPS.length - 1 ? (
-          <Button onClick={() => setStep(step + 1)} disabled={!canAdvance()}>
-            Continue
-            <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
-          </Button>
-        ) : (
-          <Button onClick={handleSubmit} disabled={createMutation.isPending}>
-            {createMutation.isPending ? 'Creating…' : 'Create monitor'}
-            <HugeiconsIcon icon={Tick02Icon} className="h-4 w-4" />
-          </Button>
-        )}
+        {/* Stays enabled when fields are missing — clicking it names the
+            blocking field instead of leaving the wizard looking stuck. */}
+        <Button type="submit" disabled={createMutation.isPending}>
+          {step < STEPS.length - 1 ? (
+            <>
+              Continue
+              <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
+            </>
+          ) : (
+            <>
+              {createMutation.isPending ? 'Creating…' : 'Create monitor'}
+              <HugeiconsIcon icon={Tick02Icon} className="h-4 w-4" />
+            </>
+          )}
+        </Button>
       </div>
-    </div>
+    </form>
   )
 }
 
@@ -341,7 +482,11 @@ function Stepper({ current }: { current: number }) {
   return (
     <ol className="flex items-center gap-2 text-sm">
       {STEPS.map((label, i) => (
-        <li key={label} className="flex items-center gap-2">
+        <li
+          key={label}
+          aria-current={i === current ? 'step' : undefined}
+          className="flex items-center gap-2"
+        >
           <span
             className={cn(
               'flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium',
@@ -372,55 +517,92 @@ export function TagInput({
   id?: string
 }) {
   const [draft, setDraft] = useState('')
+  // Rejections used to be silent returns, so Enter just looked broken. Stamped
+  // with a timestamp so repeating the same bad tag re-triggers the timeout.
+  const [rejected, setRejected] = useState<{ message: string; at: number } | null>(null)
+
+  useEffect(() => {
+    if (!rejected) return
+    const timer = setTimeout(() => setRejected(null), 4000)
+    return () => clearTimeout(timer)
+  }, [rejected])
+
+  const reject = (message: string) => setRejected({ message, at: Date.now() })
 
   const commit = (raw: string) => {
     const trimmed = raw.trim().toLowerCase()
     if (!trimmed) return
-    if (!/^[a-z0-9][a-z0-9-]*$/.test(trimmed)) return
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(trimmed)) {
+      reject('Lowercase letters, digits, and hyphens only — no spaces or symbols.')
+      return
+    }
     if (value.includes(trimmed)) {
       setDraft('')
       return
     }
-    if (value.length >= 16) return
+    if (value.length >= 16) {
+      reject('Up to 16 tags.')
+      return
+    }
     onChange([...value, trimmed])
     setDraft('')
+    setRejected(null)
   }
 
   const remove = (tag: string) => onChange(value.filter((t) => t !== tag))
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-input bg-transparent px-2 py-1.5 focus-within:ring-2 focus-within:ring-ring">
-      {value.map((tag) => (
-        <Badge key={tag} variant="secondary" className="gap-1 font-mono text-xs">
-          {tag}
-          <button
-            type="button"
-            onClick={() => remove(tag)}
-            className="opacity-60 hover:opacity-100"
-            aria-label={`Remove ${tag}`}
-          >
-            <HugeiconsIcon icon={Cancel01Icon} className="h-3 w-3" />
-          </button>
-        </Badge>
-      ))}
-      <input
-        id={id}
-        type="text"
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ',') {
-            e.preventDefault()
-            commit(draft)
-          } else if (e.key === 'Backspace' && !draft && value.length > 0) {
-            remove(value[value.length - 1]!)
-          }
-        }}
-        onBlur={() => commit(draft)}
-        placeholder={value.length === 0 ? 'api, prod, payments…' : ''}
-        className="flex-1 min-w-[120px] bg-transparent text-sm outline-none"
-      />
-    </div>
+    <>
+      <div
+        className={cn(
+          'flex flex-wrap items-center gap-1.5 rounded-md border border-input bg-transparent px-2 py-1.5 transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30',
+          rejected && 'border-destructive ring-2 ring-destructive/20',
+        )}
+      >
+        {value.map((tag) => (
+          <Badge key={tag} variant="secondary" className="gap-1 font-mono text-xs">
+            {tag}
+            <button
+              type="button"
+              onClick={() => remove(tag)}
+              className="opacity-60 hover:opacity-100"
+              aria-label={`Remove ${tag}`}
+            >
+              <HugeiconsIcon icon={Cancel01Icon} className="h-3 w-3" />
+            </button>
+          </Badge>
+        ))}
+        <input
+          id={id}
+          type="text"
+          value={draft}
+          onChange={(e) => {
+            setDraft(e.target.value)
+            setRejected(null)
+          }}
+          // Enter/comma commit a tag and must not reach the surrounding form —
+          // in the wizard that would advance the step mid-typing.
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ',') {
+              e.preventDefault()
+              commit(draft)
+            } else if (e.key === 'Backspace' && !draft && value.length > 0) {
+              remove(value[value.length - 1]!)
+            }
+          }}
+          onBlur={() => commit(draft)}
+          aria-invalid={rejected != null}
+          aria-describedby={rejected ? `${id}-error` : undefined}
+          placeholder={value.length === 0 ? 'api, prod, payments…' : ''}
+          className="flex-1 min-w-[120px] bg-transparent text-sm outline-none"
+        />
+      </div>
+      {rejected && (
+        <p id={`${id}-error`} role="alert" className="text-xs text-destructive">
+          {rejected.message}
+        </p>
+      )}
+    </>
   )
 }
 
