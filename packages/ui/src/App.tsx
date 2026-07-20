@@ -37,7 +37,7 @@ function Router() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex items-center gap-3 text-muted-foreground">
-          <span className="inline-block h-2 w-2 rounded-full bg-success animate-pulse" />
+          <span className="inline-block h-2 w-2 rounded-full bg-success motion-safe:animate-pulse" />
           <span className="text-sm">PingBoard</span>
         </div>
       </div>

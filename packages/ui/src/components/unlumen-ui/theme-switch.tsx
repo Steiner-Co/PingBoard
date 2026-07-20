@@ -78,9 +78,20 @@ interface ThemeSwitchProps {
 function ThemeSwitch({ iconSize = 16, className }: ThemeSwitchProps) {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [hoverCapable, setHoverCapable] = useState(false);
   const originRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => setMounted(true), []);
+
+  // motion's whileHover also fires on touch taps, where it reads as a stuck
+  // hover state. Tailwind auto-gates CSS `hover:`; this is the JS equivalent.
+  useEffect(() => {
+    const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const sync = () => setHoverCapable(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   const toggle = (e: React.MouseEvent<HTMLButtonElement>) => {
     originRef.current = { x: e.clientX, y: e.clientY };
@@ -92,56 +103,38 @@ function ThemeSwitch({ iconSize = 16, className }: ThemeSwitchProps) {
 
   if (!mounted) {
     // placeholder to prevent layout shift before hydration
-    return (
-      <div
-        aria-hidden
-        className={cn(
-          "size-9 rounded-full bg-accent border border-border",
-          className,
-        )}
-      />
-    );
+    return <div aria-hidden className={cn("size-7 rounded-md", className)} />;
   }
 
   return (
     <motion.button
       onClick={toggle}
       className={cn(
-        "relative flex items-center justify-center size-9 rounded-full",
-        "bg-accent border border-border cursor-pointer",
-        "text-foreground outline-none",
+        "relative flex items-center justify-center size-7 rounded-md",
+        "cursor-pointer text-muted-foreground outline-none",
+        "transition-colors duration-150 ease-out hover:bg-accent hover:text-foreground",
         "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         className,
       )}
-      whileHover={{ scale: 1.08 }}
-      whileTap={{ scale: 0.88 }}
-      transition={{ type: "spring", duration: 0.2, bounce: 0 }}
+      whileHover={hoverCapable ? { scale: 1.06 } : undefined}
+      whileTap={{ scale: 0.97 }}
+      transition={{ type: "spring", duration: 0.15, bounce: 0 }}
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
     >
-      <AnimatePresence mode="wait" initial={false}>
-        {isDark ? (
-          <motion.span
-            key="moon"
-            initial={{ rotate: -45, scale: 0.5, opacity: 0 }}
-            animate={{ rotate: 0, scale: 1, opacity: 1 }}
-            exit={{ rotate: 45, scale: 0.5, opacity: 0 }}
-            transition={{ type: "spring", duration: 0.28, bounce: 0.3 }}
-            className="flex items-center justify-center"
-          >
-            <MoonIcon size={iconSize} />
-          </motion.span>
-        ) : (
-          <motion.span
-            key="sun"
-            initial={{ rotate: 45, scale: 0.5, opacity: 0 }}
-            animate={{ rotate: 0, scale: 1, opacity: 1 }}
-            exit={{ rotate: -45, scale: 0.5, opacity: 0 }}
-            transition={{ type: "spring", duration: 0.28, bounce: 0.3 }}
-            className="flex items-center justify-center"
-          >
-            <SunIcon size={iconSize} />
-          </motion.span>
-        )}
+      {/* Sync mode (not "wait") so exit and enter overlap into one crossfade —
+          the swap rides on top of the circular view transition and must not
+          outlast it. Icons are absolute so the overlap costs no layout. */}
+      <AnimatePresence initial={false}>
+        <motion.span
+          key={isDark ? "moon" : "sun"}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
+          className="absolute inset-0 flex items-center justify-center"
+        >
+          {isDark ? <MoonIcon size={iconSize} /> : <SunIcon size={iconSize} />}
+        </motion.span>
       </AnimatePresence>
     </motion.button>
   );
