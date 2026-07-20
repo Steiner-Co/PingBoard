@@ -24,10 +24,12 @@ Open `http://localhost:3000`, create your admin account, add your first monitor.
 
 ## What it does
 
-- **5 monitor types** — HTTP(S), TCP, ping, DNS, plus keyword/JSON assertions on HTTP bodies
+- **7 monitor types** — HTTP(S), TCP, ping, DNS, SSL-certificate expiry, domain expiry, and push/heartbeat, plus keyword/JSON assertions on HTTP bodies
 - **5 notification channels** — email (SMTP), webhook, Discord, Slack, ntfy
 - **Public status pages** — multiple per instance, optional password protection, custom slugs
 - **Live dashboard** — real-time updates via SSE, no polling
+- **Maintenance windows** — schedule downtime; alerts stay quiet, the status page says why
+- **API tokens** — drive everything from scripts, not just the browser
 - **Single binary feel** — one container, one SQLite file under `/data`, no Redis, no queue
 
 ## Configuration
@@ -62,6 +64,20 @@ docker stop pingboard
 cp -r /var/lib/docker/volumes/pingboard /backups/pingboard-$(date +%F)
 docker start pingboard
 ```
+
+## API
+
+Create a token under **Settings → API tokens**. It's shown once, so store it
+when you create it — there's no way to read it back.
+
+```bash
+curl -H "Authorization: Bearer pb_..." http://localhost:3000/api/admin/monitors
+```
+
+A token has the same access as the admin account. Everything the dashboard
+does is available: `/api/admin/monitors`, `/api/admin/incidents`,
+`/api/admin/channels`, `/api/admin/pages`, `/api/admin/maintenance-windows`.
+Revoke a token from the same screen; it stops working immediately.
 
 ## CLI
 
@@ -101,10 +117,11 @@ See [`PRD.md`](./PRD.md) for the full product spec and roadmap.
 v1 (this release):
 - ✅ Core monitor types, channels, status pages, dashboard, public pages
 
-v1.x:
-- SSL certificate expiry monitoring
-- Maintenance windows
-- API tokens for programmatic access
+v1.x (shipped):
+- ✅ SSL certificate and domain expiry monitoring
+- ✅ Push/heartbeat monitors
+- ✅ Maintenance windows
+- ✅ API tokens for programmatic access
 
 Future (cloud):
 - Multi-region probing

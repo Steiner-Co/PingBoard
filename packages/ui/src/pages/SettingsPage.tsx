@@ -19,7 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { api } from '@/lib/api'
 import { useAuth } from '@/contexts/auth'
 import { useNow } from '@/hooks/use-now'
-import { formatDateTime, formatDuration } from '@/lib/utils'
+import { formatDateTime, formatDuration, formatRelative } from '@/lib/utils'
 
 interface SmtpView {
   host: string | null
@@ -48,6 +48,7 @@ export function SettingsPage() {
         <p className="text-muted-foreground">Instance-wide preferences.</p>
         <AccountCard email={user?.email ?? ''} />
         <RetentionCard />
+        <ApiTokensCard />
         <SmtpCard />
       </div>
       <aside className="flex min-w-0 flex-col gap-4">
@@ -554,6 +555,188 @@ function SmtpCard() {
             </Button>
           </div>
         </form>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ─────────────────────────── API tokens ───────────────────────────
+
+interface ApiToken {
+  id: string
+  name: string
+  prefix: string
+  lastUsedAt: string | null
+  createdAt: string
+}
+
+function ApiTokensCard() {
+  const queryClient = useQueryClient()
+  const confirm = useConfirm()
+  const [name, setName] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  // Held only until the user dismisses it — the server can't show it again.
+  const [freshSecret, setFreshSecret] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+  useNow()
+
+  const query = useQuery({
+    queryKey: ['api-tokens'],
+    queryFn: () => api.get<{ tokens: ApiToken[] }>('/api/admin/tokens'),
+  })
+
+  const create = useMutation({
+    mutationFn: (tokenName: string) =>
+      api.post<{ token: ApiToken; secret: string }>('/api/admin/tokens', {
+        name: tokenName,
+      }),
+    onSuccess: (data) => {
+      void queryClient.invalidateQueries({ queryKey: ['api-tokens'] })
+      setFreshSecret(data.secret)
+      setCopied(false)
+      setName('')
+      setError(null)
+    },
+    onError: (err) =>
+      setError(err instanceof Error ? err.message : 'Failed to create token'),
+  })
+
+  const revoke = useMutation({
+    mutationFn: (id: string) => api.delete(`/api/admin/tokens/${id}`),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['api-tokens'] })
+      toast.success('Token revoked')
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : 'Failed to revoke'),
+  })
+
+  const tokens = query.data?.tokens ?? []
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name.trim()) return setError('Give the token a name so you can recognise it later')
+    create.mutate(name.trim())
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>API tokens</CardTitle>
+        <CardDescription>
+          Authenticate scripts and integrations with{' '}
+          <code className="rounded bg-muted px-1 py-0.5 text-foreground">
+            Authorization: Bearer &lt;token&gt;
+          </code>
+          . A token has the same access as this admin account.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {freshSecret && (
+          <div className="space-y-2 border border-success/40 bg-success/5 p-3" role="status">
+            <p className="text-xs font-medium text-success">
+              Copy this now — it can't be shown again.
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="min-w-0 flex-1 truncate rounded-md bg-muted px-2 py-1.5 font-mono text-xs">
+                {freshSecret}
+              </code>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  void navigator.clipboard
+                    .writeText(freshSecret)
+                    .then(() => setCopied(true))
+                    .catch(() => toast.error('Copy failed — select the token manually'))
+                }}
+              >
+                {copied ? 'Copied' : 'Copy'}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => setFreshSecret(null)}
+              >
+                Done
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={submit} className="flex flex-wrap items-end gap-2">
+          <div className="min-w-0 flex-1 space-y-2">
+            <Label htmlFor="token-name">New token name</Label>
+            <Input
+              id="token-name"
+              value={name}
+              placeholder="deploy bot, uptime script…"
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? 'token-error' : undefined}
+              onChange={(e) => {
+                setName(e.target.value)
+                setError(null)
+              }}
+            />
+          </div>
+          <Button type="submit" disabled={create.isPending}>
+            {create.isPending ? 'Creating…' : 'Create token'}
+          </Button>
+        </form>
+        <p id="token-error" role="alert" className="min-h-4 text-xs text-destructive">
+          {error}
+        </p>
+
+        {query.isError ? (
+          <p className="text-xs text-destructive">
+            Couldn't load tokens.{' '}
+            <button
+              type="button"
+              onClick={() => void query.refetch()}
+              className="underline underline-offset-4"
+            >
+              Retry
+            </button>
+          </p>
+        ) : tokens.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            No tokens yet. The API is reachable from the browser session only.
+          </p>
+        ) : (
+          <ul className="divide-y divide-border/60 border-t border-border/60">
+            {tokens.map((t) => (
+              <li key={t.id} className="flex items-center gap-3 py-2.5">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium">{t.name}</div>
+                  <div className="font-mono text-[11px] text-muted-foreground">
+                    {t.prefix}… · {t.lastUsedAt
+                      ? `last used ${formatRelative(t.lastUsedAt)}`
+                      : 'never used'}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={revoke.isPending}
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: `Revoke "${t.name}"?`,
+                      description:
+                        'Anything using this token stops working immediately. This cannot be undone.',
+                      confirmLabel: 'Revoke token',
+                      destructive: true,
+                    })
+                    if (ok) revoke.mutate(t.id)
+                  }}
+                >
+                  Revoke
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
       </CardContent>
     </Card>
   )

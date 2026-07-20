@@ -64,6 +64,11 @@ import {
   getSettings,
   updateSettings,
 } from './routes/settings'
+import {
+  createApiToken,
+  deleteApiToken,
+  listApiTokens,
+} from './routes/tokens'
 import { requireAuth } from './middleware/auth'
 import { error } from './lib/responses'
 import { createSseResponse } from './lib/sse'
@@ -205,6 +210,15 @@ async function main() {
             (method === 'PATCH' || method === 'PUT')
           )
             return updateSettings(req, { db })
+
+          // API tokens
+          if (path === '/api/admin/tokens' && method === 'GET')
+            return listApiTokens({ db })
+          if (path === '/api/admin/tokens' && method === 'POST')
+            return createApiToken(req, { db })
+          const tokenMatch = path.match(/^\/api\/admin\/tokens\/([\w-]+)$/)
+          if (tokenMatch?.[1] && method === 'DELETE')
+            return deleteApiToken(tokenMatch[1], { db })
 
           // Account
           if (path === '/api/admin/account/password' && method === 'POST') {

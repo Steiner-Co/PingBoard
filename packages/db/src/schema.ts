@@ -40,6 +40,20 @@ export const sessions = sqliteTable('sessions', {
   createdAt: timestamp('created_at').default(now),
 })
 
+export const apiTokens = sqliteTable('api_tokens', {
+  id: uuid().primaryKey(),
+  name: text('name').notNull(),
+  // SHA-256 of the token, not bcrypt: the token is 256 bits of random, so
+  // there is nothing to brute-force, and this is verified on every API
+  // request — a slow KDF would tax the hot path for no security gain.
+  tokenHash: text('token_hash').notNull().unique(),
+  // First few characters, kept in clear so the UI can identify a token
+  // after its one-time reveal.
+  prefix: text('prefix').notNull(),
+  lastUsedAt: integer('last_used_at', { mode: 'timestamp_ms' }),
+  createdAt: timestamp('created_at').default(now),
+})
+
 export const monitors = sqliteTable('monitors', {
   id: uuid().primaryKey(),
   name: text('name').notNull(),
