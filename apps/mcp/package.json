@@ -1,0 +1,28 @@
+{
+  "name": "@pingboard/mcp",
+  "version": "0.0.0",
+  "private": false,
+  "description": "MCP server for PingBoard \u2014 query and control your uptime monitors from Claude, Cursor, or any MCP client.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "pingboard-mcp": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "clean": "rm -rf dist .turbo *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.0",
+    "typescript": "^5.6.0"
+  }
+}

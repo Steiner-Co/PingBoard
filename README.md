@@ -30,6 +30,7 @@ Open `http://localhost:3000`, create your admin account, add your first monitor.
 - **Live dashboard** — real-time updates via SSE, no polling
 - **Maintenance windows** — schedule downtime; alerts stay quiet, the status page says why
 - **API tokens** — drive everything from scripts, not just the browser
+- **MCP server** — query and control your monitors from Claude, Cursor or any MCP client
 - **Single binary feel** — one container, one SQLite file under `/data`, no Redis, no queue
 
 ## Configuration
@@ -79,6 +80,20 @@ does is available: `/api/admin/monitors`, `/api/admin/incidents`,
 `/api/admin/channels`, `/api/admin/pages`, `/api/admin/maintenance-windows`.
 Revoke a token from the same screen; it stops working immediately.
 
+## MCP
+
+Ask your assistant what's down, or have it schedule maintenance for you:
+
+```bash
+claude mcp add pingboard \
+  --env PINGBOARD_URL=http://localhost:3000 \
+  --env PINGBOARD_TOKEN=pb_... \
+  -- npx -y @pingboard/mcp
+```
+
+Works with Claude Code, Claude Desktop, Cursor and Zed. See
+[`apps/mcp`](./apps/mcp) for the tool list and other client configs.
+
 ## CLI
 
 ```bash
@@ -122,6 +137,9 @@ v1.x (shipped):
 - ✅ Push/heartbeat monitors
 - ✅ Maintenance windows
 - ✅ API tokens for programmatic access
+
+Next:
+- ✅ MCP server
 
 Future (cloud):
 - Multi-region probing
