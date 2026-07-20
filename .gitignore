@@ -13,6 +13,9 @@ build/
 # Turbo
 .turbo/
 
+# Vite temp files left behind by crashed dev servers
+vite.config.ts.timestamp-*.mjs
+
 # Local data (SQLite)
 data/
 *.db
