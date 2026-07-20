@@ -23,20 +23,11 @@ import { Button } from "@/components/ui/button"
 import { useConfirm } from "@/components/confirm-provider"
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -46,20 +37,14 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { api } from "@/lib/api"
+import { cn } from "@/lib/utils"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
-  CheckmarkCircle01Icon,
-  AlertCircleIcon,
   PauseIcon,
   PlayIcon,
-  Time04Icon,
   MoreVerticalCircle01Icon,
-  LeftToRightListBulletIcon,
-  ArrowDown01Icon,
-  ArrowLeftDoubleIcon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
-  ArrowRightDoubleIcon,
   Delete02Icon,
 } from "@hugeicons/core-free-icons"
 
@@ -70,10 +55,38 @@ export const schema = z.object({
   status: z.string(),
   target: z.string(),
   interval: z.string(),
+  responseMs: z.number().nullable(),
+  lastCheck: z.string().nullable(),
   tags: z.array(z.string()),
 })
 
 type MonitorRow = z.infer<typeof schema>
+
+function StatusCell({ status }: { status: string }) {
+  const dot =
+    status === "UP"
+      ? "bg-success"
+      : status === "DOWN"
+        ? "bg-destructive"
+        : status === "DEGRADED"
+          ? "bg-amber-500"
+          : "bg-muted-foreground/60"
+  const label = status.charAt(0) + status.slice(1).toLowerCase()
+  return (
+    <div className="flex items-center gap-2">
+      <span className={cn("size-2 shrink-0 rounded-full", dot)} />
+      <span
+        className={cn(
+          "text-sm",
+          status === "DOWN" ? "font-medium text-destructive" : "text-foreground",
+          (status === "PAUSED" || status === "PENDING") && "text-muted-foreground",
+        )}
+      >
+        {label}
+      </span>
+    </div>
+  )
+}
 
 const columns: ColumnDef<MonitorRow>[] = [
   {
@@ -85,42 +98,9 @@ const columns: ColumnDef<MonitorRow>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "type",
-    header: "Type",
-    cell: ({ row }) => (
-      <div className="w-20">
-        <Badge variant="outline" className="px-1.5 text-muted-foreground uppercase">
-          {row.original.type}
-        </Badge>
-      </div>
-    ),
-  },
-  {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => {
-      const status = row.original.status
-      const icon =
-        status === "UP"
-          ? CheckmarkCircle01Icon
-          : status === "DOWN"
-            ? AlertCircleIcon
-            : status === "PAUSED"
-              ? PauseIcon
-              : Time04Icon
-      const tone =
-        status === "UP"
-          ? "text-success"
-          : status === "DOWN"
-            ? "text-destructive"
-            : "text-muted-foreground"
-      return (
-        <Badge variant="outline" className="px-1.5 text-muted-foreground">
-          <HugeiconsIcon icon={icon} strokeWidth={2} className={tone} />
-          {status}
-        </Badge>
-      )
-    },
+    cell: ({ row }) => <StatusCell status={row.original.status} />,
   },
   {
     accessorKey: "target",
@@ -132,10 +112,37 @@ const columns: ColumnDef<MonitorRow>[] = [
     ),
   },
   {
+    accessorKey: "type",
+    header: "Type",
+    cell: ({ row }) => (
+      <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+        {row.original.type}
+      </span>
+    ),
+  },
+  {
+    accessorKey: "responseMs",
+    header: () => <div className="w-full text-right">Response</div>,
+    cell: ({ row }) => (
+      <div className="text-right font-mono text-xs tabular-nums text-muted-foreground">
+        {row.original.responseMs == null ? "—" : `${row.original.responseMs} ms`}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "lastCheck",
+    header: () => <div className="w-full text-right">Last check</div>,
+    cell: ({ row }) => (
+      <div className="text-right text-xs tabular-nums text-muted-foreground whitespace-nowrap">
+        {row.original.lastCheck ?? "—"}
+      </div>
+    ),
+  },
+  {
     accessorKey: "interval",
     header: () => <div className="w-full text-right">Interval</div>,
     cell: ({ row }) => (
-      <div className="text-right text-sm tabular-nums text-muted-foreground">
+      <div className="text-right text-xs tabular-nums text-muted-foreground">
         {row.original.interval}
       </div>
     ),
@@ -226,6 +233,7 @@ export function DataTable({
 }: {
   data: z.infer<typeof schema>[]
 }) {
+  const navigate = useNavigate()
   const [rowSelection, setRowSelection] = React.useState({})
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
@@ -235,7 +243,7 @@ export function DataTable({
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: 15,
   })
 
   const table = useReactTable({
@@ -265,41 +273,7 @@ export function DataTable({
 
   return (
     <div className="w-full flex flex-col justify-start gap-4">
-      <div className="flex items-center justify-end px-4 lg:px-6">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
-              <HugeiconsIcon icon={LeftToRightListBulletIcon} strokeWidth={2} data-icon="inline-start" />
-              Columns
-              <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} data-icon="inline-end" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-32">
-            {table
-              .getAllColumns()
-              .filter(
-                (column) =>
-                  typeof column.accessorFn !== "undefined" &&
-                  column.getCanHide()
-              )
-              .map((column) => {
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
-                  >
-                    {column.id}
-                  </DropdownMenuCheckboxItem>
-                )
-              })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-      <div className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
+      <div className="relative flex flex-col gap-4 overflow-auto">
         <div className="overflow-hidden rounded-lg border">
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-muted">
@@ -323,9 +297,20 @@ export function DataTable({
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
+                  <TableRow
+                    key={row.id}
+                    className="cursor-pointer"
+                    onClick={() => navigate(`/admin/monitors/${row.original.id}`)}
+                  >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
+                      <TableCell
+                        key={cell.id}
+                        onClick={
+                          cell.column.id === "actions"
+                            ? (e) => e.stopPropagation()
+                            : undefined
+                        }
+                      >
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()
@@ -347,55 +332,20 @@ export function DataTable({
             </TableBody>
           </Table>
         </div>
-        <div className="flex items-center justify-between px-4">
-          <div className="hidden flex-1 text-sm text-muted-foreground lg:flex">
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-muted-foreground">
             {table.getFilteredRowModel().rows.length}{' '}
             {table.getFilteredRowModel().rows.length === 1 ? 'monitor' : 'monitors'}
           </div>
-          <div className="flex w-full items-center gap-8 lg:w-fit">
-            <div className="hidden items-center gap-2 lg:flex">
-              <label htmlFor="rows-per-page" className="text-sm font-medium">
-                Rows per page
-              </label>
-              <Select
-                value={`${table.getState().pagination.pageSize}`}
-                onValueChange={(value) => {
-                  table.setPageSize(Number(value))
-                }}
-              >
-                <SelectTrigger size="sm" className="w-20" id="rows-per-page">
-                  <SelectValue
-                    placeholder={table.getState().pagination.pageSize}
-                  />
-                </SelectTrigger>
-                <SelectContent side="top">
-                  <SelectGroup>
-                    {[10, 20, 30, 40, 50].map((pageSize) => (
-                      <SelectItem key={pageSize} value={`${pageSize}`}>
-                        {pageSize}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex w-fit items-center justify-center text-sm font-medium">
-              Page {table.getState().pagination.pageIndex + 1} of{" "}
-              {table.getPageCount()}
-            </div>
-            <div className="ml-auto flex items-center gap-2 lg:ml-0">
+          {table.getPageCount() > 1 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs tabular-nums text-muted-foreground">
+                Page {table.getState().pagination.pageIndex + 1} of{" "}
+                {table.getPageCount()}
+              </span>
               <Button
                 variant="outline"
-                className="hidden h-8 w-8 p-0 lg:flex"
-                onClick={() => table.setPageIndex(0)}
-                disabled={!table.getCanPreviousPage()}
-              >
-                <span className="sr-only">Go to first page</span>
-                <HugeiconsIcon icon={ArrowLeftDoubleIcon} strokeWidth={2} />
-              </Button>
-              <Button
-                variant="outline"
-                className="size-8"
+                className="size-7"
                 size="icon"
                 onClick={() => table.previousPage()}
                 disabled={!table.getCanPreviousPage()}
@@ -405,7 +355,7 @@ export function DataTable({
               </Button>
               <Button
                 variant="outline"
-                className="size-8"
+                className="size-7"
                 size="icon"
                 onClick={() => table.nextPage()}
                 disabled={!table.getCanNextPage()}
@@ -413,18 +363,8 @@ export function DataTable({
                 <span className="sr-only">Go to next page</span>
                 <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
               </Button>
-              <Button
-                variant="outline"
-                className="hidden size-8 lg:flex"
-                size="icon"
-                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                disabled={!table.getCanNextPage()}
-              >
-                <span className="sr-only">Go to last page</span>
-                <HugeiconsIcon icon={ArrowRightDoubleIcon} strokeWidth={2} />
-              </Button>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
@@ -433,22 +373,23 @@ export function DataTable({
 
 function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex items-center gap-2 min-w-0">
       <Link
         to={`/admin/monitors/${item.id}`}
-        className="text-foreground hover:underline underline-offset-4 font-medium"
+        onClick={(e) => e.stopPropagation()}
+        className="truncate font-medium text-foreground hover:underline underline-offset-4"
       >
         {item.name}
       </Link>
-      {item.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {item.tags.map((tag) => (
-            <Badge key={tag} variant="secondary" className="font-mono text-[10px] px-1.5 py-0">
-              {tag}
-            </Badge>
-          ))}
-        </div>
-      )}
+      {item.tags.map((tag) => (
+        <Badge
+          key={tag}
+          variant="secondary"
+          className="hidden shrink-0 px-1.5 py-0 font-mono text-[10px] text-muted-foreground sm:inline-flex"
+        >
+          {tag}
+        </Badge>
+      ))}
     </div>
   )
 }

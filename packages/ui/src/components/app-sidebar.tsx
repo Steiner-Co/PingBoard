@@ -22,13 +22,23 @@ import {
   Settings02Icon,
 } from "@hugeicons/core-free-icons"
 
-const navItems = [
-  { title: "Dashboard", url: "/admin", icon: DashboardSquare01Icon },
-  { title: "Incidents", url: "/admin/incidents", icon: AlertCircleIcon },
-  { title: "Maintenance", url: "/admin/maintenance", icon: Calendar03Icon },
-  { title: "Channels", url: "/admin/channels", icon: Notification03Icon },
-  { title: "Status pages", url: "/admin/pages", icon: GlobeIcon },
-  { title: "Settings", url: "/admin/settings", icon: Settings02Icon },
+const navGroups = [
+  {
+    label: "Monitor",
+    items: [
+      { title: "Dashboard", url: "/admin", icon: DashboardSquare01Icon },
+      { title: "Incidents", url: "/admin/incidents", icon: AlertCircleIcon },
+      { title: "Maintenance", url: "/admin/maintenance", icon: Calendar03Icon },
+    ],
+  },
+  {
+    label: "Configure",
+    items: [
+      { title: "Channels", url: "/admin/channels", icon: Notification03Icon },
+      { title: "Status pages", url: "/admin/pages", icon: GlobeIcon },
+      { title: "Settings", url: "/admin/settings", icon: Settings02Icon },
+    ],
+  },
 ]
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
@@ -57,7 +67,7 @@ export function AppSidebar({ user, onLogout, ...props }: AppSidebarProps) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navItems} />
+        <NavMain groups={navGroups} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} onLogout={onLogout} />

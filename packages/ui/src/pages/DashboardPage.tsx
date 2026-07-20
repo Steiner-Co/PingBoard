@@ -13,9 +13,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DataTable, schema as monitorRowSchema } from '@/components/data-table'
 import { SectionCards } from '@/components/section-cards'
-import { cn, formatInterval } from '@/lib/utils'
+import { cn, formatDuration, formatInterval, formatRelative } from '@/lib/utils'
 import { api } from '@/lib/api'
-import { useSSE } from '@/lib/sse'
+import { useSSE, type HeartbeatPayload } from '@/lib/sse'
 import type { MonitorWithLatest } from '@/types'
 
 type MonitorRow = z.infer<typeof monitorRowSchema>
@@ -34,6 +34,8 @@ function toRows(monitors: MonitorWithLatest[]): MonitorRow[] {
     status: rowStatus(m),
     target: m.target,
     interval: formatInterval(m.intervalSeconds),
+    responseMs: m.latest?.responseTimeMs ?? null,
+    lastCheck: m.latest ? formatRelative(m.latest.checkedAt) : null,
     tags: m.tags,
   }))
 }
@@ -48,6 +50,24 @@ const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
   { id: 'paused', label: 'Paused' },
 ]
 
+interface FeedItem {
+  key: string
+  monitorId: string
+  status: 'up' | 'down' | 'degraded'
+  responseTimeMs: number | null
+  at: number
+}
+
+interface IncidentRow {
+  id: string
+  monitorId: string
+  monitorName: string
+  startedAt: string
+  resolvedAt: string | null
+  cause: 'auto' | 'manual'
+  note: string | null
+}
+
 export function DashboardPage() {
   const queryClient = useQueryClient()
   const query = useQuery({
@@ -55,21 +75,42 @@ export function DashboardPage() {
     queryFn: () => api.get<{ monitors: MonitorWithLatest[] }>('/api/admin/monitors'),
   })
 
-  // Live updates: any heartbeat/incident event invalidates the list.
+  const [feed, setFeed] = useState<FeedItem[]>([])
+
+  // Live updates: any heartbeat/incident event invalidates the list; heartbeats
+  // additionally stream into the activity rail.
   useSSE('/api/admin/sse', {
-    heartbeat: () => {
+    heartbeat: (payload: HeartbeatPayload) => {
+      setFeed((prev) =>
+        [
+          {
+            key: `${payload.monitorId}-${payload.result.checkedAt}-${prev.length}`,
+            monitorId: payload.monitorId,
+            status: payload.result.status,
+            responseTimeMs: payload.result.responseTimeMs,
+            at: Date.now(),
+          },
+          ...prev,
+        ].slice(0, 8),
+      )
       void queryClient.invalidateQueries({ queryKey: ['monitors'] })
     },
     'incident.opened': () => {
       void queryClient.invalidateQueries({ queryKey: ['monitors'] })
+      void queryClient.invalidateQueries({ queryKey: ['incidents'] })
     },
     'incident.resolved': () => {
       void queryClient.invalidateQueries({ queryKey: ['monitors'] })
+      void queryClient.invalidateQueries({ queryKey: ['incidents'] })
     },
   })
 
   const monitors = query.data?.monitors ?? []
   const allRows = useMemo(() => toRows(monitors), [monitors])
+  const nameById = useMemo(
+    () => new Map(monitors.map((m) => [m.id, m.name])),
+    [monitors],
+  )
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
@@ -96,42 +137,166 @@ export function DashboardPage() {
   return (
     <>
       <SectionCards monitors={monitors} />
-      <div className="px-4 lg:px-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-xs">
-          <HugeiconsIcon
-            icon={Search01Icon}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
-            strokeWidth={2}
-          />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, target, or tag…"
-            className="pl-7"
-            aria-label="Search monitors"
-          />
+      <div className="grid gap-6 px-4 lg:px-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="flex min-w-0 flex-col gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:max-w-xs">
+              <HugeiconsIcon
+                icon={Search01Icon}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
+                strokeWidth={2}
+              />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name, target, or tag…"
+                className="pl-7"
+                aria-label="Search monitors"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {STATUS_FILTERS.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setStatusFilter(f.id)}
+                  className={cn(
+                    'rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors',
+                    statusFilter === f.id
+                      ? 'border-foreground/20 bg-foreground text-background'
+                      : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground',
+                  )}
+                  aria-pressed={statusFilter === f.id}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <DataTable data={rows} />
         </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {STATUS_FILTERS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setStatusFilter(f.id)}
-              className={cn(
-                'rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors',
-                statusFilter === f.id
-                  ? 'border-foreground/20 bg-foreground text-background'
-                  : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground',
-              )}
-              aria-pressed={statusFilter === f.id}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+        <aside className="flex min-w-0 flex-col gap-4">
+          <LiveActivity feed={feed} nameById={nameById} />
+          <RecentIncidents nameById={nameById} />
+        </aside>
       </div>
-      <DataTable data={rows} />
     </>
+  )
+}
+
+function LiveActivity({
+  feed,
+  nameById,
+}: {
+  feed: FeedItem[]
+  nameById: Map<string, string>
+}) {
+  return (
+    <section className="overflow-hidden rounded-xl border bg-card">
+      <header className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
+        <h2 className="text-sm font-medium">Activity</h2>
+        <span className="flex items-center gap-1.5 font-mono text-[10px] font-medium uppercase tracking-widest text-success">
+          <span className="relative inline-flex size-1.5">
+            <span
+              className="absolute inset-0 rounded-full bg-success motion-safe:animate-ping opacity-50"
+              style={{ animationDuration: '2s' }}
+            />
+            <span className="relative inline-block size-1.5 rounded-full bg-success" />
+          </span>
+          Live
+        </span>
+      </header>
+      {feed.length === 0 ? (
+        <p className="px-4 py-5 text-xs text-muted-foreground">
+          Waiting for the next heartbeat — checks stream in here as they land.
+        </p>
+      ) : (
+        <ul className="divide-y divide-border/60">
+          {feed.map((item) => (
+            <li
+              key={item.key}
+              className="flex items-center gap-2.5 px-4 py-2 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-200"
+            >
+              <span
+                className={cn(
+                  'size-1.5 shrink-0 rounded-full',
+                  item.status === 'up'
+                    ? 'bg-success'
+                    : item.status === 'down'
+                      ? 'bg-destructive'
+                      : 'bg-amber-500',
+                )}
+              />
+              <span className="min-w-0 flex-1 truncate text-xs">
+                {nameById.get(item.monitorId) ?? 'Monitor'}
+              </span>
+              <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
+                {item.responseTimeMs == null ? item.status : `${item.responseTimeMs} ms`}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+function RecentIncidents({ nameById }: { nameById: Map<string, string> }) {
+  const query = useQuery({
+    queryKey: ['incidents'],
+    queryFn: () => api.get<{ incidents: IncidentRow[] }>('/api/admin/incidents'),
+  })
+  const incidents = (query.data?.incidents ?? []).slice(0, 4)
+
+  return (
+    <section className="overflow-hidden rounded-xl border bg-card">
+      <header className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
+        <h2 className="text-sm font-medium">Recent incidents</h2>
+        <Link
+          to="/admin/incidents"
+          className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          View all →
+        </Link>
+      </header>
+      {incidents.length === 0 ? (
+        <p className="px-4 py-5 text-xs text-muted-foreground">
+          No incidents on record. Quiet is good.
+        </p>
+      ) : (
+        <ul className="divide-y divide-border/60">
+          {incidents.map((i) => {
+            const open = !i.resolvedAt
+            const started = new Date(i.startedAt)
+            const durationMs = open
+              ? Date.now() - started.getTime()
+              : new Date(i.resolvedAt!).getTime() - started.getTime()
+            return (
+              <li key={i.id} className="space-y-0.5 px-4 py-2.5">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      'size-1.5 shrink-0 rounded-full',
+                      open ? 'bg-destructive' : 'bg-muted-foreground/50',
+                    )}
+                  />
+                  <span className="min-w-0 flex-1 truncate text-xs font-medium">
+                    {i.monitorName || nameById.get(i.monitorId) || 'Monitor'}
+                  </span>
+                  <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                    {formatRelative(i.startedAt)}
+                  </span>
+                </div>
+                <div className="pl-3.5 text-[11px] text-muted-foreground">
+                  {open ? 'Ongoing' : `Lasted ${formatDuration(durationMs)}`}
+                  {i.note ? ` — ${i.note}` : ''}
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </section>
   )
 }
 

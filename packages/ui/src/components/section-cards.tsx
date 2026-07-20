@@ -1,20 +1,7 @@
 import { useMemo } from "react"
 import { Link } from "react-router-dom"
 
-import {
-  Card,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { HugeiconsIcon } from "@hugeicons/react"
-import {
-  Activity03Icon,
-  CheckmarkCircle01Icon,
-  AlertCircleIcon,
-  Timer01Icon,
-} from "@hugeicons/core-free-icons"
+import { cn } from "@/lib/utils"
 import type { MonitorWithLatest } from "@/types"
 
 interface Stats {
@@ -72,99 +59,108 @@ function reportingCount(stats: Stats): number {
 export function SectionCards({ monitors }: { monitors: MonitorWithLatest[] }) {
   const stats = useMemo(() => computeStats(monitors), [monitors])
   const reporting = reportingCount(stats)
+  const uptimePct =
+    reporting === 0 ? null : Math.round((stats.up / reporting) * 100)
 
   return (
-    <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-      <KpiCard
-        to="/admin"
-        description="Active monitors"
-        value={`${stats.active} / ${stats.total}`}
-        line={stats.total === 0 ? 'No monitors yet' : 'Currently scheduled'}
-        sub={`${stats.paused} paused, ${stats.pending} awaiting first check`}
-        icon={Activity03Icon}
-      />
-      <KpiCard
-        description="Currently up"
-        value={
-          reporting === 0
-            ? '—'
-            : `${Math.round((stats.up / reporting) * 100)}%`
-        }
-        line={
-          reporting === 0
-            ? 'Waiting for first heartbeats'
-            : `${stats.up} of ${reporting} reporting healthy`
-        }
-        sub="Pending monitors are excluded until they report"
-        icon={CheckmarkCircle01Icon}
-      />
-      <KpiCard
-        to={stats.down > 0 ? '/admin/incidents' : undefined}
-        description="Currently down"
-        value={String(stats.down)}
-        line={stats.down === 0 ? 'Nothing failing right now' : 'Failing checks'}
-        sub="Paused monitors are excluded"
-        icon={AlertCircleIcon}
-        tone={stats.down > 0 ? 'destructive' : 'default'}
-      />
-      <KpiCard
-        description="Avg response time"
-        value={stats.avgResponseMs == null ? '—' : `${stats.avgResponseMs} ms`}
-        line={
-          stats.avgResponseMs == null
-            ? 'No successful checks yet'
-            : 'Mean across healthy monitors'
-        }
-        sub="Latest heartbeat per monitor"
-        icon={Timer01Icon}
-      />
+    <div className="px-4 lg:px-6">
+      <div className="grid grid-cols-2 overflow-hidden rounded-xl border bg-card lg:grid-cols-4 lg:divide-x divide-border/60">
+        <StatCell
+          label="Active monitors"
+          value={`${stats.active}`}
+          valueSuffix={`/ ${stats.total}`}
+          sub={
+            stats.total === 0
+              ? "No monitors yet"
+              : stats.paused > 0 || stats.pending > 0
+                ? `${stats.paused} paused · ${stats.pending} pending`
+                : "All scheduled"
+          }
+          className="border-b border-border/60 lg:border-b-0 border-r lg:border-r-0"
+        />
+        <StatCell
+          label="Uptime"
+          value={uptimePct == null ? "—" : `${uptimePct}%`}
+          tone={
+            uptimePct == null ? "muted" : uptimePct === 100 ? "success" : "warn"
+          }
+          sub={
+            reporting === 0
+              ? "Waiting for heartbeats"
+              : `${stats.up} of ${reporting} reporting healthy`
+          }
+          className="border-b border-border/60 lg:border-b-0"
+        />
+        <StatCell
+          to={stats.down > 0 ? "/admin/incidents" : undefined}
+          label="Down"
+          value={String(stats.down)}
+          tone={stats.down > 0 ? "destructive" : "muted"}
+          sub={stats.down === 0 ? "Nothing failing right now" : "Open incidents →"}
+          className="border-r border-border/60 lg:border-r-0"
+        />
+        <StatCell
+          label="Avg response"
+          value={stats.avgResponseMs == null ? "—" : String(stats.avgResponseMs)}
+          valueSuffix={stats.avgResponseMs == null ? undefined : "ms"}
+          sub="Latest heartbeat per healthy monitor"
+        />
+      </div>
     </div>
   )
 }
 
-function KpiCard({
+function StatCell({
   to,
-  description,
+  label,
   value,
-  line,
+  valueSuffix,
   sub,
-  icon,
-  tone = 'default',
+  tone = "default",
+  className,
 }: {
   to?: string
-  description: string
+  label: string
   value: string
-  line: string
+  valueSuffix?: string
   sub: string
-  icon: typeof Activity03Icon
-  tone?: 'default' | 'destructive'
+  tone?: "default" | "success" | "destructive" | "warn" | "muted"
+  className?: string
 }) {
-  // Cards with a destination become hover-elevated buttons. Cards without one
-  // stay static — no fake hover affordance.
-  const tint =
-    tone === 'destructive'
-      ? 'data-[link=true]:hover:border-destructive/30 data-[link=true]:hover:bg-destructive/5'
-      : 'data-[link=true]:hover:border-primary/30 data-[link=true]:hover:bg-primary/5'
+  const valueTone =
+    tone === "success"
+      ? "text-success"
+      : tone === "destructive"
+        ? "text-destructive"
+        : tone === "warn"
+          ? "text-amber-600 dark:text-amber-400"
+          : tone === "muted"
+            ? "text-muted-foreground"
+            : "text-foreground"
 
   const body = (
-    <Card
-      className={`@container/card transition-colors ${tint}`}
-      data-link={to ? 'true' : 'false'}
+    <div
+      className={cn(
+        "flex flex-col gap-2.5 p-4 sm:p-5 transition-colors",
+        to && "cursor-pointer hover:bg-muted/40",
+        className,
+      )}
     >
-      <CardHeader>
-        <CardDescription>{description}</CardDescription>
-        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+      <div className="font-mono text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        {label}
+      </div>
+      <div className="flex items-baseline gap-1.5">
+        <span className={cn("text-3xl font-semibold tracking-tight tabular-nums", valueTone)}>
           {value}
-        </CardTitle>
-      </CardHeader>
-      <CardFooter className="flex-col items-start gap-1.5 text-sm">
-        <div className="line-clamp-1 flex gap-2 font-medium">
-          {line}{' '}
-          <HugeiconsIcon icon={icon} strokeWidth={2} className="size-4" />
-        </div>
-        <div className="text-muted-foreground">{sub}</div>
-      </CardFooter>
-    </Card>
+        </span>
+        {valueSuffix && (
+          <span className="text-sm font-medium text-muted-foreground tabular-nums">
+            {valueSuffix}
+          </span>
+        )}
+      </div>
+      <div className="text-xs text-muted-foreground line-clamp-1">{sub}</div>
+    </div>
   )
 
   if (!to) return body

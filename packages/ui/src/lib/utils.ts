@@ -22,9 +22,9 @@ export function formatDuration(ms: number): string {
   const sec = Math.floor(ms / 1000)
   if (sec < 60) return `${sec}s`
   const min = Math.floor(sec / 60)
-  if (min < 60) return `${min}m ${sec % 60}s`
+  if (min < 60) return sec % 60 === 0 ? `${min}m` : `${min}m ${sec % 60}s`
   const hr = Math.floor(min / 60)
-  return `${hr}h ${min % 60}m`
+  return min % 60 === 0 ? `${hr}h` : `${hr}h ${min % 60}m`
 }
 
 // Compact ("30s" / "5m" / "1h") — used in the dashboard table column.
