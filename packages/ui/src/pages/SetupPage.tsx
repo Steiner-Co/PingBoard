@@ -1,8 +1,10 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { ViewIcon, ViewOffIcon } from '@hugeicons/core-free-icons'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/contexts/auth'
 
@@ -13,6 +15,8 @@ export function SetupPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [reveal, setReveal] = useState(false)
+  const emailRef = useRef<HTMLInputElement>(null)
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -23,6 +27,7 @@ export function SetupPage() {
       navigate('/admin')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Setup failed')
+      emailRef.current?.focus()
     } finally {
       setSubmitting(false)
     }
@@ -46,8 +51,13 @@ export function SetupPage() {
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
+                ref={emailRef}
                 id="email"
+                name="email"
                 type="email"
+                autoComplete="username"
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? 'setup-error' : undefined}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -56,21 +66,61 @@ export function SetupPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={8}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={reveal ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  aria-describedby="setup-password-hint"
+                  className="pr-9"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={8}
+                />
+                <button
+                  type="button"
+                  onClick={() => setReveal((v) => !v)}
+                  aria-label={reveal ? 'Hide password' : 'Show password'}
+                  aria-pressed={reveal}
+                  className="absolute right-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-[color,background-color,transform] duration-150 ease-out hover:bg-accent hover:text-foreground active:scale-[0.97]"
+                >
+                  <HugeiconsIcon
+                    icon={reveal ? ViewOffIcon : ViewIcon}
+                    className="size-4"
+                    strokeWidth={2}
+                  />
+                </button>
+              </div>
+              <p
+                id="setup-password-hint"
+                className={
+                  password.length === 0
+                    ? 'text-xs text-muted-foreground'
+                    : password.length >= 8
+                      ? 'text-xs text-success'
+                      : 'text-xs text-warning'
+                }
+              >
+                {password.length === 0
+                  ? 'At least 8 characters.'
+                  : password.length >= 8
+                    ? `Looks good — ${password.length} characters.`
+                    : `${8 - password.length} more character${8 - password.length === 1 ? '' : 's'} needed.`}
+              </p>
               <p className="text-xs text-muted-foreground">
-                At least 8 characters.
+                Store this somewhere safe — recovery needs shell access to the
+                container.
               </p>
             </div>
-            {error && (
-              <p className="text-sm text-destructive">{error}</p>
-            )}
+            <p
+              id="setup-error"
+              role="alert"
+              className="min-h-5 text-sm text-destructive"
+            >
+              {error}
+            </p>
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting ? 'Creating…' : 'Create admin account'}
             </Button>

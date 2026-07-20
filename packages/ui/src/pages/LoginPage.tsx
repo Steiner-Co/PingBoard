@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,6 +13,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const emailRef = useRef<HTMLInputElement>(null)
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -23,6 +24,9 @@ export function LoginPage() {
       navigate('/admin')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')
+      // Focus lands on <body> after a failed submit otherwise, ejecting
+      // keyboard users from the form they were just in.
+      emailRef.current?.focus()
     } finally {
       setSubmitting(false)
     }
@@ -43,8 +47,13 @@ export function LoginPage() {
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
+                ref={emailRef}
                 id="email"
+                name="email"
                 type="email"
+                autoComplete="username"
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? 'login-error' : undefined}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -55,13 +64,23 @@ export function LoginPage() {
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
+                name="password"
                 type="password"
+                autoComplete="current-password"
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? 'login-error' : undefined}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            <p
+              id="login-error"
+              role="alert"
+              className="min-h-5 text-sm text-destructive"
+            >
+              {error}
+            </p>
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting ? 'Signing in…' : 'Sign in'}
             </Button>
