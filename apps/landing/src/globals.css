@@ -49,8 +49,8 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.488 0.243 264.376);
-  --primary-foreground: oklch(0.97 0.014 254.604);
+  --primary: oklch(0.62 0.18 152);
+  --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.97 0 0);
@@ -79,8 +79,8 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.424 0.199 265.638);
-  --primary-foreground: oklch(0.97 0.014 254.604);
+  --primary: oklch(0.65 0.19 152);
+  --primary-foreground: oklch(0.13 0 0);
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -124,13 +124,20 @@
 }
 ::view-transition-new(root) {
   z-index: 2;
-  animation: theme-reveal 0.45s ease-out;
 }
-@keyframes theme-reveal {
-  from {
-    clip-path: circle(0 at var(--vt-x, 50%) var(--vt-y, 50%));
+
+/* The clip-path wipe is the largest motion in the product — a full-screen
+   circle sweep. Reduced-motion users get the default instant swap instead. */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-new(root) {
+    animation: theme-reveal 0.45s ease-out;
   }
-  to {
-    clip-path: circle(var(--vt-r, 150vmax) at var(--vt-x, 50%) var(--vt-y, 50%));
+  @keyframes theme-reveal {
+    from {
+      clip-path: circle(0 at var(--vt-x, 50%) var(--vt-y, 50%));
+    }
+    to {
+      clip-path: circle(var(--vt-r, 150vmax) at var(--vt-x, 50%) var(--vt-y, 50%));
+    }
   }
 }

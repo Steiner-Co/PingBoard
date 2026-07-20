@@ -127,7 +127,7 @@ function DockerLine() {
   return (
     <div className="rounded-sm border border-border/60 bg-background/40 px-2 py-1.5 font-mono text-[0.625rem] leading-relaxed">
       <span className="text-success">$</span>{' '}
-      <span className="text-[oklch(0.68_0.18_300)]">docker</span>
+      <span className="text-foreground">docker</span>
       <span className="text-muted-foreground"> run -d -p 3000:3000 …</span>
     </div>
   )
@@ -140,7 +140,7 @@ function MitBadge() {
         license <span className="text-success">MIT</span>
       </span>
       <span className="inline-flex items-center gap-1 rounded-sm border border-border/60 bg-muted/30 px-1.5 py-0.5 font-mono text-[0.625rem] text-muted-foreground">
-        ★ 1.2k
+        source <span className="text-foreground/85">github</span>
       </span>
     </div>
   )
@@ -164,7 +164,7 @@ function PushSnippet() {
     <div className="rounded-sm border border-border/60 bg-background/40 px-2 py-1.5 font-mono text-[0.625rem] leading-relaxed">
       <div>
         <span className="text-success">$</span>{' '}
-        <span className="text-[oklch(0.68_0.18_300)]">curl</span>
+        <span className="text-foreground">curl</span>
         <span className="text-muted-foreground"> -X POST </span>
         <span className="text-foreground/85">/api/push/</span>
         <span className="text-muted-foreground">k7…b3</span>

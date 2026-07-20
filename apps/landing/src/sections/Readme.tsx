@@ -26,17 +26,21 @@ function CopyIcon({ copied }: { copied: boolean }) {
 
 export function Readme() {
   const [tab, setTab] = useState<InstallKey>('docker')
-  const [copied, setCopied] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'copied' | 'error'>('idle')
   const current = installs[tab]
   const fullCmd = current.prefix + current.rest
+  const copied = status === 'copied'
 
   const onCopy = async () => {
     try {
       await navigator.clipboard.writeText(fullCmd)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1400)
+      setStatus('copied')
+      window.setTimeout(() => setStatus('idle'), 1400)
     } catch {
-      /* ignore */
+      // Clipboard can reject (insecure context, denied permission). Say so
+      // rather than leaving the button looking like it worked.
+      setStatus('error')
+      window.setTimeout(() => setStatus('idle'), 2400)
     }
   }
 
@@ -48,8 +52,8 @@ export function Readme() {
 
       <p className="max-w-3xl text-[0.9375rem] leading-relaxed text-muted-foreground">
         Uptime monitoring that lives <span className="text-foreground">inside your infra</span>. Single binary,
-        plugin-based, and built to scale — powering personal sites, homelabs, and{' '}
-        <span className="text-foreground">production stacks on the planet.</span>
+        plugin-based, and built to scale — for personal sites, homelabs, and{' '}
+        <span className="text-foreground">production stacks</span>.
       </p>
 
       <div className="mt-10 rounded-md border border-border/60">
@@ -60,7 +64,7 @@ export function Readme() {
               type="button"
               onClick={() => {
                 setTab(key)
-                setCopied(false)
+                setStatus('idle')
               }}
               className={
                 'relative flex items-center px-4 py-2.5 text-[0.6875rem] font-medium uppercase tracking-[0.14em] transition-colors hover:text-foreground' +
@@ -76,18 +80,22 @@ export function Readme() {
 
         <div className="flex items-center justify-between gap-4 px-4 py-4">
           <pre className="overflow-x-auto font-mono text-sm text-foreground/90">
-            <span className="text-[oklch(0.68_0.18_300)]">{current.prefix}</span>
+            <span className="text-success">{current.prefix}</span>
             <span className="text-foreground/85">{current.rest}</span>
           </pre>
           <button
             type="button"
             onClick={onCopy}
             aria-label="Copy command"
-            className="shrink-0 rounded-md border border-transparent p-1.5 text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+            className="shrink-0 rounded-md border border-transparent p-1.5 text-muted-foreground transition-[color,background-color,border-color,box-shadow,transform] duration-150 ease-out hover:border-border hover:text-foreground active:scale-[0.97]"
           >
             <CopyIcon copied={copied} />
           </button>
         </div>
+
+        <span aria-live="polite" className="sr-only">
+          {status === 'copied' ? 'Copied' : status === 'error' ? 'Copy failed' : ''}
+        </span>
       </div>
     </section>
   )

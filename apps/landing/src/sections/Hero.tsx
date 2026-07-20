@@ -37,7 +37,10 @@ function NoiseLogo() {
 
       <div className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full bg-background/85 px-2 py-1 backdrop-blur">
         <span className="relative inline-flex h-1.5 w-1.5">
-          <span className="absolute inset-0 animate-ping rounded-full bg-success/70" />
+          <span
+            className="absolute inset-0 motion-safe:animate-ping rounded-full bg-success/70"
+            style={{ animationDuration: '2s' }}
+          />
           <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-success" />
         </span>
         <span className="font-mono text-[0.625rem] uppercase tracking-widest text-muted-foreground">live</span>
@@ -79,7 +82,10 @@ export function Hero() {
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2 px-8 py-6 sm:px-10">
         <span className="relative inline-flex h-2 w-2">
-          <span className="absolute inset-0 animate-ping rounded-full bg-success/60" />
+          <span
+            className="absolute inset-0 motion-safe:animate-ping rounded-full bg-success/60"
+            style={{ animationDuration: '2s' }}
+          />
           <span className="relative inline-block h-2 w-2 rounded-full bg-success" />
         </span>
         <span className="text-sm font-semibold tracking-tight">PINGBOARD.</span>
@@ -93,7 +99,10 @@ export function Hero() {
           className="mt-10 inline-flex w-fit items-center gap-2 rounded-full border border-border/70 bg-background/40 px-3 py-1 text-[0.6875rem] text-muted-foreground transition-colors hover:text-foreground"
         >
           <span className="relative inline-flex h-1.5 w-1.5">
-            <span className="absolute inset-0 animate-ping rounded-full bg-success/60" />
+            <span
+              className="absolute inset-0 motion-safe:animate-ping rounded-full bg-success/60"
+              style={{ animationDuration: '2s' }}
+            />
             <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-success" />
           </span>
           <span>Introducing</span>
