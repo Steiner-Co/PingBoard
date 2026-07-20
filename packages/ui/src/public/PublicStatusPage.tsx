@@ -15,7 +15,14 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Panel } from '@/components/panel'
 import { useSSE } from '@/lib/sse'
-import { cn, formatDuration, formatRelative } from '@/lib/utils'
+import { useNow } from '@/hooks/use-now'
+import {
+  cn,
+  formatDateTime,
+  formatDateTimeRange,
+  formatDuration,
+  formatRelative,
+} from '@/lib/utils'
 
 type AdminTheme = 'light' | 'dark' | 'auto'
 
@@ -192,7 +199,13 @@ export function PublicStatusPage({ slug }: { slug: string }) {
           <ThemeToggle />
         </header>
 
-        <OverallStatusBanner tone={overallTone} text={overallText} detail={overallDetail} />
+        <OverallStatusBanner
+          tone={overallTone}
+          text={overallText}
+          detail={overallDetail}
+          updatedAt={query.dataUpdatedAt}
+          stale={query.isRefetchError || query.failureCount > 0}
+        />
 
         {(activeMaintenance.length > 0 || upcomingMaintenance.length > 0) && (
           <MaintenanceBanner
@@ -248,18 +261,25 @@ function OverallStatusBanner({
   tone,
   text,
   detail,
+  updatedAt,
+  stale,
 }: {
   tone: 'up' | 'down' | 'degraded' | 'unknown'
   text: string
   detail: string | null
+  updatedAt: number
+  stale: boolean
 }) {
+  // Tick so the age keeps counting up if refetches start failing — a status
+  // page that always claims "just now" is worse than one admitting it's stale.
+  useNow()
   const dot =
     tone === 'up'
       ? 'bg-success'
       : tone === 'down'
         ? 'bg-destructive'
         : tone === 'degraded'
-          ? 'bg-amber-500'
+          ? 'bg-warning'
           : 'bg-muted-foreground'
   const surface =
     tone === 'up'
@@ -267,7 +287,7 @@ function OverallStatusBanner({
       : tone === 'down'
         ? 'border-destructive/30 bg-destructive/5'
         : tone === 'degraded'
-          ? 'border-amber-500/30 bg-amber-500/5'
+          ? 'border-warning/30 bg-warning/5'
           : 'border-border bg-muted/40'
 
   return (
@@ -289,7 +309,10 @@ function OverallStatusBanner({
       </div>
       <div className="text-xs sm:text-sm text-muted-foreground mt-2 ml-5">
         {detail && <>{detail} · </>}
-        Updated {formatRelative(new Date())}
+        Updated {formatRelative(updatedAt)}
+        {stale && (
+          <span className="text-warning"> · reconnecting…</span>
+        )}
       </div>
     </Panel>
   )
@@ -308,7 +331,7 @@ function MonitorRow({
       : monitor.currentStatus === 'down'
         ? 'bg-destructive'
         : monitor.currentStatus === 'degraded'
-          ? 'bg-amber-500'
+          ? 'bg-warning'
           : 'bg-muted-foreground'
 
   return (
@@ -316,7 +339,7 @@ function MonitorRow({
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-3 min-w-0">
           {inMaintenance ? (
-            <span className="text-[10px] font-medium uppercase tracking-wide rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 shrink-0">
+            <span className="text-[10px] font-medium uppercase tracking-wide rounded-full bg-warning/10 text-warning px-2 py-0.5 shrink-0">
               Maintenance
             </span>
           ) : (
@@ -447,7 +470,7 @@ function UptimeTimeline({
                 d.uptimePct == null && 'bg-muted-foreground/15',
                 d.uptimePct != null && d.uptimePct >= 99 && 'bg-success/90',
                 d.uptimePct != null && d.uptimePct >= 80 && d.uptimePct < 99 &&
-                  'bg-amber-500/80',
+                  'bg-warning/80',
                 d.uptimePct != null && d.uptimePct < 80 && 'bg-destructive/90',
                 hovered === i && 'brightness-125 dark:brightness-150',
               )}
@@ -576,8 +599,8 @@ function MaintenanceBanner({
   const monitorName = (id: string) =>
     monitors.find((m) => m.id === id)?.name ?? 'a monitor'
   return (
-    <Panel className="border-amber-500/30 bg-amber-500/5 p-5 space-y-3">
-      <div className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+    <Panel className="border-warning/30 bg-warning/5 p-5 space-y-3">
+      <div className="text-sm font-semibold text-warning">
         Scheduled maintenance
       </div>
       <ul className="space-y-2 text-sm">
@@ -585,13 +608,12 @@ function MaintenanceBanner({
           <li key={w.id} className="space-y-0.5">
             <div className="font-medium">
               {w.title}{' '}
-              <span className="text-xs font-normal uppercase tracking-wide text-amber-600 dark:text-amber-400">
+              <span className="text-xs font-normal uppercase tracking-wide text-warning">
                 · in progress
               </span>
             </div>
             <div className="text-muted-foreground text-xs">
-              {monitorName(w.monitorId)} — until{' '}
-              {new Date(w.endsAt).toLocaleString()}
+              {monitorName(w.monitorId)} — until {formatDateTime(w.endsAt)}
             </div>
             {w.description && (
               <div className="text-muted-foreground text-xs">{w.description}</div>
@@ -602,8 +624,7 @@ function MaintenanceBanner({
           <li key={w.id} className="space-y-0.5">
             <div className="font-medium">{w.title}</div>
             <div className="text-muted-foreground text-xs">
-              {monitorName(w.monitorId)} — {new Date(w.startsAt).toLocaleString()}{' '}
-              → {new Date(w.endsAt).toLocaleString()}
+              {monitorName(w.monitorId)} — {formatDateTimeRange(w.startsAt, w.endsAt)}
             </div>
             {w.description && (
               <div className="text-muted-foreground text-xs">{w.description}</div>

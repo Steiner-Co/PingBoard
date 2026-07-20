@@ -21,7 +21,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { api } from '@/lib/api'
 import { useSSE } from '@/lib/sse'
-import { formatDuration } from '@/lib/utils'
+import { formatDateTime, formatDuration } from '@/lib/utils'
 import { useNow } from '@/hooks/use-now'
 
 interface IncidentRow {
@@ -204,10 +204,10 @@ function Row({ incident }: { incident: IncidentRow }) {
           </Badge>
         )}
       </TableCell>
-      <TableCell className="text-sm whitespace-nowrap">
-        {new Date(incident.startedAt).toLocaleString()}
+      <TableCell className="text-sm whitespace-nowrap tabular-nums">
+        {formatDateTime(incident.startedAt)}
       </TableCell>
-      <TableCell className="text-sm whitespace-nowrap">
+      <TableCell className="text-sm whitespace-nowrap tabular-nums">
         {formatDuration(durationMs)}
         {isOpen && <span className="text-muted-foreground"> (so far)</span>}
       </TableCell>

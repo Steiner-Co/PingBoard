@@ -15,6 +15,7 @@ import { QueryError } from '@/components/QueryError'
 import { useConfirm } from '@/components/confirm-provider'
 import { api } from '@/lib/api'
 import { useNow } from '@/hooks/use-now'
+import { formatDateTimeRange } from '@/lib/utils'
 
 interface MaintenanceWindow {
   id: string
@@ -177,7 +178,7 @@ function Section({
                   {emphasize === 'active' && (
                     <Badge
                       variant="secondary"
-                      className="bg-amber-500/15 text-amber-700 dark:text-amber-400 uppercase text-[10px] tracking-wide"
+                      className="bg-warning/15 text-warning uppercase text-[10px] tracking-wide"
                     >
                       In progress
                     </Badge>
@@ -196,8 +197,7 @@ function Section({
                     {w.monitorName}
                   </Link>
                   <span className="mx-2">·</span>
-                  {new Date(w.startsAt).toLocaleString()} →{' '}
-                  {new Date(w.endsAt).toLocaleString()}
+                  {formatDateTimeRange(w.startsAt, w.endsAt)}
                 </div>
                 {w.description && (
                   <div className="text-xs text-muted-foreground">

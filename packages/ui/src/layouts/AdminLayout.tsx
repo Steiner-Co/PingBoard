@@ -1,4 +1,10 @@
-import { useEffect } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AppSidebar } from '@/components/app-sidebar'
 import { SiteHeader } from '@/components/site-header'
@@ -16,6 +22,18 @@ const ROUTE_TITLES: Record<string, string> = {
   '/admin/settings': 'Settings',
 }
 
+// Pages that know something the route can't (a monitor's name) push a title
+// up to the shell, which drives both the header and the browser tab.
+const PageTitleContext = createContext<(title: string | null) => void>(() => {})
+
+export function usePageTitle(title: string | null): void {
+  const setTitle = useContext(PageTitleContext)
+  useEffect(() => {
+    setTitle(title)
+    return () => setTitle(null)
+  }, [setTitle, title])
+}
+
 function titleForPath(pathname: string): string {
   if (ROUTE_TITLES[pathname]) return ROUTE_TITLES[pathname]
   if (/^\/admin\/monitors\/[^/]+\/edit$/.test(pathname)) return 'Edit monitor'
@@ -28,7 +46,8 @@ export function AdminLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const title = titleForPath(pathname)
+  const [override, setOverride] = useState<string | null>(null)
+  const title = override ?? titleForPath(pathname)
 
   // Reflect the current section in the browser tab so admins juggling
   // multiple tabs can find PingBoard at a glance.
@@ -47,6 +66,7 @@ export function AdminLayout() {
   }
 
   return (
+    <PageTitleContext.Provider value={setOverride}>
     <UnsavedChangesProvider>
     <SidebarProvider
       style={{
@@ -68,5 +88,6 @@ export function AdminLayout() {
       </SidebarInset>
     </SidebarProvider>
     </UnsavedChangesProvider>
+    </PageTitleContext.Provider>
   )
 }

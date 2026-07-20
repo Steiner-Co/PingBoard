@@ -134,7 +134,7 @@ function StatCell({
       : tone === "destructive"
         ? "text-destructive"
         : tone === "warn"
-          ? "text-amber-600 dark:text-amber-400"
+          ? "text-warning"
           : tone === "muted"
             ? "text-muted-foreground"
             : "text-foreground"

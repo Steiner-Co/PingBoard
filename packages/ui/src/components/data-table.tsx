@@ -70,7 +70,7 @@ function StatusCell({ status }: { status: string }) {
       : status === "DOWN"
         ? "bg-destructive"
         : status === "DEGRADED"
-          ? "bg-amber-500"
+          ? "bg-warning"
           : "bg-muted-foreground/60"
   const label = status.charAt(0) + status.slice(1).toLowerCase()
   return (
@@ -336,7 +336,7 @@ export function DataTable({
           </div>
         </Panel>
         <div className="flex items-center justify-between">
-          <div className="text-xs text-muted-foreground">
+          <div className="text-xs tabular-nums text-muted-foreground">
             {table.getFilteredRowModel().rows.length}{' '}
             {table.getFilteredRowModel().rows.length === 1 ? 'monitor' : 'monitors'}
           </div>

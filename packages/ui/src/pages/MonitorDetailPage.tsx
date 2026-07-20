@@ -45,8 +45,15 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useConfirm } from '@/components/confirm-provider'
 import { api } from '@/lib/api'
 import { useSSE } from '@/lib/sse'
-import { formatDuration, formatRelative } from '@/lib/utils'
+import {
+  formatDateTime,
+  formatDateTimeRange,
+  formatDuration,
+  formatRelative,
+  formatTime,
+} from '@/lib/utils'
 import { useNow } from '@/hooks/use-now'
+import { usePageTitle } from '@/layouts/AdminLayout'
 import type { Heartbeat, Incident, Monitor } from '@/types'
 
 interface DetailResponse {
@@ -108,6 +115,8 @@ export function MonitorDetailPage() {
 
   // Shared clock so "Last check … ago" keeps counting between heartbeats.
   useNow()
+  // Name the tab and header after the monitor, not the generic route.
+  usePageTitle(query.data?.monitor.name ?? null)
 
   if (query.isLoading) return <MonitorDetailSkeleton />
   if (query.isError)
@@ -134,7 +143,8 @@ export function MonitorDetailPage() {
     .filter((h) => h.responseTimeMs != null)
     .reverse()
     .map((h) => ({
-      time: new Date(h.checkedAt).toLocaleTimeString(),
+      time: formatTime(h.checkedAt),
+      at: h.checkedAt,
       ms: h.responseTimeMs,
     }))
 
@@ -198,13 +208,6 @@ export function MonitorDetailPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link to={`/admin/monitors/${monitor.id}/edit`}>
-                  <HugeiconsIcon icon={Settings02Icon} className="h-3.5 w-3.5" />
-                  Edit configuration
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
               <DropdownMenuItem
                 variant="destructive"
                 onSelect={async () => {
@@ -226,7 +229,7 @@ export function MonitorDetailPage() {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-card *:data-[slot=card]:to-card *:data-[slot=card]:transition-colors *:data-[slot=card]:duration-500 *:data-[slot=card]:shadow-xs *:data-[slot=card]:hover:from-chart-1/15 md:grid-cols-3 dark:*:data-[slot=card]:bg-card">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>
             <CardDescription>Current status</CardDescription>
@@ -395,9 +398,9 @@ function TagsRow({ monitor }: { monitor: Monitor }) {
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="text-xs text-muted-foreground italic hover:text-foreground transition-colors"
+          className="rounded-md border border-dashed border-border px-2 py-0.5 text-xs text-muted-foreground transition-[color,border-color,transform] duration-150 ease-out hover:border-foreground/30 hover:text-foreground active:scale-[0.98]"
         >
-          Add tags…
+          + Add tags
         </button>
       ) : (
         <>
@@ -460,13 +463,13 @@ function IncidentRow({
 
   return (
     <TableRow>
-      <TableCell className="text-sm whitespace-nowrap">
-        {new Date(incident.startedAt).toLocaleString()}
+      <TableCell className="text-sm whitespace-nowrap tabular-nums">
+        {formatDateTime(incident.startedAt)}
       </TableCell>
       <TableCell className="text-sm whitespace-nowrap">
         {incident.resolvedAt ? (
           <span>
-            {new Date(incident.resolvedAt).toLocaleString()}
+            {formatDateTime(incident.resolvedAt)}
             {incident.cause === 'manual' && (
               <span className="ml-1 text-xs text-muted-foreground">(manual)</span>
             )}
@@ -730,7 +733,7 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
                     <div className="font-medium flex items-center gap-2">
                       {w.title}
                       {isActive && (
-                        <span className="text-[10px] uppercase tracking-wide rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 px-2 py-0.5">
+                        <span className="text-[10px] uppercase tracking-wide rounded-full bg-warning/15 text-warning px-2 py-0.5">
                           In progress
                         </span>
                       )}
@@ -741,8 +744,7 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5">
-                      {new Date(w.startsAt).toLocaleString()} →{' '}
-                      {new Date(w.endsAt).toLocaleString()}
+                      {formatDateTimeRange(w.startsAt, w.endsAt)}
                     </div>
                     {w.description && (
                       <div className="text-xs text-muted-foreground mt-1">

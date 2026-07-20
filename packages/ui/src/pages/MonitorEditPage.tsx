@@ -57,8 +57,8 @@ export function MonitorEditPage() {
   const [name, setName] = useState('')
   const [target, setTarget] = useState('')
   const [intervalSeconds, setIntervalSeconds] = useState(60)
-  const [timeoutSeconds, setTimeoutSeconds] = useState(10)
-  const [retryCount, setRetryCount] = useState(1)
+  const [timeoutSeconds, setTimeoutSeconds] = useState<number | ''>(10)
+  const [retryCount, setRetryCount] = useState<number | ''>(1)
   const [tags, setTags] = useState<string[]>([])
   const [channelIds, setChannelIds] = useState<string[]>([])
   const [config, setConfig] = useState<Record<string, unknown>>({})
@@ -179,6 +179,8 @@ export function MonitorEditPage() {
     setError(null)
     if (!name.trim()) return setError('Name is required')
     if (!target.trim()) return setError('Target is required')
+    if (timeoutSeconds === '') return setError('Timeout is required')
+    if (retryCount === '') return setError('Retries is required')
 
     const builtConfig = buildConfigPayload(detail.data!.monitor.type, config)
     if ('error' in builtConfig) return setError(builtConfig.error)
@@ -322,7 +324,11 @@ export function MonitorEditPage() {
                 min={1}
                 max={60}
                 value={timeoutSeconds}
-                onChange={(e) => setTimeoutSeconds(Number(e.target.value))}
+                onChange={(e) =>
+                  setTimeoutSeconds(
+                    e.target.value === '' ? '' : Number(e.target.value),
+                  )
+                }
               />
             </div>
             <div className="space-y-2">
@@ -333,7 +339,9 @@ export function MonitorEditPage() {
                 min={0}
                 max={5}
                 value={retryCount}
-                onChange={(e) => setRetryCount(Number(e.target.value))}
+                onChange={(e) =>
+                  setRetryCount(e.target.value === '' ? '' : Number(e.target.value))
+                }
               />
             </div>
           </div>

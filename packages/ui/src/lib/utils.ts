@@ -5,6 +5,55 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// Absolute timestamps. Raw toLocaleString() ("21/07/2026, 02:00:00") carries
+// second-precision noise no one reads and repeats the date on both ends of a
+// same-day range, so everything goes through these instead.
+const fmtDateTime = new Intl.DateTimeFormat(undefined, {
+  month: 'short',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+const fmtDateTimeYear = new Intl.DateTimeFormat(undefined, {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+const fmtTime = new Intl.DateTimeFormat(undefined, {
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
+function sameYearAsNow(d: Date): boolean {
+  return d.getFullYear() === new Date().getFullYear()
+}
+
+/** "Jul 21, 02:00" — with the year only when it isn't the current one. */
+export function formatDateTime(value: Date | string | number): string {
+  const d = new Date(value)
+  return (sameYearAsNow(d) ? fmtDateTime : fmtDateTimeYear).format(d)
+}
+
+/** "02:00" */
+export function formatTime(value: Date | string | number): string {
+  return fmtTime.format(new Date(value))
+}
+
+/** "Jul 21, 02:00–04:00" same day, else "Jul 21, 23:00 → Jul 22, 01:00". */
+export function formatDateTimeRange(
+  start: Date | string | number,
+  end: Date | string | number,
+): string {
+  const s = new Date(start)
+  const e = new Date(end)
+  if (s.toDateString() === e.toDateString()) {
+    return `${formatDateTime(s)}–${formatTime(e)}`
+  }
+  return `${formatDateTime(s)} → ${formatDateTime(e)}`
+}
+
 export function formatRelative(date: Date | string | number): string {
   const ms = Date.now() - new Date(date).getTime()
   const sec = Math.round(ms / 1000)

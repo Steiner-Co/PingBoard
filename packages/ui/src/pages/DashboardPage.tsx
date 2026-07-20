@@ -178,7 +178,9 @@ export function DashboardPage() {
                   type="button"
                   onClick={() => setStatusFilter(f.id)}
                   className={cn(
-                    'rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors',
+                    'rounded-full border px-2.5 py-0.5 text-xs font-medium outline-none',
+                    'transition-[color,background-color,border-color,transform] duration-150 ease-out',
+                    'focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.98]',
                     statusFilter === f.id
                       ? 'border-foreground/20 bg-foreground text-background'
                       : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -214,9 +216,12 @@ function LiveActivity({
         <h2 className="text-sm font-medium">Activity</h2>
         <span className="flex items-center gap-1.5 font-mono text-[10px] font-medium uppercase tracking-widest text-success">
           <span className="relative inline-flex size-1.5">
+            {/* Keyed on the newest item so the ring replays once per arrival
+                instead of looping forever. */}
             <span
-              className="absolute inset-0 rounded-full bg-success motion-safe:animate-ping opacity-50"
-              style={{ animationDuration: '2s' }}
+              key={feed[0]?.key ?? 'idle'}
+              className="absolute inset-0 rounded-full bg-success opacity-50 motion-safe:animate-ping"
+              style={{ animationDuration: '1.2s', animationIterationCount: 1 }}
             />
             <span className="relative inline-block size-1.5 rounded-full bg-success" />
           </span>
@@ -232,8 +237,9 @@ function LiveActivity({
           {feed.map((item) => (
             <li
               key={item.key}
-              className="flex items-center gap-2.5 px-4 py-2 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-200"
+              className="grid grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-200 ease-out motion-safe:starting:grid-rows-[0fr] motion-safe:starting:opacity-0"
             >
+              <div className="flex items-center gap-2.5 overflow-hidden px-4 py-2">
               <span
                 className={cn(
                   'size-1.5 shrink-0 rounded-full',
@@ -241,15 +247,27 @@ function LiveActivity({
                     ? 'bg-success'
                     : item.status === 'down'
                       ? 'bg-destructive'
-                      : 'bg-amber-500',
+                      : 'bg-warning',
                 )}
               />
               <span className="min-w-0 flex-1 truncate text-xs">
                 {nameById.get(item.monitorId) ?? 'Monitor'}
               </span>
-              <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
-                {item.responseTimeMs == null ? item.status : `${item.responseTimeMs} ms`}
+              <span
+                className={cn(
+                  'shrink-0 font-mono text-[11px] tabular-nums',
+                  item.status === 'up'
+                    ? 'text-muted-foreground'
+                    : item.status === 'down'
+                      ? 'text-destructive'
+                      : 'text-warning',
+                )}
+              >
+                {item.responseTimeMs == null
+                  ? item.status.toUpperCase()
+                  : `${item.responseTimeMs} ms`}
               </span>
+              </div>
             </li>
           ))}
         </ul>
