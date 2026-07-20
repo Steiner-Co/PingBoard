@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useConfirm } from '@/components/confirm-provider'
 import { api } from '@/lib/api'
 import { useAuth } from '@/contexts/auth'
 
@@ -172,6 +173,24 @@ function RetentionCard() {
   })
 
   const days = query.data?.retentionDays
+  const confirm = useConfirm()
+
+  // Lowering retention deletes raw heartbeats on the next sweep, so a
+  // mis-click in a dropdown would silently destroy history. Growing the
+  // window is safe and stays instant.
+  const change = async (next: number) => {
+    if (days != null && next < days) {
+      const ok = await confirm({
+        title: `Keep only ${next} days of raw heartbeats?`,
+        description: `Raw heartbeats older than ${next} days will be aggregated into daily stats and then deleted. Daily uptime history is preserved, but per-check detail before that cutoff is gone for good.`,
+        confirmLabel: 'Reduce retention',
+        destructive: true,
+      })
+      if (!ok) return
+    }
+    update.mutate(next)
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -188,7 +207,7 @@ function RetentionCard() {
           </Label>
           <Select
             value={days != null ? String(days) : undefined}
-            onValueChange={(v) => update.mutate(Number(v))}
+            onValueChange={(v) => void change(Number(v))}
             disabled={query.isLoading || update.isPending}
           >
             <SelectTrigger id="retention-days" className="w-[180px]">
@@ -234,6 +253,8 @@ function SmtpCard() {
   // empty input. We only send the password field when the input is exposed
   // and non-empty — otherwise we send the sentinel ("leave as-is").
   const [revealPassword, setRevealPassword] = useState(false)
+  const confirm = useConfirm()
+  const hadPassword = query.data?.smtp.passwordSet ?? false
   const [touched, setTouched] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -276,21 +297,25 @@ function SmtpCard() {
       setSuccess(false)
     }
 
+  const payloadWith = (pass: string) => ({
+    host: form.host,
+    port: form.port ? Number(form.port) : null,
+    user: form.user,
+    pass,
+    from: form.from,
+    secure: form.secure,
+  })
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Password handling has three cases:
-    //   1. Field hidden → leave existing password untouched (sentinel).
-    //   2. Field visible, empty → clear the password (empty string).
-    //   3. Field visible, non-empty → update to the new password.
-    const passField = revealPassword ? form.pass : PASSWORD_SENTINEL
-    update.mutate({
-      host: form.host,
-      port: form.port ? Number(form.port) : null,
-      user: form.user,
-      pass: passField,
-      from: form.from,
-      secure: form.secure,
-    })
+    // Password handling:
+    //   1. Field hidden → leave the stored password untouched (sentinel).
+    //   2. Field revealed but left empty while one is stored → also untouched.
+    //      Saving an unrelated field must never wipe credentials as a side
+    //      effect; removing is an explicit, confirmed action below.
+    //   3. Field revealed with a value → update to it.
+    const keepStored = !revealPassword || (hadPassword && form.pass === '')
+    update.mutate(payloadWith(keepStored ? PASSWORD_SENTINEL : form.pass))
   }
 
   return (
@@ -345,18 +370,38 @@ function SmtpCard() {
                     autoComplete="new-password"
                     autoFocus={query.data?.smtp.passwordSet}
                   />
-                  {query.data?.smtp.passwordSet && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRevealPassword(false)
-                        setForm((f) => ({ ...f, pass: '' }))
-                        setTouched(true)
-                      }}
-                      className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-3"
-                    >
-                      Cancel password change
-                    </button>
+                  {hadPassword && (
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRevealPassword(false)
+                          setForm((f) => ({ ...f, pass: '' }))
+                          setTouched(true)
+                        }}
+                        className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-3"
+                      >
+                        Cancel password change
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: 'Remove the saved SMTP password?',
+                            description:
+                              'Email channels that fall back to these defaults will fail to authenticate until you set a new password.',
+                            confirmLabel: 'Remove password',
+                            destructive: true,
+                          })
+                          if (!ok) return
+                          setForm((f) => ({ ...f, pass: '' }))
+                          update.mutate(payloadWith(''))
+                        }}
+                        className="text-xs text-destructive underline underline-offset-3 hover:text-destructive/80"
+                      >
+                        Remove saved password
+                      </button>
+                    </div>
                   )}
                 </div>
               ) : (
