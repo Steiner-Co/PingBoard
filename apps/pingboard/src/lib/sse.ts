@@ -9,6 +9,7 @@ export interface SseStreamOptions {
 
 export function createSseResponse(opts: SseStreamOptions = {}): Response {
   const encoder = new TextEncoder()
+  let cleanup: (() => void) | undefined
 
   const stream = new ReadableStream({
     start(controller) {
@@ -50,15 +51,17 @@ export function createSseResponse(opts: SseStreamOptions = {}): Response {
         }
       }, 25_000)
 
-      ;(controller as ReadableStreamDefaultController & { _cleanup?: () => void })._cleanup = () => {
+      cleanup = () => {
         clearInterval(ping)
         for (const { name, handler } of handlers) {
           events.off(name, handler as never)
         }
       }
     },
-    cancel(reason) {
-      void reason
+    // Runs when the client disconnects. Without this every dropped connection
+    // leaked its ping timer and three EventEmitter listeners.
+    cancel() {
+      cleanup?.()
     },
   })
 

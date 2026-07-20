@@ -101,7 +101,7 @@ async function main() {
   const server = Bun.serve({
     port: config.port,
     development: process.env.NODE_ENV !== 'production',
-    async fetch(req) {
+    async fetch(req, server) {
       const url = new URL(req.url)
       const path = url.pathname
       const method = req.method
@@ -127,8 +127,12 @@ async function main() {
               headers: { 'content-type': 'application/json' },
             })
           }
-          if (path === '/api/admin/sse' && method === 'GET')
+          if (path === '/api/admin/sse' && method === 'GET') {
+            // Long-lived stream: Bun's default 10s idleTimeout would sever the
+            // connection before the first 25s keepalive ping ever fires.
+            server.timeout(req, 0)
             return createSseResponse()
+          }
 
           // Monitors
           if (path === '/api/admin/monitors' && method === 'GET')
@@ -240,8 +244,10 @@ async function main() {
           if (!checkRateLimit(ip)) return error(429, 'Rate limit exceeded')
 
           const sseMatch = path.match(/^\/api\/public\/([\w-]+)\/sse$/)
-          if (sseMatch?.[1] && method === 'GET')
+          if (sseMatch?.[1] && method === 'GET') {
+            server.timeout(req, 0) // long-lived stream, see /api/admin/sse
             return streamStatusPagePublic(sseMatch[1], req, publicDeps)
+          }
 
           const authMatch = path.match(/^\/api\/public\/([\w-]+)\/auth$/)
           if (authMatch?.[1] && method === 'POST')
