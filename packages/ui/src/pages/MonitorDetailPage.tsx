@@ -14,13 +14,8 @@ import {
   Settings02Icon,
 } from '@hugeicons/core-free-icons'
 import { Input } from '@/components/ui/input'
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-} from 'recharts'
+import { curveMonotoneX } from '@visx/curve'
+import { Area, AreaChart, ChartTooltip, Grid, XAxis } from '@/components/charts'
 import { Badge } from '@/components/ui/badge'
 import { Panel } from '@/components/panel'
 import { Button } from '@/components/ui/button'
@@ -32,12 +27,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { TagInput } from '@/pages/MonitorWizardPage'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from '@/components/ui/chart'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -61,13 +50,6 @@ interface DetailResponse {
   incidents: Incident[]
   channelIds: string[]
 }
-
-const chartConfig = {
-  ms: {
-    label: 'Response time',
-    color: 'var(--chart-1)',
-  },
-} satisfies ChartConfig
 
 export function MonitorDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -142,10 +124,14 @@ export function MonitorDetailPage() {
     .filter((h) => h.responseTimeMs != null)
     .reverse()
     .map((h) => ({
-      time: formatTime(h.checkedAt),
-      at: h.checkedAt,
-      ms: h.responseTimeMs,
+      date: new Date(h.checkedAt),
+      ms: h.responseTimeMs as number,
     }))
+  const msValues = chartData.map((d) => d.ms)
+  const msRange =
+    msValues.length > 0
+      ? { min: Math.min(...msValues), max: Math.max(...msValues) }
+      : null
 
   const total = heartbeats.length
   const upCount = heartbeats.filter((h) => h.status === 'up').length
@@ -265,7 +251,10 @@ export function MonitorDetailPage() {
       <Card>
         <CardHeader>
           <CardTitle>Response time</CardTitle>
-          <CardDescription>Last 24 hours</CardDescription>
+          <CardDescription>
+            Last 24 hours
+            {msRange ? ` · ${msRange.min}–${msRange.max} ms` : ''}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {chartData.length === 0 ? (
@@ -273,43 +262,16 @@ export function MonitorDetailPage() {
               Waiting for the first successful check…
             </div>
           ) : (
-            <ChartContainer config={chartConfig} className="aspect-auto h-[280px] w-full">
-              <AreaChart data={chartData} margin={{ top: 5, right: 12, bottom: 5, left: 0 }}>
-                <defs>
-                  <linearGradient id="fillResponseMs" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--color-ms)" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="var(--color-ms)" stopOpacity={0.1} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis
-                  dataKey="time"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  minTickGap={32}
-                  fontSize={12}
-                />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  fontSize={12}
-                  unit="ms"
-                  width={56}
-                />
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent indicator="dot" />}
-                />
-                <Area
-                  dataKey="ms"
-                  type="monotone"
-                  fill="url(#fillResponseMs)"
-                  stroke="var(--color-ms)"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ChartContainer>
+            <AreaChart
+              data={chartData}
+              aspectRatio="4 / 1"
+              className="min-h-[240px]"
+            >
+              <Grid horizontal />
+              <Area dataKey="ms" curve={curveMonotoneX} strokeWidth={2} fillOpacity={0.35} />
+              <XAxis numTicks={5} />
+              <ChartTooltip />
+            </AreaChart>
           )}
         </CardContent>
       </Card>

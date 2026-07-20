@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { CheckmarkCircle01Icon, Edit02Icon, AlertCircleIcon } from '@hugeicons/core-free-icons'
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, BarXAxis, ChartTooltip, Grid } from '@/components/charts'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -16,12 +16,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from '@/components/ui/chart'
 import { EmptyState } from '@/components/EmptyState'
 import { Panel } from '@/components/panel'
 import { QueryError } from '@/components/QueryError'
@@ -84,7 +78,7 @@ const MAX_BARS = 36
 const FLAP_MIN_COUNT = 5
 const FLAP_MAX_MEDIAN_MS = 120_000
 
-interface Bucket {
+interface Bucket extends Record<string, unknown> {
   label: string
   full: string
   count: number
@@ -265,10 +259,6 @@ function computeAnalytics(all: IncidentRow[], now: number): Analytics {
   }
 }
 
-const chartConfig = {
-  count: { label: 'Incidents', color: 'var(--destructive)' },
-} satisfies ChartConfig
-
 function granularityLabel(g: number): string {
   if (g >= DAY_MS) return 'Per day'
   if (g >= HOUR_MS) return `Per ${g / HOUR_MS}h`
@@ -416,56 +406,17 @@ export function IncidentsPage() {
                     No incidents in this window — nothing to plot.
                   </div>
                 ) : (
-                  <ChartContainer
-                    config={chartConfig}
-                    className="aspect-auto h-full min-h-[160px] w-full"
+                  <BarChart
+                    data={stats.buckets}
+                    xDataKey="label"
+                    aspectRatio="3 / 1"
+                    className="min-h-[160px]"
                   >
-                    <BarChart
-                      data={stats.buckets}
-                      margin={{ top: 4, right: 10, bottom: 0, left: 0 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        vertical={false}
-                        stroke="var(--border)"
-                      />
-                      <XAxis
-                        dataKey="label"
-                        tickLine={false}
-                        axisLine={false}
-                        tickMargin={8}
-                        minTickGap={28}
-                        interval="preserveStartEnd"
-                        fontSize={10}
-                        className="font-mono"
-                      />
-                      <YAxis
-                        tickLine={false}
-                        axisLine={false}
-                        fontSize={10}
-                        width={32}
-                        allowDecimals={false}
-                        // A quiet month peaks at 1, and Recharts' auto domain
-                        // then scales to 4 — squashing the only bar into a
-                        // quarter of the panel. Floor the axis at 2 and hand
-                        // back to auto once the counts can speak for themselves.
-                        domain={[0, maxBucket <= 2 ? 2 : 'auto']}
-                        className="font-mono"
-                      />
-                      <ChartTooltip
-                        cursor={false}
-                        content={
-                          <ChartTooltipContent
-                            indicator="dot"
-                            labelFormatter={(_, payload) =>
-                              (payload?.[0]?.payload as Bucket | undefined)?.full ?? ''
-                            }
-                          />
-                        }
-                      />
-                      <Bar dataKey="count" fill="var(--color-count)" />
-                    </BarChart>
-                  </ChartContainer>
+                    <Grid horizontal />
+                    <Bar dataKey="count" fill="var(--destructive)" />
+                    <BarXAxis maxLabels={8} />
+                    <ChartTooltip />
+                  </BarChart>
                 )}
               </div>
               {stats.truncated && (

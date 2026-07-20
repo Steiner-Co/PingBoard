@@ -27,7 +27,7 @@ import {
 } from "./chart-child-passthrough";
 import { ChartProvider, type LineConfig, type Margin } from "./chart-context";
 import { isGradientDefComponent, isPatternDefComponent } from "./chart-defs";
-import { shortDateFmt } from "./chart-formatters";
+import { formatAxisDate, shortDateFmt } from "./chart-formatters";
 import {
   type ChartPhase,
   type ChartStatus,
@@ -398,10 +398,14 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
     scaleLinear({ range: [innerHeight, 0], domain: [0, 100], nice: true })
   );
 
-  const dateLabels = useMemo(
-    () => visiblePlotData.map((d) => shortDateFmt.format(xAccessor(d))),
-    [visiblePlotData, xAccessor]
-  );
+  const dateLabels = useMemo(() => {
+    // LOCAL CHANGE (PingBoard): pick tick granularity from the visible span.
+    if (visiblePlotData.length === 0) return [];
+    const first = xAccessor(visiblePlotData[0]!).getTime();
+    const last = xAccessor(visiblePlotData[visiblePlotData.length - 1]!).getTime();
+    const span = Math.abs(last - first);
+    return visiblePlotData.map((d) => formatAxisDate(xAccessor(d), span));
+  }, [visiblePlotData, xAccessor]);
 
   const canInteract = isLoaded && isChartInteractionPhase(chartPhase);
 
