@@ -46,6 +46,7 @@ import { useConfirm } from '@/components/confirm-provider'
 import { api } from '@/lib/api'
 import { useSSE } from '@/lib/sse'
 import { formatDuration, formatRelative } from '@/lib/utils'
+import { useNow } from '@/hooks/use-now'
 import type { Heartbeat, Incident, Monitor } from '@/types'
 
 interface DetailResponse {
@@ -104,6 +105,9 @@ export function MonitorDetailPage() {
     onError: (err) =>
       toast.error(err instanceof Error ? err.message : 'Failed to delete'),
   })
+
+  // Shared clock so "Last check … ago" keeps counting between heartbeats.
+  useNow()
 
   if (query.isLoading) return <MonitorDetailSkeleton />
   if (query.isError)
@@ -648,7 +652,7 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
   }
 
   const windows = list.data?.windows ?? []
-  const now = Date.now()
+  const now = useNow()
 
   return (
     <Card>

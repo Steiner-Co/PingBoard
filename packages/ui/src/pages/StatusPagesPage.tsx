@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/EmptyState'
+import { QueryError } from '@/components/QueryError'
 import { useConfirm } from '@/components/confirm-provider'
 import {
   Dialog,
@@ -115,7 +116,9 @@ export function StatusPagesPage() {
         </Button>
       </div>
 
-      {!pages.isLoading && (pages.data?.pages.length ?? 0) === 0 ? (
+      {pages.isError ? (
+        <QueryError subject="status pages" onRetry={() => void pages.refetch()} />
+      ) : !pages.isLoading && (pages.data?.pages.length ?? 0) === 0 ? (
         <EmptyState
           icon={GlobeIcon}
           title="No status pages yet"

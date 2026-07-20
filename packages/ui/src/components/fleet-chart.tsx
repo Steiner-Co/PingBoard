@@ -60,7 +60,18 @@ export function FleetChart() {
         </span>
       </header>
       <div className="px-2 pt-3 pb-1">
-        {data.length < 2 ? (
+        {query.isError ? (
+          <div className="flex h-[150px] flex-col items-center justify-center gap-2 text-xs text-destructive">
+            Couldn't load response times.
+            <button
+              type="button"
+              onClick={() => void query.refetch()}
+              className="text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+            >
+              Retry
+            </button>
+          </div>
+        ) : data.length < 2 ? (
           <div className="flex h-[150px] items-center justify-center text-xs text-muted-foreground">
             Not enough data yet — the chart fills in as checks land.
           </div>

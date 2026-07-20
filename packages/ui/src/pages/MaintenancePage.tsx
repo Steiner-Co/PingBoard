@@ -11,8 +11,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/EmptyState'
+import { QueryError } from '@/components/QueryError'
 import { useConfirm } from '@/components/confirm-provider'
 import { api } from '@/lib/api'
+import { useNow } from '@/hooks/use-now'
 
 interface MaintenanceWindow {
   id: string
@@ -46,7 +48,7 @@ export function MaintenancePage() {
   })
 
   const windows = query.data?.windows ?? []
-  const now = Date.now()
+  const now = useNow()
 
   const active = windows.filter((w) => {
     const start = new Date(w.startsAt).getTime()
@@ -55,6 +57,21 @@ export function MaintenancePage() {
   })
   const upcoming = windows.filter((w) => new Date(w.startsAt).getTime() > now)
   const past = windows.filter((w) => new Date(w.endsAt).getTime() < now)
+
+  if (query.isError) {
+    return (
+      <div className="px-4 lg:px-6 flex flex-col gap-6">
+        <p className="text-muted-foreground">
+          Suppress alerts during scheduled downtime. Windows still record real
+          heartbeats — they just don't page you.
+        </p>
+        <QueryError
+          subject="maintenance windows"
+          onRetry={() => void query.refetch()}
+        />
+      </div>
+    )
+  }
 
   if (!query.isLoading && windows.length === 0) {
     return (

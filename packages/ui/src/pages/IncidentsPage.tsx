@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/EmptyState'
+import { QueryError } from '@/components/QueryError'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -21,6 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { api } from '@/lib/api'
 import { useSSE } from '@/lib/sse'
 import { formatDuration } from '@/lib/utils'
+import { useNow } from '@/hooks/use-now'
 
 interface IncidentRow {
   id: string
@@ -61,6 +63,17 @@ export function IncidentsPage() {
     return true
   })
   const openCount = all.filter((i) => !i.resolvedAt).length
+
+  if (query.isError) {
+    return (
+      <div className="px-4 lg:px-6 flex flex-col gap-6">
+        <p className="text-muted-foreground">
+          Every down → up transition across all monitors.
+        </p>
+        <QueryError subject="incidents" onRetry={() => void query.refetch()} />
+      </div>
+    )
+  }
 
   if (!query.isLoading && all.length === 0) {
     return (
@@ -134,6 +147,7 @@ export function IncidentsPage() {
 }
 
 function Row({ incident }: { incident: IncidentRow }) {
+  const now = useNow()
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(incident.note ?? '')
@@ -163,7 +177,7 @@ function Row({ incident }: { incident: IncidentRow }) {
   const durationMs = incident.resolvedAt
     ? new Date(incident.resolvedAt).getTime() -
       new Date(incident.startedAt).getTime()
-    : Date.now() - new Date(incident.startedAt).getTime()
+    : now - new Date(incident.startedAt).getTime()
 
   return (
     <TableRow>
