@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/sidebar"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
-  Activity03Icon,
   AlertCircleIcon,
   Calendar03Icon,
   Notification03Icon,
@@ -25,7 +24,6 @@ import {
 
 const navItems = [
   { title: "Dashboard", url: "/admin", icon: DashboardSquare01Icon },
-  { title: "Monitors", url: "/admin/monitors", icon: Activity03Icon },
   { title: "Incidents", url: "/admin/incidents", icon: AlertCircleIcon },
   { title: "Maintenance", url: "/admin/maintenance", icon: Calendar03Icon },
   { title: "Channels", url: "/admin/channels", icon: Notification03Icon },
