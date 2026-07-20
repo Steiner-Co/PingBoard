@@ -37,6 +37,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { api } from "@/lib/api"
+import { Panel } from "@/components/panel"
 import { cn } from "@/lib/utils"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -274,7 +275,8 @@ export function DataTable({
   return (
     <div className="w-full flex flex-col justify-start gap-4">
       <div className="relative flex flex-col gap-4 overflow-auto">
-        <div className="overflow-hidden rounded-lg border">
+        <Panel>
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-muted">
               {table.getHeaderGroups().map((headerGroup) => (
@@ -331,7 +333,8 @@ export function DataTable({
               )}
             </TableBody>
           </Table>
-        </div>
+          </div>
+        </Panel>
         <div className="flex items-center justify-between">
           <div className="text-xs text-muted-foreground">
             {table.getFilteredRowModel().rows.length}{' '}

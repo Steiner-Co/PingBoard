@@ -12,6 +12,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DataTable, schema as monitorRowSchema } from '@/components/data-table'
+import { FleetChart } from '@/components/fleet-chart'
+import { Panel } from '@/components/panel'
 import { SectionCards } from '@/components/section-cards'
 import { cn, formatDuration, formatInterval, formatRelative } from '@/lib/utils'
 import { api } from '@/lib/api'
@@ -139,6 +141,7 @@ export function DashboardPage() {
       <SectionCards monitors={monitors} />
       <div className="grid gap-6 px-4 lg:px-6 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="flex min-w-0 flex-col gap-4">
+          <FleetChart />
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative w-full sm:max-w-xs">
               <HugeiconsIcon
@@ -192,7 +195,7 @@ function LiveActivity({
   nameById: Map<string, string>
 }) {
   return (
-    <section className="overflow-hidden rounded-xl border bg-card">
+    <Panel>
       <header className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
         <h2 className="text-sm font-medium">Activity</h2>
         <span className="flex items-center gap-1.5 font-mono text-[10px] font-medium uppercase tracking-widest text-success">
@@ -237,7 +240,7 @@ function LiveActivity({
           ))}
         </ul>
       )}
-    </section>
+    </Panel>
   )
 }
 
@@ -249,7 +252,7 @@ function RecentIncidents({ nameById }: { nameById: Map<string, string> }) {
   const incidents = (query.data?.incidents ?? []).slice(0, 4)
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card">
+    <Panel>
       <header className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
         <h2 className="text-sm font-medium">Recent incidents</h2>
         <Link
@@ -296,7 +299,7 @@ function RecentIncidents({ nameById }: { nameById: Map<string, string> }) {
           })}
         </ul>
       )}
-    </section>
+    </Panel>
   )
 }
 

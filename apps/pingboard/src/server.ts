@@ -39,6 +39,7 @@ import {
   listChannels,
   listIncidents,
   listMaintenanceWindows,
+  heartbeatSummary,
   listMonitors,
   listStatusPages,
   resolveIncident,
@@ -137,6 +138,8 @@ async function main() {
           // Monitors
           if (path === '/api/admin/monitors' && method === 'GET')
             return listMonitors(adminDeps)
+          if (path === '/api/admin/heartbeats/summary' && method === 'GET')
+            return heartbeatSummary(adminDeps)
           if (path === '/api/admin/monitors' && method === 'POST')
             return createMonitor(req, adminDeps)
           if (path === '/api/admin/monitors/run' && method === 'POST')

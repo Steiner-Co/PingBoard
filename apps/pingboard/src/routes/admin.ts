@@ -55,6 +55,26 @@ export async function listMonitors(deps: AdminDeps): Promise<Response> {
   return json({ monitors: enriched })
 }
 
+/**
+ * Fleet-wide response times over the last 24h, bucketed to 30 minutes.
+ * Feeds the dashboard chart; one aggregate query instead of N per-monitor ones.
+ */
+export async function heartbeatSummary(deps: AdminDeps): Promise<Response> {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
+  const rows = await deps.db
+    .select({
+      bucket: sql<number>`(cast(${heartbeats.checkedAt} as integer) / 1800000) * 1800000`.as('bucket'),
+      avgMs: sql<number | null>`avg(${heartbeats.responseTimeMs})`.as('avg_ms'),
+      checks: sql<number>`count(*)`.as('checks'),
+      down: sql<number>`sum(case when ${heartbeats.status} = 'down' then 1 else 0 end)`.as('down'),
+    })
+    .from(heartbeats)
+    .where(gte(heartbeats.checkedAt, since))
+    .groupBy(sql`bucket`)
+    .orderBy(sql`bucket`)
+  return json({ buckets: rows })
+}
+
 export async function getMonitor(id: string, deps: AdminDeps): Promise<Response> {
   const [monitor] = await deps.db.select().from(monitors).where(eq(monitors.id, id))
   if (!monitor) return error(404, 'Monitor not found')

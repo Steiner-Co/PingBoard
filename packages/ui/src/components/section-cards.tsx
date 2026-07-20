@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { Link } from "react-router-dom"
 
+import { Panel } from "@/components/panel"
 import { cn } from "@/lib/utils"
 import type { MonitorWithLatest } from "@/types"
 
@@ -64,7 +65,7 @@ export function SectionCards({ monitors }: { monitors: MonitorWithLatest[] }) {
 
   return (
     <div className="px-4 lg:px-6">
-      <div className="grid grid-cols-2 overflow-hidden rounded-xl border bg-card lg:grid-cols-4 lg:divide-x divide-border/60">
+      <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
         <StatCell
           label="Active monitors"
           value={`${stats.active}`}
@@ -105,7 +106,7 @@ export function SectionCards({ monitors }: { monitors: MonitorWithLatest[] }) {
           valueSuffix={stats.avgResponseMs == null ? undefined : "ms"}
           sub="Latest heartbeat per healthy monitor"
         />
-      </div>
+      </Panel>
     </div>
   )
 }
