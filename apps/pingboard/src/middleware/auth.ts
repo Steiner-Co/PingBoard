@@ -4,10 +4,6 @@ import { parseCookies } from '../lib/cookies'
 import { error } from '../lib/responses'
 import { SESSION_COOKIE_NAME } from '../routes/auth'
 
-export interface AuthedRequest extends Request {
-  user: { userId: string; email: string }
-}
-
 export async function requireAuth(
   req: Request,
   db: DB,

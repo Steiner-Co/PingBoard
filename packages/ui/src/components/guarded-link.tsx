@@ -13,7 +13,10 @@ import { useUnsavedChanges } from '@/contexts/unsaved-changes'
  * component swallows it.
  */
 export const GuardedLink = forwardRef<HTMLAnchorElement, LinkProps>(
-  function GuardedLink({ to, onClick, ...props }, ref) {
+  function GuardedLink(
+    { to, onClick, replace, state, relative, preventScrollReset, ...props },
+    ref,
+  ) {
   const { confirmLeave } = useUnsavedChanges()
   const navigate = useNavigate()
 
@@ -21,6 +24,10 @@ export const GuardedLink = forwardRef<HTMLAnchorElement, LinkProps>(
     <Link
       ref={ref}
       to={to}
+      replace={replace}
+      state={state}
+      relative={relative}
+      preventScrollReset={preventScrollReset}
       onClick={(e) => {
         onClick?.(e)
         if (
@@ -35,7 +42,9 @@ export const GuardedLink = forwardRef<HTMLAnchorElement, LinkProps>(
         }
         e.preventDefault()
         void confirmLeave().then((ok) => {
-          if (ok) navigate(to)
+          // Re-navigating by hand means Link's own options would be dropped
+          // unless they're forwarded explicitly.
+          if (ok) navigate(to, { replace, state, relative, preventScrollReset })
         })
       }}
       {...props}

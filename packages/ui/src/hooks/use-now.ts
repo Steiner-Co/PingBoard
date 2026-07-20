@@ -12,6 +12,10 @@ let handle: ReturnType<typeof setInterval> | null = null
 function subscribe(onChange: () => void): () => void {
   listeners.add(onChange)
   if (handle === null) {
+    // The interval is torn down with the last subscriber, so `now` is frozen
+    // at that moment. Without this refresh the first render after remounting
+    // reports a timestamp stale by however long the user was elsewhere.
+    now = Date.now()
     handle = setInterval(() => {
       now = Date.now()
       for (const listener of listeners) listener()

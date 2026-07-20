@@ -21,8 +21,10 @@ function Card({
       )}
       {...props}
     >
-      <CornerTicks />
       {children}
+      {/* Absolutely positioned, so they sit last to keep :first-child
+          selectors pointing at real content. */}
+      <CornerTicks />
     </div>
   )
 }

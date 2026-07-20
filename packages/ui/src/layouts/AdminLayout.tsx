@@ -3,7 +3,6 @@ import {
   useContext,
   useEffect,
   useState,
-  type ReactNode,
 } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AppSidebar } from '@/components/app-sidebar'

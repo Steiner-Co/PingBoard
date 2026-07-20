@@ -12,7 +12,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { HugeiconsIcon } from "@hugeicons/react"
 import {
   AlertCircleIcon,
   Calendar03Icon,
