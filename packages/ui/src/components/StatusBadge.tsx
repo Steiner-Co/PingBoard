@@ -14,7 +14,7 @@ export function StatusBadge({ status, responseTimeMs }: Props) {
       : status === 'down'
         ? 'destructive'
         : status === 'degraded'
-          ? 'default'
+          ? 'warning'
           : 'secondary'
 
   return (

@@ -27,6 +27,8 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -74,6 +76,8 @@
   --destructive-foreground: oklch(0.985 0 0);
   --success: oklch(0.723 0.219 149.579);
   --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.62 0.17 62);
+  --warning-foreground: oklch(1 0 0);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.62 0.18 152);
@@ -113,6 +117,8 @@
   --destructive-foreground: oklch(0.985 0 0);
   --success: oklch(0.723 0.219 149.579);
   --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.78 0.16 75);
+  --warning-foreground: oklch(0.13 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.65 0.19 152);
@@ -156,7 +162,13 @@
 }
 ::view-transition-new(root) {
   z-index: 2;
-  animation: theme-reveal 0.45s ease-out;
+}
+/* The largest motion in the product — a full-screen wipe. Reduced-motion
+   users get the instant swap the view transition already falls back to. */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-new(root) {
+    animation: theme-reveal 0.45s ease-out;
+  }
 }
 @keyframes theme-reveal {
   from {
