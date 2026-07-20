@@ -6,6 +6,7 @@ FROM oven/bun:1.3.13-alpine AS deps
 WORKDIR /app
 COPY package.json bun.lock ./
 COPY apps/pingboard/package.json apps/pingboard/
+COPY apps/landing/package.json apps/landing/
 COPY packages/shared/package.json packages/shared/
 COPY packages/db/package.json packages/db/
 COPY packages/core/package.json packages/core/

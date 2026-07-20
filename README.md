@@ -4,6 +4,14 @@
 
 ## Quickstart
 
+With Docker Compose (clone the repo, then):
+
+```bash
+docker compose up -d
+```
+
+Or with `docker run`:
+
 ```bash
 docker run -d --restart=always \
   -p 3000:3000 \

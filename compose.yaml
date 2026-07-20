@@ -1,0 +1,19 @@
+services:
+  pingboard:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: pingboard
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - pingboard-data:/data
+    # All settings are optional — defaults work out of the box.
+    # environment:
+    #   PINGBOARD_BASE_URL: https://status.example.com  # public URL when behind a reverse proxy
+    #   LOG_LEVEL: info                                  # debug | info | warn | error
+    #   PORT: 3000
+
+volumes:
+  pingboard-data:
