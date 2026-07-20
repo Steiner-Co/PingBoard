@@ -1,10 +1,12 @@
 import * as React from "react"
 
+import { CornerTicks } from "@/components/panel"
 import { cn } from "@/lib/utils"
 
 function Card({
   className,
   size = "default",
+  children,
   ...props
 }: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
   return (
@@ -12,11 +14,16 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        "group/card flex flex-col gap-4 overflow-hidden rounded-lg bg-card py-4 text-xs/relaxed text-card-foreground ring-1 ring-foreground/10 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 *:[img:first-child]:rounded-t-lg *:[img:last-child]:rounded-b-lg",
+        // Sharp corners + corner ticks: the app-wide "blueprint" container
+        // style. Controls (buttons, inputs, overlays) stay rounded.
+        "group/card relative flex flex-col gap-4 rounded-none bg-card py-4 text-xs/relaxed text-card-foreground ring-1 ring-foreground/10 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3",
         className
       )}
       {...props}
-    />
+    >
+      <CornerTicks />
+      {children}
+    </div>
   )
 }
 

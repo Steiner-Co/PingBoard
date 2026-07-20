@@ -2,6 +2,17 @@ import type * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+export function CornerTicks() {
+  return (
+    <>
+      <Tick className="-top-[4.5px] -left-[4.5px]" />
+      <Tick className="-top-[4.5px] -right-[4.5px]" />
+      <Tick className="-bottom-[4.5px] -left-[4.5px]" />
+      <Tick className="-bottom-[4.5px] -right-[4.5px]" />
+    </>
+  )
+}
+
 function Tick({ className }: { className: string }) {
   return (
     <svg
@@ -31,10 +42,7 @@ export function Panel({
 }) {
   return (
     <section className={cn("relative border border-border/70 bg-card", className)}>
-      <Tick className="-top-[4.5px] -left-[4.5px]" />
-      <Tick className="-top-[4.5px] -right-[4.5px]" />
-      <Tick className="-bottom-[4.5px] -left-[4.5px]" />
-      <Tick className="-bottom-[4.5px] -right-[4.5px]" />
+      <CornerTicks />
       {children}
     </section>
   )

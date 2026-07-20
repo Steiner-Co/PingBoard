@@ -306,7 +306,7 @@ function RecentIncidents({ nameById }: { nameById: Map<string, string> }) {
 function EmptyDashboard() {
   return (
     <div className="px-4 lg:px-6">
-      <div className="flex min-h-[420px] flex-col items-center justify-center gap-6 rounded-xl border border-dashed bg-card/50 p-10 text-center">
+      <div className="flex min-h-[420px] flex-col items-center justify-center gap-6 rounded-none border border-dashed bg-card/50 p-10 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <HugeiconsIcon icon={Activity03Icon} className="h-6 w-6" strokeWidth={1.75} />
         </div>

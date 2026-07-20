@@ -6,6 +6,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { ArrowLeft01Icon, Tick02Icon } from '@hugeicons/core-free-icons'
 import { ALLOWED_INTERVALS_SECONDS } from '@pingboard/shared'
 
+import { Panel } from '@/components/panel'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -193,7 +194,7 @@ export function MonitorEditPage() {
       <div className="px-4 lg:px-6 max-w-3xl flex flex-col gap-6">
         <Skeleton className="h-7 w-32" />
         <Skeleton className="h-9 w-72" />
-        <div className="rounded-xl border bg-card p-6 space-y-4">
+        <Panel className="p-6 space-y-4">
           <Skeleton className="h-4 w-32" />
           <Skeleton className="h-7 w-full" />
           <Skeleton className="h-7 w-full" />
@@ -202,14 +203,14 @@ export function MonitorEditPage() {
             <Skeleton className="h-7" />
             <Skeleton className="h-7" />
           </div>
-        </div>
+        </Panel>
       </div>
     )
   }
   if (detail.isError || !detail.data) {
     return (
       <div className="px-4 lg:px-6">
-        <div className="rounded-xl border border-dashed bg-card/50 p-8 text-center text-sm text-muted-foreground">
+        <div className="rounded-none border border-dashed bg-card/50 p-8 text-center text-sm text-muted-foreground">
           Couldn't load this monitor.{' '}
           <button
             type="button"

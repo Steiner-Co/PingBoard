@@ -13,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Panel } from '@/components/panel'
 import { useSSE } from '@/lib/sse'
 import { cn, formatDuration, formatRelative } from '@/lib/utils'
 
@@ -209,7 +210,7 @@ export function PublicStatusPage({ slug }: { slug: string }) {
                   {group}
                 </h2>
               )}
-              <div className="rounded-xl border bg-card divide-y">
+              <Panel className="divide-y">
                 {list.map((m) => (
                   <MonitorRow
                     key={m.id}
@@ -217,7 +218,7 @@ export function PublicStatusPage({ slug }: { slug: string }) {
                     inMaintenance={inMaintenance.has(m.id)}
                   />
                 ))}
-              </div>
+              </Panel>
             </section>
           ))}
         </div>
@@ -270,7 +271,7 @@ function OverallStatusBanner({
           : 'border-border bg-muted/40'
 
   return (
-    <div className={cn('rounded-xl border p-5 sm:p-6', surface)}>
+    <Panel className={cn('p-5 sm:p-6', surface)}>
       <div className="flex items-center gap-3">
         <span className="relative inline-flex h-2.5 w-2.5 shrink-0">
           <span
@@ -290,7 +291,7 @@ function OverallStatusBanner({
         {detail && <>{detail} · </>}
         Updated {formatRelative(new Date())}
       </div>
-    </div>
+    </Panel>
   )
 }
 
@@ -433,9 +434,9 @@ function IncidentHistory({ incidents }: { incidents: PublicIncident[] }) {
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Past incidents
         </h2>
-        <div className="rounded-xl border bg-card p-5 text-sm text-muted-foreground">
+        <Panel className="p-5 text-sm text-muted-foreground">
           No incidents in the last 30 days. Quiet is good.
-        </div>
+        </Panel>
       </section>
     )
   }
@@ -454,7 +455,7 @@ function IncidentHistory({ incidents }: { incidents: PublicIncident[] }) {
       <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Past incidents
       </h2>
-      <div className="rounded-xl border bg-card divide-y">
+      <Panel className="divide-y">
         {[...groups.entries()].map(([day, list]) => (
           <div key={day} className="p-4 sm:p-5 space-y-3">
             <div className="text-sm font-medium">{humanDate(day)}</div>
@@ -498,7 +499,7 @@ function IncidentHistory({ incidents }: { incidents: PublicIncident[] }) {
             </ul>
           </div>
         ))}
-      </div>
+      </Panel>
     </section>
   )
 }
@@ -515,7 +516,7 @@ function MaintenanceBanner({
   const monitorName = (id: string) =>
     monitors.find((m) => m.id === id)?.name ?? 'a monitor'
   return (
-    <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5 space-y-3">
+    <Panel className="border-amber-500/30 bg-amber-500/5 p-5 space-y-3">
       <div className="text-sm font-semibold text-amber-700 dark:text-amber-400">
         Scheduled maintenance
       </div>
@@ -550,7 +551,7 @@ function MaintenanceBanner({
           </li>
         ))}
       </ul>
-    </div>
+    </Panel>
   )
 }
 
@@ -594,10 +595,8 @@ function PasswordGate({
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-6">
-      <form
-        onSubmit={submit}
-        className="w-full max-w-sm rounded-xl border bg-card p-6 shadow-sm space-y-4"
-      >
+      <Panel className="w-full max-w-sm shadow-sm">
+      <form onSubmit={submit} className="p-6 space-y-4">
         <div className="space-y-1">
           <h1 className="text-lg font-semibold tracking-tight">Protected status page</h1>
           <p className="text-sm text-muted-foreground">
@@ -621,6 +620,7 @@ function PasswordGate({
           {submitting ? 'Checking…' : 'Continue'}
         </button>
       </form>
+      </Panel>
     </div>
   )
 }

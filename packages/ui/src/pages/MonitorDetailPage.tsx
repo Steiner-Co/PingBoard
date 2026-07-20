@@ -22,6 +22,7 @@ import {
   YAxis,
 } from 'recharts'
 import { Badge } from '@/components/ui/badge'
+import { Panel } from '@/components/panel'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -108,7 +109,7 @@ export function MonitorDetailPage() {
   if (query.isError)
     return (
       <div className="px-4 lg:px-6">
-        <div className="rounded-xl border border-dashed bg-card/50 p-8 text-center text-sm text-muted-foreground">
+        <div className="rounded-none border border-dashed bg-card/50 p-8 text-center text-sm text-muted-foreground">
           Couldn't load this monitor.{' '}
           <button
             type="button"
@@ -789,16 +790,16 @@ function MonitorDetailSkeleton() {
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="rounded-xl border bg-card p-6 space-y-3">
+          <div key={i} className="relative rounded-none border bg-card p-6 space-y-3">
             <Skeleton className="h-3 w-24" />
             <Skeleton className="h-7 w-20" />
           </div>
         ))}
       </div>
-      <div className="rounded-xl border bg-card p-6 space-y-4">
+      <Panel className="p-6 space-y-4">
         <Skeleton className="h-4 w-32" />
         <Skeleton className="h-[260px] w-full" />
-      </div>
+      </Panel>
     </div>
   )
 }
