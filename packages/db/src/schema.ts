@@ -69,6 +69,35 @@ export const monitors = sqliteTable('monitors', {
   updatedAt: timestamp('updated_at').default(now),
 })
 
+// Enriched portfolio facts for a domain monitor, refreshed on each check.
+// One row per `type:domain` monitor; the domain checker collects these and the
+// heartbeat handler upserts them. Expiry columns are real timestamps so the
+// Domains view can sort by "expiring soon" without parsing JSON.
+export const domainFacts = sqliteTable('domain_facts', {
+  monitorId: text('monitor_id')
+    .primaryKey()
+    .references(() => monitors.id, { onDelete: 'cascade' }),
+  registrar: text('registrar'),
+  expiryAt: integer('expiry_at', { mode: 'timestamp_ms' }),
+  registeredAt: integer('registered_at', { mode: 'timestamp_ms' }),
+  nameservers: text('nameservers', { mode: 'json' })
+    .$type<string[]>()
+    .notNull()
+    .default([]),
+  statuses: text('statuses', { mode: 'json' })
+    .$type<string[]>()
+    .notNull()
+    .default([]),
+  dns: text('dns', { mode: 'json' }).$type<{
+    a: string[]
+    mx: string[]
+    ns: string[]
+  }>(),
+  sslIssuer: text('ssl_issuer'),
+  sslExpiryAt: integer('ssl_expiry_at', { mode: 'timestamp_ms' }),
+  collectedAt: timestamp('collected_at').default(now),
+})
+
 export const heartbeats = sqliteTable(
   'heartbeats',
   {

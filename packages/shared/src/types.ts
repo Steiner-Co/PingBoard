@@ -20,12 +20,30 @@ export type IncidentCause = 'auto' | 'manual'
 
 export type Theme = 'light' | 'dark' | 'auto'
 
+/**
+ * Enriched facts about a domain, collected alongside its expiry check. Every
+ * field beyond expiry is best-effort — WHOIS formats vary by TLD, and a domain
+ * may not serve HTTPS — so anything unavailable is simply null/empty rather
+ * than failing the check.
+ */
+export interface DomainFacts {
+  expiryAt: Date | null
+  registeredAt: Date | null
+  registrar: string | null
+  nameservers: string[]
+  statuses: string[]
+  dns: { a: string[]; mx: string[]; ns: string[] } | null
+  ssl: { issuer: string | null; expiryAt: Date | null } | null
+}
+
 export interface CheckResult {
   status: CheckStatus
   responseTimeMs: number | null
   statusCode: number | null
   message: string | null
   checkedAt: Date
+  /** Populated only by the domain checker; drives the Domains portfolio view. */
+  facts?: DomainFacts
 }
 
 export interface HttpMonitorConfig {
@@ -58,6 +76,11 @@ export interface SslMonitorConfig {
 export interface DomainMonitorConfig {
   warningDays?: number
   criticalDays?: number
+  // Manual fallback for domains RDAP/WHOIS can't resolve (ccTLDs without RDAP,
+  // private domains). Auto-detected values, when available, take precedence.
+  manualExpiryAt?: string
+  manualRegisteredAt?: string
+  manualRegistrar?: string
 }
 
 export interface PushMonitorConfig {
