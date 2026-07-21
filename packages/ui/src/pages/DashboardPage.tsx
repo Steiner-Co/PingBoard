@@ -110,7 +110,9 @@ export function DashboardPage() {
     },
   })
 
-  const monitors = query.data?.monitors ?? []
+  // Domains have their own portfolio screen — the uptime dashboard is about
+  // up/down checks, and a domain's expiry isn't that signal.
+  const monitors = (query.data?.monitors ?? []).filter((m) => m.type !== 'domain')
   // Re-derive on the shared clock so "last check" keeps counting between
   // heartbeats instead of freezing at first render.
   const now = useNow()

@@ -40,6 +40,26 @@ export interface MonitorWithLatest extends Monitor {
   channelIds: string[]
 }
 
+// Enriched portfolio facts for a domain monitor (dates arrive as ISO strings).
+export interface DomainFacts {
+  monitorId: string
+  registrar: string | null
+  expiryAt: string | null
+  registeredAt: string | null
+  nameservers: string[]
+  statuses: string[]
+  dns: { a: string[]; mx: string[]; ns: string[] } | null
+  sslIssuer: string | null
+  sslExpiryAt: string | null
+  collectedAt: string
+}
+
+export interface DomainWithFacts extends Monitor {
+  facts: DomainFacts | null
+  latest: Heartbeat | null
+  channelIds: string[]
+}
+
 export interface Incident {
   id: string
   monitorId: string

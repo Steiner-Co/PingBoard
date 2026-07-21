@@ -14,6 +14,7 @@ import { UnsavedChangesProvider } from '@/contexts/unsaved-changes'
 const ROUTE_TITLES: Record<string, string> = {
   '/admin': 'Dashboard',
   '/admin/monitors/new': 'Add monitor',
+  '/admin/domains': 'Domains',
   '/admin/incidents': 'Incidents',
   '/admin/maintenance': 'Maintenance',
   '/admin/channels': 'Channels',

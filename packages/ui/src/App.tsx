@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from '@/contexts/auth'
 import { AdminLayout } from '@/layouts/AdminLayout'
 import { ChannelsPage } from '@/pages/ChannelsPage'
 import { DashboardPage } from '@/pages/DashboardPage'
+import { DomainsPage } from '@/pages/DomainsPage'
 import { IncidentsPage } from '@/pages/IncidentsPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { MaintenancePage } from '@/pages/MaintenancePage'
@@ -63,6 +64,7 @@ function Router() {
         element={user ? <AdminLayout /> : <Navigate to="/login" replace />}
       >
         <Route index element={<DashboardPage />} />
+        <Route path="domains" element={<DomainsPage />} />
         <Route path="monitors/new" element={<MonitorWizardPage />} />
         <Route path="monitors/:id" element={<MonitorDetailPage />} />
         <Route path="monitors/:id/edit" element={<MonitorEditPage />} />

@@ -17,6 +17,7 @@ import {
   Calendar03Icon,
   Notification03Icon,
   GlobeIcon,
+  Globe02Icon,
   DashboardSquare01Icon,
   Settings02Icon,
 } from "@hugeicons/core-free-icons"
@@ -26,6 +27,7 @@ const navGroups = [
     label: "Monitor",
     items: [
       { title: "Dashboard", url: "/admin", icon: DashboardSquare01Icon },
+      { title: "Domains", url: "/admin/domains", icon: Globe02Icon },
       { title: "Incidents", url: "/admin/incidents", icon: AlertCircleIcon },
       { title: "Maintenance", url: "/admin/maintenance", icon: Calendar03Icon },
     ],
