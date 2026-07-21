@@ -122,7 +122,13 @@ async function dispatch(
               : c.config
           await driver.send(effective as never, payload)
         } catch (err) {
-          console.error(`Channel ${c.id} (${c.type}) failed:`, err)
+          // A delivery failure is almost always an external problem (a
+          // misconfigured webhook, an unreachable SMTP host), so log the
+          // driver's own message on one line rather than a stack trace of our
+          // internal plumbing. The operator needs to know their alerts aren't
+          // getting through — the cause, not the call site.
+          const reason = err instanceof Error ? err.message : String(err)
+          console.error(`Notification via "${c.name}" (${c.type}) failed: ${reason}`)
         }
       }),
   )
