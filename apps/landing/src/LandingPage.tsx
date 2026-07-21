@@ -1,27 +1,33 @@
 import { Hero } from './sections/Hero'
-import { RightColumnNav } from './sections/RightColumnNav'
-import { Readme } from './sections/Readme'
-import { FeaturesGrid } from './sections/FeaturesGrid'
-import { ConfigSection } from './sections/ConfigSection'
-import { PluginStrip } from './sections/PluginStrip'
-import { DashboardPreview } from './sections/DashboardPreview'
+import { FeatureGrid } from './sections/FeatureGrid'
+import { StatusSection } from './sections/StatusSection'
+import { ChannelsSection } from './sections/ChannelsSection'
+import { DomainsSection } from './sections/DomainsSection'
+import { Manifesto } from './sections/Manifesto'
+import { Pricing } from './sections/Pricing'
+import { FAQ } from './sections/FAQ'
 import { FooterCTA } from './sections/FooterCTA'
+import { SiteFooter } from './sections/SiteFooter'
 
 export function LandingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-foreground/10">
-      <div className="lg:grid lg:grid-cols-[36%_1fr]">
-        <aside className="border-b border-border/60 lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r">
-          <Hero />
-        </aside>
-        <main className="min-w-0">
-          <RightColumnNav />
-          <Readme />
-          <FeaturesGrid />
-          <ConfigSection />
-          <PluginStrip />
-          <DashboardPreview />
-          <FooterCTA />
+    <div className="page-dots min-h-screen overflow-x-hidden bg-background text-foreground selection:bg-primary/15">
+      <div className="px-4 py-6 sm:py-10">
+        {/* The white content panel floats on the grey, dotted page; product
+            mocks break out past its edges onto the grey. */}
+        <main className="mx-auto max-w-[596px] rounded-[28px] border border-border/70 bg-card p-6">
+          <div className="flex flex-col gap-[92px] md:gap-[120px]">
+            <Hero />
+            <FeatureGrid />
+            <StatusSection />
+            <ChannelsSection />
+            <DomainsSection />
+            <Manifesto />
+            <Pricing />
+            <FAQ />
+            <FooterCTA />
+            <SiteFooter />
+          </div>
         </main>
       </div>
     </div>

@@ -43,7 +43,9 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  /* Page body is a soft grey (#F7F7F7) so white cards/containers read as
+     raised surfaces against it — the depth the design relies on. */
+  --background: oklch(0.972 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -99,6 +101,17 @@
   --chart-3: oklch(0.648 0.2 131.684);
   --chart-4: oklch(0.532 0.157 131.589);
   --chart-5: oklch(0.453 0.124 130.933);
+}
+
+/* Faint dot grid on the page body, visible in the grey margins around the
+   white content panel. */
+.page-dots {
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--foreground) 5%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+  background-position: -1px -1px;
 }
 
 @layer base {

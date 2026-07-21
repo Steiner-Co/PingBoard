@@ -1,29 +1,50 @@
-import { Button } from '@/components/ui/button'
+import { useState } from 'react'
+import { Wordmark } from '@/components/logo'
+import { CheckIcon, CopyIcon, TerminalIcon } from '@/components/icons'
+
+const CMD = 'docker run -d -p 3000:3000 -v pingboard_data:/data ghcr.io/steiner-co/pingboard'
 
 export function FooterCTA() {
+  const [copied, setCopied] = useState(false)
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(CMD)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      /* clipboard blocked */
+    }
+  }
+
   return (
-    <section className="px-8 py-20 text-center sm:px-12 lg:px-16 lg:py-24">
-      <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
-        Spin it up in sixty seconds.
-      </h2>
-      <div className="mt-5 flex items-center justify-center gap-5 text-[0.75rem] text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-1 w-1 rounded-full bg-success" /> One container
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-1 w-1 rounded-full bg-success" /> One SQLite file
-        </span>
-        <span className="hidden items-center gap-1.5 sm:inline-flex">
-          <span className="inline-block h-1 w-1 rounded-full bg-success" /> Zero external services
-        </span>
+    <section className="flex flex-col items-center gap-6">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <Wordmark />
+        <p className="text-[20px] font-medium tracking-[-0.5px] text-foreground">
+          Get started today.
+        </p>
       </div>
-      <div className="mt-7 flex items-center justify-center gap-2">
-        <Button asChild className="h-9 rounded-sm bg-foreground px-4 text-sm text-background hover:bg-foreground/90">
-          <a href="/login">Get Started</a>
-        </Button>
-        <Button asChild variant="outline" className="h-9 rounded-sm border-border/80 px-4 text-sm hover:bg-muted/40">
-          <a href="/login">Sign In</a>
-        </Button>
+
+      <div className="flex w-full max-w-[470px] items-center gap-2 rounded-[12px] border border-border bg-muted p-1.5">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-card">
+          <TerminalIcon className="size-4 text-foreground/70" />
+        </div>
+        <code className="flex-1 overflow-x-auto whitespace-nowrap font-mono text-[11px] text-foreground/70 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {CMD}
+        </code>
+        <button
+          type="button"
+          onClick={copy}
+          aria-label="Copy install command"
+          className="flex size-8 shrink-0 items-center justify-center rounded-[8px] outline-none transition-colors hover:bg-card focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-95"
+        >
+          {copied ? (
+            <CheckIcon className="size-4 text-success" />
+          ) : (
+            <CopyIcon className="size-4 text-foreground/60" />
+          )}
+        </button>
       </div>
     </section>
   )
