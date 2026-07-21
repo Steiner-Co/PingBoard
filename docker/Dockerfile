@@ -35,6 +35,10 @@ RUN bun build apps/pingboard/src/cli.ts \
 ###############################################################################
 FROM oven/bun:1.3.13-alpine AS runtime
 
+# Release version, passed by the release workflow from the git tag. The app
+# reads it at runtime via PINGBOARD_VERSION (see src/version.ts).
+ARG PINGBOARD_VERSION=0.0.0-dev
+
 # iputils provides ping; ca-certificates for outbound TLS.
 RUN apk add --no-cache iputils ca-certificates
 
@@ -51,6 +55,7 @@ ENV PINGBOARD_STATIC_DIR=/app/static
 ENV PINGBOARD_MIGRATIONS_DIR=/app/drizzle
 ENV PORT=3000
 ENV NODE_ENV=production
+ENV PINGBOARD_VERSION=${PINGBOARD_VERSION}
 
 # Entrypoint + `pingboard` shim for `docker exec pingboard pingboard <cmd>`.
 COPY docker/entrypoint.sh /entrypoint.sh

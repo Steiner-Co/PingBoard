@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { createDb, runMigrations, users } from '@pingboard/db'
 import { loadConfig } from './config'
+import { VERSION } from './version'
 
 async function resetPassword(email: string): Promise<void> {
   const config = loadConfig()
@@ -51,7 +52,7 @@ async function main(): Promise<void> {
   const cmd = args[0]
 
   if (cmd === '--version' || cmd === '-v') {
-    console.log('PingBoard 0.0.0')
+    console.log(`PingBoard ${VERSION}`)
     return
   }
   if (cmd === '--help' || cmd === '-h' || cmd === 'help') {

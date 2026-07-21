@@ -19,6 +19,7 @@ import {
 import type { CheckResult } from '@pingboard/shared'
 import { RESERVED_SLUGS } from '@pingboard/shared'
 import { loadConfig } from './config'
+import { VERSION } from './version'
 import {
   handleLogin,
   handleLogout,
@@ -81,7 +82,6 @@ declare global {
   var __pingboardHotCleanup: (() => Promise<void>) | undefined
 }
 
-const PINGBOARD_VERSION = '0.0.0'
 
 async function main() {
   await globalThis.__pingboardHotCleanup?.()
@@ -90,7 +90,7 @@ async function main() {
   mkdirSync(config.dataDir, { recursive: true })
 
   console.log(
-    `PingBoard starting on port ${config.port} (mode: ${config.mode}, data: ${config.dataDir})`,
+    `PingBoard ${VERSION} starting on port ${config.port} (mode: ${config.mode}, data: ${config.dataDir})`,
   )
 
   // Migrations: prefer the explicit env-configured dir (set in the bundled
@@ -204,7 +204,7 @@ async function main() {
               db,
               dbPath: config.dbPath,
               dataDir: config.dataDir,
-              version: PINGBOARD_VERSION,
+              version: VERSION,
               mode: config.mode,
               startedAt: bootedAt,
             })
