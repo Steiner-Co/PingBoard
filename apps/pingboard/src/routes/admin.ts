@@ -1,6 +1,7 @@
 import { and, desc, eq, gte, sql } from 'drizzle-orm'
 import type { DB } from '@pingboard/db'
 import {
+  domainFacts,
   heartbeats,
   incidents,
   maintenanceWindows,
@@ -65,6 +66,48 @@ export async function listMonitors(deps: AdminDeps): Promise<Response> {
     }),
   )
   return json({ monitors: enriched })
+}
+
+// The domain portfolio: every `type:domain` monitor joined with the enriched
+// facts (registrar / expiry / nameservers / SSL) the checker collects. Lives on
+// its own screen rather than the uptime dashboard — a domain's expiry isn't an
+// up/down signal. The monitor still appears in /monitors for API/MCP callers.
+export async function listDomains(deps: AdminDeps): Promise<Response> {
+  const rows = await deps.db
+    .select()
+    .from(monitors)
+    .where(eq(monitors.type, 'domain'))
+    .orderBy(monitors.name)
+
+  const links = await deps.db.select().from(monitorChannels)
+  const byMonitor = new Map<string, string[]>()
+  for (const l of links) {
+    const list = byMonitor.get(l.monitorId) ?? []
+    list.push(l.channelId)
+    byMonitor.set(l.monitorId, list)
+  }
+
+  const enriched = await Promise.all(
+    rows.map(async (m) => {
+      const [facts] = await deps.db
+        .select()
+        .from(domainFacts)
+        .where(eq(domainFacts.monitorId, m.id))
+      const [latest] = await deps.db
+        .select()
+        .from(heartbeats)
+        .where(eq(heartbeats.monitorId, m.id))
+        .orderBy(desc(heartbeats.checkedAt))
+        .limit(1)
+      return {
+        ...m,
+        facts: facts ?? null,
+        latest: latest ?? null,
+        channelIds: byMonitor.get(m.id) ?? [],
+      }
+    }),
+  )
+  return json({ domains: enriched })
 }
 
 /**
@@ -807,6 +850,22 @@ function validateMonitorPayload(body: Record<string, unknown>):
   // on update, otherwise mint a fresh one.
   if (type === 'push' && typeof config.token !== 'string') {
     config.token = generatePushToken()
+  }
+
+  // Manually-entered domain dates must be real dates.
+  if (type === 'domain') {
+    const dateFields: [keyof typeof config, string][] = [
+      ['manualExpiryAt', 'Renewal date'],
+      ['manualRegisteredAt', 'Registered date'],
+    ]
+    for (const [key, label] of dateFields) {
+      const value = config[key]
+      if (value != null && value !== '') {
+        if (Number.isNaN(new Date(String(value)).getTime())) {
+          return { error: `${label} is not a valid date` }
+        }
+      }
+    }
   }
 
   return {

@@ -6,6 +6,7 @@ import {
   createDb,
   monitors,
   heartbeats,
+  domainFacts,
   runMigrations,
   type DB,
 } from '@pingboard/db'
@@ -42,6 +43,7 @@ import {
   listMaintenanceWindows,
   heartbeatSummary,
   listMonitors,
+  listDomains,
   listStatusPages,
   resolveIncident,
   runMonitorCheck,
@@ -162,6 +164,8 @@ async function main() {
           // Monitors
           if (path === '/api/admin/monitors' && method === 'GET')
             return listMonitors(adminDeps)
+          if (path === '/api/admin/domains' && method === 'GET')
+            return listDomains(adminDeps)
           if (path === '/api/admin/heartbeats/summary' && method === 'GET')
             return heartbeatSummary(adminDeps)
           if (path === '/api/admin/monitors' && method === 'POST')
@@ -391,6 +395,28 @@ function makeHeartbeatHandler(db: DB) {
       checkedAt: result.checkedAt,
     })
     await reconcileIncident(db, monitorId, result)
+
+    // Domain checks carry enriched portfolio facts; upsert them so the Domains
+    // view has registrar/nameserver/SSL data without a separate collector.
+    if (result.facts) {
+      const f = result.facts
+      const row = {
+        monitorId,
+        registrar: f.registrar,
+        expiryAt: f.expiryAt,
+        registeredAt: f.registeredAt,
+        nameservers: f.nameservers,
+        statuses: f.statuses,
+        dns: f.dns ?? null,
+        sslIssuer: f.ssl?.issuer ?? null,
+        sslExpiryAt: f.ssl?.expiryAt ?? null,
+        collectedAt: new Date(),
+      }
+      await db
+        .insert(domainFacts)
+        .values(row)
+        .onConflictDoUpdate({ target: domainFacts.monitorId, set: row })
+    }
   }
 }
 
