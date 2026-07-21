@@ -60,6 +60,7 @@ export function SettingsPage() {
 
 interface InstanceInfo {
   version: string
+  mode: 'selfhost' | 'cloud'
   dataDir: string
   dbBytes: number | null
   startedAt: string
@@ -98,6 +99,7 @@ function InstanceCard() {
   const rows: [string, string][] = info
     ? [
         ['Version', info.version],
+        ['Edition', info.mode === 'selfhost' ? 'Self-hosted · unlimited' : 'Cloud'],
         ['Data dir', info.dataDir],
         ['Database', info.dbBytes == null ? '—' : formatBytes(info.dbBytes)],
         ['Heartbeats', info.heartbeats.toLocaleString()],

@@ -89,7 +89,9 @@ async function main() {
   const config = loadConfig()
   mkdirSync(config.dataDir, { recursive: true })
 
-  console.log(`PingBoard starting on port ${config.port} (data: ${config.dataDir})`)
+  console.log(
+    `PingBoard starting on port ${config.port} (mode: ${config.mode}, data: ${config.dataDir})`,
+  )
 
   // Migrations: prefer the explicit env-configured dir (set in the bundled
   // Docker image); otherwise fall back to the source-tree layout for dev.
@@ -118,7 +120,7 @@ async function main() {
 
   const secureCookies = (config.baseUrl ?? '').startsWith('https://')
   const authDeps = { db, secureCookies }
-  const adminDeps = { db, scheduler }
+  const adminDeps = { db, scheduler, mode: config.mode }
   const publicDeps = { db, secureCookies }
 
   const server = Bun.serve({
@@ -203,6 +205,7 @@ async function main() {
               dbPath: config.dbPath,
               dataDir: config.dataDir,
               version: PINGBOARD_VERSION,
+              mode: config.mode,
               startedAt: bootedAt,
             })
           if (

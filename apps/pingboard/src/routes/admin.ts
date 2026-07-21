@@ -23,6 +23,8 @@ import {
 import { Scheduler, sendTest, runCheck } from '@pingboard/core'
 import { error, json, noContent } from '../lib/responses'
 import { revokeTokensForPage } from '../lib/page-auth'
+import { checkLimit, isUnlimited } from '../lib/limits'
+import type { Mode } from '../config'
 
 type StatusPageRow = typeof statusPages.$inferSelect
 type PublicStatusPage = Omit<StatusPageRow, 'passwordHash'> & { passwordSet: boolean }
@@ -35,6 +37,7 @@ function publicPage(p: StatusPageRow): PublicStatusPage {
 interface AdminDeps {
   db: DB
   scheduler: Scheduler
+  mode: Mode
 }
 
 // ─────────────────────────── Monitors ───────────────────────────
@@ -121,6 +124,14 @@ export async function createMonitor(req: Request, deps: AdminDeps): Promise<Resp
   if (!body) return error(400, 'Invalid JSON body')
   const validation = validateMonitorPayload(body)
   if ('error' in validation) return error(400, validation.error)
+
+  if (!isUnlimited(deps.mode, 'monitor')) {
+    const [row] = await deps.db
+      .select({ count: sql<number>`count(*)` })
+      .from(monitors)
+    const limit = checkLimit(deps.mode, 'monitor', row?.count ?? 0)
+    if (!limit.ok) return error(403, limit.reason)
+  }
 
   const id = crypto.randomUUID()
   const channelIds = Array.isArray(body.channelIds)
@@ -480,6 +491,15 @@ async function resolvePassword(value: unknown): Promise<string | null | undefine
 export async function createStatusPage(req: Request, deps: AdminDeps): Promise<Response> {
   const body = await safeJson(req)
   if (!body) return error(400, 'Invalid JSON body')
+
+  if (!isUnlimited(deps.mode, 'status_page')) {
+    const [row] = await deps.db
+      .select({ count: sql<number>`count(*)` })
+      .from(statusPages)
+    const limit = checkLimit(deps.mode, 'status_page', row?.count ?? 0)
+    if (!limit.ok) return error(403, limit.reason)
+  }
+
   const slug = String(body.slug ?? '').trim().toLowerCase()
   if (!slug || !/^[a-z0-9-]+$/.test(slug)) {
     return error(400, 'Slug must be lowercase letters, digits, and hyphens')

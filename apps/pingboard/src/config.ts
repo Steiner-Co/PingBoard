@@ -1,6 +1,16 @@
 import { join } from 'node:path'
 
+/**
+ * Open-core boundary. `selfhost` is the default and is unlimited forever — no
+ * caps, no plan checks. `cloud` is where the hosted arm activates plan
+ * enforcement (see lib/limits.ts). Anything other than the exact string
+ * 'cloud' resolves to selfhost, so a typo or empty value can never silently
+ * start enforcing limits on someone's own instance.
+ */
+export type Mode = 'selfhost' | 'cloud'
+
 export interface Config {
+  mode: Mode
   port: number
   dataDir: string
   dbPath: string
@@ -13,6 +23,7 @@ export interface Config {
 export function loadConfig(): Config {
   const dataDir = process.env.DATA_DIR ?? './data'
   return {
+    mode: process.env.PINGBOARD_MODE === 'cloud' ? 'cloud' : 'selfhost',
     port: Number(process.env.PORT ?? 3000),
     dataDir,
     dbPath: join(dataDir, 'pingboard.db'),

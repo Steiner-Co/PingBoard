@@ -25,6 +25,7 @@ interface InstanceDeps {
   dbPath: string
   dataDir: string
   version: string
+  mode: 'selfhost' | 'cloud'
   startedAt: number
 }
 
@@ -65,6 +66,7 @@ export async function getInstanceInfo(deps: InstanceDeps): Promise<Response> {
 
   return json({
     version: deps.version,
+    mode: deps.mode,
     dataDir: deps.dataDir,
     dbBytes,
     startedAt: new Date(deps.startedAt).toISOString(),
