@@ -116,6 +116,24 @@ cd apps/pingboard && bun run dev
 cd packages/ui && bun run dev
 ```
 
+### Releasing
+
+Every push to `main` runs CI (typecheck, test, build) but publishes nothing.
+A release happens only when you push a version tag:
+
+```bash
+git tag v1.2.0
+git push origin v1.2.0
+```
+
+That triggers the release workflow, which builds the multi-arch Docker image,
+pushes it to `ghcr.io/steiner-co/pingboard` (tagged `1.2.0`, `1.2`, `1`, and
+`latest`), stamps the app's version from the tag, and creates a GitHub Release
+with notes generated from the commits since the previous tag.
+
+> First release only: GHCR packages start **private**. Make the package public
+> once (repo → Packages → package settings) so `docker pull` works for everyone.
+
 ## Architecture
 
 - **Runtime:** Bun (`Bun.serve` + `bun:sqlite`)
