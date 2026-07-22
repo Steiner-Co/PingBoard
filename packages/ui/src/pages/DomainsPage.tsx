@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { format } from 'date-fns'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Icon } from '@/components/ui/icon'
@@ -18,6 +19,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Checkbox } from '@/components/ui/checkbox'
+import { DatePicker } from '@/components/ui/date-picker'
 import {
   Dialog,
   DialogContent,
@@ -550,7 +552,7 @@ function Stat({
 function AddDomainDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const queryClient = useQueryClient()
   const [domain, setDomain] = useState('')
-  const [renewalDate, setRenewalDate] = useState('')
+  const [renewalDate, setRenewalDate] = useState<Date | undefined>(undefined)
   const [selected, setSelected] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const domainRef = useRef<HTMLInputElement>(null)
@@ -563,7 +565,7 @@ function AddDomainDialog({ open, onClose }: { open: boolean; onClose: () => void
 
   const reset = () => {
     setDomain('')
-    setRenewalDate('')
+    setRenewalDate(undefined)
     setSelected([])
     setError(null)
   }
@@ -598,7 +600,7 @@ function AddDomainDialog({ open, onClose }: { open: boolean; onClose: () => void
       intervalSeconds: 3600, // hourly — gentle on WHOIS, plenty for expiry
       timeoutSeconds: 15, // RDAP/WHOIS + DNS + SSL round-trips
       retryCount: 2, // registry lookups are flaky
-      config: renewalDate ? { manualExpiryAt: renewalDate } : {},
+      config: renewalDate ? { manualExpiryAt: format(renewalDate, 'yyyy-MM-dd') } : {},
       tags: [],
       channelIds: selected,
     })
@@ -650,12 +652,10 @@ function AddDomainDialog({ open, onClose }: { open: boolean; onClose: () => void
               Renewal date{' '}
               <span className="font-normal text-muted-foreground">(optional)</span>
             </Label>
-            <Input
+            <DatePicker
               id="domain-renewal"
-              name="renewalDate"
-              type="date"
               value={renewalDate}
-              onChange={(e) => setRenewalDate(e.target.value)}
+              onChange={setRenewalDate}
             />
             <p className="text-xs text-muted-foreground">
               We auto-detect this for most domains. Set it for TLDs we can't look
@@ -734,8 +734,8 @@ function EditDetailsDialog({
   onClose: () => void
 }) {
   const queryClient = useQueryClient()
-  const [expiry, setExpiry] = useState('')
-  const [registered, setRegistered] = useState('')
+  const [expiry, setExpiry] = useState<Date | undefined>(undefined)
+  const [registered, setRegistered] = useState<Date | undefined>(undefined)
   const [registrar, setRegistrar] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -748,8 +748,13 @@ function EditDetailsDialog({
   // Re-seed fields whenever the dialog targets a different domain.
   useEffect(() => {
     if (!domain) return
-    setExpiry((manualField(domain, 'manualExpiryAt') ?? '').slice(0, 10))
-    setRegistered((manualField(domain, 'manualRegisteredAt') ?? '').slice(0, 10))
+    const ymdToDate = (s: string | undefined): Date | undefined => {
+      if (!s) return undefined
+      const d = new Date(s)
+      return Number.isNaN(d.getTime()) ? undefined : d
+    }
+    setExpiry(ymdToDate(manualField(domain, 'manualExpiryAt')))
+    setRegistered(ymdToDate(manualField(domain, 'manualRegisteredAt')))
     setRegistrar(manualField(domain, 'manualRegistrar') ?? '')
     setError(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -775,13 +780,15 @@ function EditDetailsDialog({
       if (val) config[key] = val
       else delete config[key]
     }
+    const ymd = (d: Date | undefined) =>
+      d ? format(d, 'yyyy-MM-dd') : ''
     if (clear) {
       delete config.manualExpiryAt
       delete config.manualRegisteredAt
       delete config.manualRegistrar
     } else {
-      setOrDrop('manualExpiryAt', expiry)
-      setOrDrop('manualRegisteredAt', registered)
+      setOrDrop('manualExpiryAt', ymd(expiry))
+      setOrDrop('manualRegisteredAt', ymd(registered))
       setOrDrop('manualRegistrar', registrar.trim())
     }
     save.mutate({ config })
@@ -807,23 +814,18 @@ function EditDetailsDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="edit-expiry">Expires on</Label>
-              <Input
+              <DatePicker
                 id="edit-expiry"
-                name="expiry"
-                type="date"
                 value={expiry}
-                onChange={(e) => setExpiry(e.target.value)}
-                autoFocus
+                onChange={setExpiry}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-registered">Registered on</Label>
-              <Input
+              <DatePicker
                 id="edit-registered"
-                name="registered"
-                type="date"
                 value={registered}
-                onChange={(e) => setRegistered(e.target.value)}
+                onChange={setRegistered}
               />
             </div>
           </div>

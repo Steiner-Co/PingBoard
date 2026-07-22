@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
 import ArrowLeft from '@solar-icons/react/csr/arrows/ArrowLeft'
 import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
+import { DateTimePicker } from '@/components/ui/date-time-picker'
 import TrashBinTrash from '@solar-icons/react/csr/ui/TrashBinTrash'
 import Pen from '@solar-icons/react/csr/messages/Pen'
 import MenuDots from '@solar-icons/react/csr/ui/MenuDots'
@@ -562,8 +563,10 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
   const [adding, setAdding] = useState(false)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [startsAt, setStartsAt] = useState(localDatetimeNow())
-  const [endsAt, setEndsAt] = useState(localDatetimePlus(60))
+  const [startsAt, setStartsAt] = useState<Date | undefined>(new Date())
+  const [endsAt, setEndsAt] = useState<Date | undefined>(
+    new Date(Date.now() + 60 * 60 * 1000),
+  )
   const [error, setError] = useState<string | null>(null)
 
   const list = useQuery({
@@ -583,8 +586,8 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
       setAdding(false)
       setTitle('')
       setDescription('')
-      setStartsAt(localDatetimeNow())
-      setEndsAt(localDatetimePlus(60))
+      setStartsAt(new Date())
+      setEndsAt(new Date(Date.now() + 60 * 60 * 1000))
       setError(null)
     },
     onError: (err) => setError(err instanceof Error ? err.message : 'Failed'),
@@ -610,8 +613,8 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
       monitorId,
       title: title.trim(),
       description: description.trim() || null,
-      startsAt: new Date(startsAt).toISOString(),
-      endsAt: new Date(endsAt).toISOString(),
+      startsAt: startsAt!.toISOString(),
+      endsAt: endsAt!.toISOString(),
     })
   }
 
@@ -652,22 +655,32 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
               onChange={(e) => setDescription(e.target.value)}
             />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label className="text-xs text-muted-foreground space-y-1">
-                Start
-                <Input
-                  type="datetime-local"
+              <div className="space-y-1">
+                <label
+                  htmlFor="window-start"
+                  className="text-xs text-muted-foreground"
+                >
+                  Start
+                </label>
+                <DateTimePicker
+                  id="window-start"
                   value={startsAt}
-                  onChange={(e) => setStartsAt(e.target.value)}
+                  onChange={setStartsAt}
                 />
-              </label>
-              <label className="text-xs text-muted-foreground space-y-1">
-                End
-                <Input
-                  type="datetime-local"
+              </div>
+              <div className="space-y-1">
+                <label
+                  htmlFor="window-end"
+                  className="text-xs text-muted-foreground"
+                >
+                  End
+                </label>
+                <DateTimePicker
+                  id="window-end"
                   value={endsAt}
-                  onChange={(e) => setEndsAt(e.target.value)}
+                  onChange={setEndsAt}
                 />
-              </label>
+              </div>
             </div>
             {error && <div className="text-sm text-destructive">{error}</div>}
             <div className="flex justify-end">
@@ -775,18 +788,4 @@ function MonitorDetailSkeleton() {
       </Panel>
     </div>
   )
-}
-
-function localDatetimeNow(): string {
-  return toLocalDatetime(new Date())
-}
-
-function localDatetimePlus(minutes: number): string {
-  return toLocalDatetime(new Date(Date.now() + minutes * 60_000))
-}
-
-function toLocalDatetime(d: Date): string {
-  // datetime-local expects "YYYY-MM-DDTHH:mm" in the browser's local zone.
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
