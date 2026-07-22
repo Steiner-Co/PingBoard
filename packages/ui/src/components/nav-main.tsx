@@ -1,8 +1,10 @@
 import { useLocation } from "react-router-dom"
+import type { ComponentType } from "react"
+import type { IconProps as SolarIconProps } from "@solar-icons/react"
 
 import { GuardedLink } from "@/components/guarded-link"
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
-import { PlusSignCircleIcon } from "@hugeicons/core-free-icons"
+import { Icon } from "@/components/ui/icon"
+import AddSquare from "@solar-icons/react/csr/ui/AddSquare"
 
 import {
   SidebarGroup,
@@ -15,7 +17,7 @@ import {
 
 export interface NavGroup {
   label: string | null
-  items: { title: string; url: string; icon: IconSvgElement }[]
+  items: { title: string; url: string; icon: ComponentType<SolarIconProps> }[]
 }
 
 export function NavMain({ groups }: { groups: NavGroup[] }) {
@@ -33,11 +35,7 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                 className="min-w-8 bg-primary text-primary-foreground duration-150 ease-out hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground active:scale-[0.97]"
               >
                 <GuardedLink to="/admin/monitors/new">
-                  <HugeiconsIcon
-                    icon={PlusSignCircleIcon}
-                    strokeWidth={2}
-                    aria-hidden="true"
-                  />
+                  <Icon icon={AddSquare} />
                   <span>Add monitor</span>
                 </GuardedLink>
               </SidebarMenuButton>
@@ -68,11 +66,7 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                       className="data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium"
                     >
                       <GuardedLink to={item.url}>
-                        <HugeiconsIcon
-                          icon={item.icon}
-                          strokeWidth={2}
-                          aria-hidden="true"
-                        />
+                        <Icon icon={item.icon} />
                         <span>{item.title}</span>
                       </GuardedLink>
                     </SidebarMenuButton>

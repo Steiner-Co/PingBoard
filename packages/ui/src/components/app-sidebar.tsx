@@ -12,32 +12,29 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import {
-  AlertCircleIcon,
-  Calendar03Icon,
-  Notification03Icon,
-  GlobeIcon,
-  Globe02Icon,
-  DashboardSquare01Icon,
-  Settings02Icon,
-} from "@hugeicons/core-free-icons"
+import ChartSquare from "@solar-icons/react/csr/business/ChartSquare"
+import Global from "@solar-icons/react/csr/map/Global"
+import DangerCircle from "@solar-icons/react/csr/ui/DangerCircle"
+import Calendar from "@solar-icons/react/csr/time/Calendar"
+import Bell from "@solar-icons/react/csr/notifications/Bell"
+import Settings from "@solar-icons/react/csr/settings/Settings"
 
 const navGroups = [
   {
     label: "Monitor",
     items: [
-      { title: "Dashboard", url: "/admin", icon: DashboardSquare01Icon },
-      { title: "Domains", url: "/admin/domains", icon: Globe02Icon },
-      { title: "Incidents", url: "/admin/incidents", icon: AlertCircleIcon },
-      { title: "Maintenance", url: "/admin/maintenance", icon: Calendar03Icon },
+      { title: "Dashboard", url: "/admin", icon: ChartSquare },
+      { title: "Domains", url: "/admin/domains", icon: Global },
+      { title: "Incidents", url: "/admin/incidents", icon: DangerCircle },
+      { title: "Maintenance", url: "/admin/maintenance", icon: Calendar },
     ],
   },
   {
     label: "Configure",
     items: [
-      { title: "Channels", url: "/admin/channels", icon: Notification03Icon },
-      { title: "Status pages", url: "/admin/pages", icon: GlobeIcon },
-      { title: "Settings", url: "/admin/settings", icon: Settings02Icon },
+      { title: "Channels", url: "/admin/channels", icon: Bell },
+      { title: "Status pages", url: "/admin/pages", icon: Global },
+      { title: "Settings", url: "/admin/settings", icon: Settings },
     ],
   },
 ]
