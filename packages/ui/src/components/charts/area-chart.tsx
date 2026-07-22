@@ -14,6 +14,7 @@ import {
 } from "react";
 import { cn } from "@/lib/utils";
 import { Area, type AreaProps } from "./area";
+import { ChartDataTable } from "./chart-data-table";
 import type { LineConfig, Margin } from "./chart-context";
 import { ChartLoadingLabel } from "./chart-loading-label";
 import {
@@ -231,6 +232,19 @@ export function AreaChart({
       ref={containerRef}
       style={{ aspectRatio, touchAction: "none", ...style }}
     >
+      {data.length > 0 && (
+        <ChartDataTable
+          caption="Response time chart"
+          columns={Object.keys(data[0] ?? {})}
+          rows={data.map((row) => {
+            const out: Record<string, string> = {}
+            for (const [k, v] of Object.entries(row)) {
+              out[k] = String(v)
+            }
+            return out
+          })}
+        />
+      )}
       <ParentSize debounceTime={10}>
         {({ width, height }) => (
           <ChartInner

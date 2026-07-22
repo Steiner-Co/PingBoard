@@ -16,6 +16,7 @@ import {
 } from "react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_ANIMATION_EASING } from "./animation";
+import { ChartDataTable } from "./chart-data-table";
 import type { BarProps } from "./bar";
 import { topSquareCenterY } from "./bar-squares-layout";
 import {
@@ -698,6 +699,19 @@ export function BarChart({
       ref={containerRef}
       style={{ aspectRatio }}
     >
+      {data.length > 0 && (
+        <ChartDataTable
+          caption="Bar chart data"
+          columns={Object.keys(data[0] ?? {})}
+          rows={data.map((row) => {
+            const out: Record<string, string> = {}
+            for (const [k, v] of Object.entries(row)) {
+              out[k] = String(v)
+            }
+            return out
+          })}
+        />
+      )}
       <ParentSize debounceTime={10}>
         {({ width, height }) => (
           <ChartInner
