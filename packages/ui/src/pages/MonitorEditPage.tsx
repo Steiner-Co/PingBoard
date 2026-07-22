@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { HugeiconsIcon } from '@hugeicons/react'
-import { ArrowLeft01Icon, Tick02Icon } from '@hugeicons/core-free-icons'
+import { Icon } from '@/components/ui/icon'
+import ArrowLeft from '@solar-icons/react/csr/arrows/ArrowLeft'
+import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
 import { ALLOWED_INTERVALS_SECONDS } from '@pingboard/shared'
 
 import { Panel } from '@/components/panel'
@@ -269,7 +270,7 @@ export function MonitorEditPage() {
         onClick={() => guardedNavigate(`/admin/monitors/${id}`)}
         className="self-start -ml-3"
       >
-        <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
+        <Icon icon={ArrowLeft} className="h-4 w-4" />
         Back to monitor
       </Button>
 
@@ -392,7 +393,7 @@ export function MonitorEditPage() {
         </Button>
         <Button type="submit" disabled={save.isPending || !isDirty}>
           {save.isPending ? 'Saving…' : 'Save changes'}
-          <HugeiconsIcon icon={Tick02Icon} className="h-4 w-4" />
+          <Icon icon={CheckCircle} className="h-4 w-4" />
         </Button>
       </div>
     </form>

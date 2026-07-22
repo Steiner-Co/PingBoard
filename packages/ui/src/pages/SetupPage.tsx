@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { HugeiconsIcon } from '@hugeicons/react'
-import { ViewIcon, ViewOffIcon } from '@hugeicons/core-free-icons'
+import { Icon } from '@/components/ui/icon'
+import Eye from '@solar-icons/react/csr/security/Eye'
+import EyeClosed from '@solar-icons/react/csr/security/EyeClosed'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/contexts/auth'
 
@@ -86,10 +87,9 @@ export function SetupPage() {
                   aria-pressed={reveal}
                   className="absolute right-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-[color,background-color,transform] duration-150 ease-out hover:bg-accent hover:text-foreground active:scale-[0.97]"
                 >
-                  <HugeiconsIcon
-                    icon={reveal ? ViewOffIcon : ViewIcon}
+                  <Icon
+                    icon={reveal ? EyeClosed : Eye}
                     className="size-4"
-                    strokeWidth={2}
                   />
                 </button>
               </div>

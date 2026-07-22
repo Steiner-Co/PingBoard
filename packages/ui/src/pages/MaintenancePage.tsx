@@ -2,12 +2,9 @@ import { Fragment } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
-import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  Calendar03Icon,
-  Delete02Icon,
-  LinkSquare02Icon,
-} from '@hugeicons/core-free-icons'
+import { Icon } from '@/components/ui/icon'
+import TrashBinTrash from '@solar-icons/react/csr/ui/TrashBinTrash'
+import LinkIcon from '@solar-icons/react/csr/text-formatting/Link'
 import Calendar from '@solar-icons/react/csr/time/Calendar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -558,10 +555,9 @@ function WindowRow({
           to={`/admin/monitors/${w.monitorId}`}
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline underline-offset-4"
         >
-          <HugeiconsIcon
-            icon={LinkSquare02Icon}
+          <Icon
+            icon={LinkIcon}
             className="h-3 w-3"
-            strokeWidth={2}
           />
           {w.monitorName}
         </Link>
@@ -578,7 +574,7 @@ function WindowRow({
         className="shrink-0 self-start"
         onClick={() => onDelete(w)}
       >
-        <HugeiconsIcon icon={Delete02Icon} className="h-3 w-3" />
+        <Icon icon={TrashBinTrash} className="h-3 w-3" />
       </Button>
     </div>
   )

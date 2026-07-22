@@ -2,12 +2,10 @@ import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { z } from 'zod'
-import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  Activity03Icon,
-  PlusSignCircleIcon,
-  Search01Icon,
-} from '@hugeicons/core-free-icons'
+import { Icon } from '@/components/ui/icon'
+import Pulse from '@solar-icons/react/csr/medicine/Pulse'
+import AddSquare from '@solar-icons/react/csr/ui/AddSquare'
+import Magnifier from '@solar-icons/react/csr/search/Magnifier'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -160,10 +158,9 @@ export function DashboardPage() {
           <FleetChart />
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative w-full sm:max-w-xs">
-              <HugeiconsIcon
-                icon={Search01Icon}
+              <Icon
+                icon={Magnifier}
                 className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
-                strokeWidth={2}
               />
               <Input
                 value={search}
@@ -396,7 +393,7 @@ function EmptyDashboard() {
     <div className="px-4 lg:px-6">
       <div className="flex min-h-[420px] flex-col items-center justify-center gap-6 rounded-none border border-dashed bg-card/50 p-10 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
-          <HugeiconsIcon icon={Activity03Icon} className="h-6 w-6" strokeWidth={1.75} />
+          <Icon icon={Pulse} className="h-6 w-6" />
         </div>
         <div className="space-y-2 max-w-md">
           <h2 className="text-2xl font-semibold tracking-tight">No monitors yet</h2>
@@ -408,7 +405,7 @@ function EmptyDashboard() {
         </div>
         <Button asChild>
           <Link to="/admin/monitors/new" className="gap-2">
-            <HugeiconsIcon icon={PlusSignCircleIcon} className="h-4 w-4" />
+            <Icon icon={AddSquare} className="h-4 w-4" />
             Add your first check
           </Link>
         </Button>

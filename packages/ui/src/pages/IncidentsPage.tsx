@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
-import { HugeiconsIcon } from '@hugeicons/react'
-import { CheckmarkCircle01Icon, Edit02Icon, AlertCircleIcon } from '@hugeicons/core-free-icons'
+import { Icon } from '@/components/ui/icon'
+import DangerCircle from '@solar-icons/react/csr/ui/DangerCircle'
+import Pen from '@solar-icons/react/csr/messages/Pen'
 import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
 import { Bar, BarChart, BarXAxis, ChartTooltip, Grid } from '@/components/charts'
 
@@ -470,7 +471,7 @@ export function IncidentsPage() {
         <CardContent>
           {filtered.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
-              <HugeiconsIcon icon={AlertCircleIcon} className="h-5 w-5 opacity-50" />
+              <Icon icon={DangerCircle} className="h-5 w-5 opacity-50" />
               No incidents match this filter.
             </div>
           ) : (
@@ -727,7 +728,7 @@ function Row({ incident }: { incident: IncidentRow }) {
             <span className={incident.note ? '' : 'text-muted-foreground italic'}>
               {incident.note ?? 'Add a note…'}
             </span>
-            <HugeiconsIcon icon={Edit02Icon} className="h-3 w-3 opacity-40" />
+            <Icon icon={Pen} className="h-3 w-3 opacity-40" />
           </button>
         )}
       </TableCell>
@@ -739,7 +740,7 @@ function Row({ incident }: { incident: IncidentRow }) {
             onClick={() => resolve.mutate()}
             disabled={resolve.isPending}
           >
-            <HugeiconsIcon icon={CheckmarkCircle01Icon} className="h-3 w-3" />
+            <Icon icon={CheckCircle} className="h-3 w-3" />
             Resolve
           </Button>
         )}
