@@ -105,22 +105,21 @@ export function ThemeSwitch({ iconSize = 16, className }: ThemeSwitchProps) {
         'relative flex items-center justify-center size-9 rounded-full',
         'bg-accent border border-border cursor-pointer',
         'text-foreground outline-none',
+        'transition-[background-color,transform] duration-150 ease-out',
+        'hover:bg-card active:scale-[0.97]',
         'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         className,
       )}
-      whileHover={{ scale: 1.08 }}
-      whileTap={{ scale: 0.88 }}
-      transition={{ type: 'spring', duration: 0.2, bounce: 0 }}
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       <AnimatePresence mode="wait" initial={false}>
         {isDark ? (
           <motion.span
             key="moon"
-            initial={{ rotate: -45, scale: 0.5, opacity: 0 }}
-            animate={{ rotate: 0, scale: 1, opacity: 1 }}
-            exit={{ rotate: 45, scale: 0.5, opacity: 0 }}
-            transition={{ type: 'spring', duration: 0.28, bounce: 0.3 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
             className="flex items-center justify-center"
           >
             <MoonIcon size={iconSize} />
@@ -128,10 +127,10 @@ export function ThemeSwitch({ iconSize = 16, className }: ThemeSwitchProps) {
         ) : (
           <motion.span
             key="sun"
-            initial={{ rotate: 45, scale: 0.5, opacity: 0 }}
-            animate={{ rotate: 0, scale: 1, opacity: 1 }}
-            exit={{ rotate: -45, scale: 0.5, opacity: 0 }}
-            transition={{ type: 'spring', duration: 0.28, bounce: 0.3 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
             className="flex items-center justify-center"
           >
             <SunIcon size={iconSize} />
