@@ -1,17 +1,15 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  AlertCircleIcon,
-  ArrowDown01Icon,
-  ArrowRight01Icon,
-  Calendar03Icon,
-  Certificate01Icon,
-  Globe02Icon,
-  PlusSignCircleIcon,
-  Search01Icon,
-} from '@hugeicons/core-free-icons'
+import { Icon } from '@/components/ui/icon'
+import DangerCircle from '@solar-icons/react/csr/ui/DangerCircle'
+import ArrowDown from '@solar-icons/react/csr/arrows/ArrowDown'
+import ArrowRight from '@solar-icons/react/csr/arrows/ArrowRight'
+import Calendar from '@solar-icons/react/csr/time/Calendar'
+import VerifiedCheck from '@solar-icons/react/csr/money/VerifiedCheck'
+import Global from '@solar-icons/react/csr/map/Global'
+import AddSquare from '@solar-icons/react/csr/ui/AddSquare'
+import Magnifier from '@solar-icons/react/csr/search/Magnifier'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -228,10 +226,9 @@ export function DomainsPage() {
       <div className="flex flex-col gap-4 px-4 lg:px-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative w-full sm:max-w-xs">
-            <HugeiconsIcon
-              icon={Search01Icon}
+            <Icon
+              icon={Magnifier}
               className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
-              strokeWidth={2}
             />
             <Input
               value={search}
@@ -242,7 +239,7 @@ export function DomainsPage() {
             />
           </div>
           <Button onClick={() => setAddOpen(true)} className="gap-2 self-start sm:self-auto">
-            <HugeiconsIcon icon={PlusSignCircleIcon} className="h-4 w-4" />
+            <Icon icon={AddSquare} className="h-4 w-4" />
             Add domain
           </Button>
         </div>
@@ -305,17 +302,16 @@ function DomainRow({
         aria-expanded={open}
         className="flex w-full items-center gap-3 px-4 py-3 text-left outline-none transition-colors hover:bg-accent/40 focus-visible:bg-accent/40"
       >
-        <HugeiconsIcon
-          icon={open ? ArrowDown01Icon : ArrowRight01Icon}
+        <Icon
+          icon={open ? ArrowDown : ArrowRight}
           className="h-4 w-4 shrink-0 text-muted-foreground"
-          strokeWidth={2}
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="truncate font-medium">{d.name}</span>
             {d.channelIds.length === 0 && (
               <Badge variant="warning" className="gap-1">
-                <HugeiconsIcon icon={AlertCircleIcon} className="h-3 w-3" strokeWidth={2} />
+                <Icon icon={DangerCircle} className="h-3 w-3" />
                 Not alerting
               </Badge>
             )}
@@ -376,7 +372,7 @@ function EditableFact({
   if (!value) {
     return (
       <Button size="sm" variant="outline" onClick={onEdit} className="h-7 gap-1.5">
-        <HugeiconsIcon icon={Calendar03Icon} className="h-3.5 w-3.5" strokeWidth={2} />
+        <Icon icon={Calendar} className="h-3.5 w-3.5" />
         {setLabel}
       </Button>
     )
@@ -444,7 +440,7 @@ function DomainDetail({
       <Field label="SSL issuer">
         {f.sslIssuer ? (
           <span className="inline-flex items-center gap-1.5">
-            <HugeiconsIcon icon={Certificate01Icon} className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
+            <Icon icon={VerifiedCheck} className="h-3.5 w-3.5 text-muted-foreground" />
             {f.sslIssuer}
           </span>
         ) : (
@@ -843,7 +839,7 @@ function EmptyDomains({ onAdd }: { onAdd: () => void }) {
     <div className="px-4 lg:px-6">
       <div className="flex min-h-[420px] flex-col items-center justify-center gap-6 rounded-none border border-dashed bg-card/50 p-10 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
-          <HugeiconsIcon icon={Globe02Icon} className="h-6 w-6" strokeWidth={1.75} />
+          <Icon icon={Global} className="h-6 w-6" />
         </div>
         <div className="max-w-md space-y-2">
           <h2 className="text-2xl font-semibold tracking-tight">No domains tracked yet</h2>
@@ -854,7 +850,7 @@ function EmptyDomains({ onAdd }: { onAdd: () => void }) {
           </p>
         </div>
         <Button onClick={onAdd} className="gap-2">
-          <HugeiconsIcon icon={PlusSignCircleIcon} className="h-4 w-4" />
+          <Icon icon={AddSquare} className="h-4 w-4" />
           Add your first domain
         </Button>
       </div>
