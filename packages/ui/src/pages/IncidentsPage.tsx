@@ -694,28 +694,34 @@ function Row({ incident }: { incident: IncidentRow }) {
       </TableCell>
       <TableCell className="text-sm w-full">
         {editing ? (
-          <div className="flex gap-2">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              saveNote.mutate(draft.trim() || null)
+            }}
+            className="flex gap-2"
+          >
             <Input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="Add a note…"
               autoFocus
               onKeyDown={(e) => {
-                if (e.key === 'Enter') saveNote.mutate(draft.trim() || null)
                 if (e.key === 'Escape') setEditing(false)
               }}
             />
-            <Button
-              size="sm"
-              onClick={() => saveNote.mutate(draft.trim() || null)}
-              disabled={saveNote.isPending}
-            >
+            <Button type="submit" size="sm" disabled={saveNote.isPending}>
               Save
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setEditing(false)}
+            >
               Cancel
             </Button>
-          </div>
+          </form>
         ) : (
           <button
             type="button"

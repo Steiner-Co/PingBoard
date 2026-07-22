@@ -443,28 +443,34 @@ function IncidentRow({
       </TableCell>
       <TableCell className="text-sm w-full">
         {editing ? (
-          <div className="flex gap-2">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              saveNote.mutate(draft.trim() || null)
+            }}
+            className="flex gap-2"
+          >
             <Input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="e.g. Cloudflare outage, not our fault"
               autoFocus
               onKeyDown={(e) => {
-                if (e.key === 'Enter') saveNote.mutate(draft.trim() || null)
                 if (e.key === 'Escape') setEditing(false)
               }}
             />
-            <Button
-              size="sm"
-              onClick={() => saveNote.mutate(draft.trim() || null)}
-              disabled={saveNote.isPending}
-            >
+            <Button type="submit" size="sm" disabled={saveNote.isPending}>
               Save
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setEditing(false)}
+            >
               Cancel
             </Button>
-          </div>
+          </form>
         ) : (
           <button
             type="button"
@@ -628,7 +634,13 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
       </CardHeader>
       <CardContent className="space-y-4">
         {adding && (
-          <div className="rounded-md border bg-muted/30 p-4 space-y-3">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              submit()
+            }}
+            className="rounded-md border bg-muted/30 p-4 space-y-3"
+          >
             <Input
               placeholder="Title (e.g. Database upgrade)"
               value={title}
@@ -659,11 +671,11 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
             </div>
             {error && <div className="text-sm text-destructive">{error}</div>}
             <div className="flex justify-end">
-              <Button size="sm" onClick={submit} disabled={create.isPending}>
+              <Button type="submit" size="sm" disabled={create.isPending}>
                 Save window
               </Button>
             </div>
-          </div>
+          </form>
         )}
 
         {windows.length === 0 ? (
