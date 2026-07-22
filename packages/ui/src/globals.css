@@ -138,6 +138,16 @@
   --sidebar-ring: oklch(0.65 0.19 152);
 }
 
+/*
+ * Motion easings — Emil's curves, not Tailwind built-ins.
+ * Built-in ease-out plateaus visibly at 150ms; quart-out finishes decisive.
+ */
+:root {
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 /* Bklit chart variables mapped onto the blueprint tokens, so charts inherit
    the app's palette and theme switching without per-chart color props. These
    reference theme-aware vars, so one definition covers light and dark. */

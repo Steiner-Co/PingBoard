@@ -63,7 +63,7 @@ export interface BarChartProps {
   xDataKey?: string;
   /** Chart margins */
   margin?: Partial<Margin>;
-  /** Animation duration in milliseconds. Default: 1100 */
+  /** Animation duration in milliseconds. Default: 800 */
   animationDuration?: number;
   /** CSS easing for bar grow transitions. */
   animationEasing?: string;
@@ -673,7 +673,7 @@ export function BarChart({
   data,
   xDataKey = "name",
   margin: marginProp,
-  animationDuration = 1100,
+  animationDuration = 800,
   animationEasing = DEFAULT_ANIMATION_EASING,
   enterTransition,
   revealSignature,
