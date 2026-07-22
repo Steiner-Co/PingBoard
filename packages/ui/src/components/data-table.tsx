@@ -39,15 +39,13 @@ import {
 import { api } from "@/lib/api"
 import { Panel } from "@/components/panel"
 import { cn } from "@/lib/utils"
-import { HugeiconsIcon } from "@hugeicons/react"
-import {
-  PauseIcon,
-  PlayIcon,
-  MoreVerticalCircle01Icon,
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
-  Delete02Icon,
-} from "@hugeicons/core-free-icons"
+import { Icon } from "@/components/ui/icon"
+import MenuDots from "@solar-icons/react/csr/ui/MenuDots"
+import Pause from "@solar-icons/react/csr/video/Pause"
+import Play from "@solar-icons/react/csr/video/Play"
+import TrashBinTrash from "@solar-icons/react/csr/ui/TrashBinTrash"
+import ArrowLeft from "@solar-icons/react/csr/arrows/ArrowLeft"
+import ArrowRight from "@solar-icons/react/csr/arrows/ArrowRight"
 
 export const schema = z.object({
   id: z.string(),
@@ -190,7 +188,7 @@ function RowActions({ row }: { row: MonitorRow }) {
           size="icon"
           aria-label={`Actions for ${row.name}`}
         >
-          <HugeiconsIcon icon={MoreVerticalCircle01Icon} strokeWidth={2} />
+          <Icon icon={MenuDots} />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
@@ -201,8 +199,8 @@ function RowActions({ row }: { row: MonitorRow }) {
           onSelect={() => togglePause.mutate(!isPaused)}
           disabled={togglePause.isPending}
         >
-          <HugeiconsIcon
-            icon={isPaused ? PlayIcon : PauseIcon}
+          <Icon
+            icon={isPaused ? Play : Pause}
             className="h-3.5 w-3.5"
           />
           {isPaused ? "Resume" : "Pause"}
@@ -221,7 +219,7 @@ function RowActions({ row }: { row: MonitorRow }) {
             if (ok) remove.mutate()
           }}
         >
-          <HugeiconsIcon icon={Delete02Icon} className="h-3.5 w-3.5" />
+          <Icon icon={TrashBinTrash} className="h-3.5 w-3.5" />
           Delete
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -362,7 +360,7 @@ export function DataTable({
                 disabled={!table.getCanPreviousPage()}
               >
                 <span className="sr-only">Go to previous page</span>
-                <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
+                <Icon icon={ArrowLeft} />
               </Button>
               <Button
                 variant="outline"
@@ -372,7 +370,7 @@ export function DataTable({
                 disabled={!table.getCanNextPage()}
               >
                 <span className="sr-only">Go to next page</span>
-                <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
+                <Icon icon={ArrowRight} />
               </Button>
             </div>
           )}
