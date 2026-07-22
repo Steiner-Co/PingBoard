@@ -30,10 +30,14 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
               <SidebarMenuButton
                 asChild
                 tooltip="Add monitor"
-                className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground active:scale-[0.98]"
+                className="min-w-8 bg-primary text-primary-foreground duration-150 ease-out hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground active:scale-[0.97]"
               >
                 <GuardedLink to="/admin/monitors/new">
-                  <HugeiconsIcon icon={PlusSignCircleIcon} strokeWidth={2} />
+                  <HugeiconsIcon
+                    icon={PlusSignCircleIcon}
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  />
                   <span>Add monitor</span>
                 </GuardedLink>
               </SidebarMenuButton>
@@ -64,7 +68,11 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                       className="data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium"
                     >
                       <GuardedLink to={item.url}>
-                        <HugeiconsIcon icon={item.icon} strokeWidth={2} />
+                        <HugeiconsIcon
+                          icon={item.icon}
+                          strokeWidth={2}
+                          aria-hidden="true"
+                        />
                         <span>{item.title}</span>
                       </GuardedLink>
                     </SidebarMenuButton>

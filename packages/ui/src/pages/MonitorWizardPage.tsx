@@ -225,7 +225,7 @@ export function MonitorWizardPage() {
   }
 
   return (
-    <form onSubmit={handleFormSubmit} className="px-4 lg:px-6 max-w-3xl flex flex-col gap-6">
+    <form onSubmit={handleFormSubmit} className="px-4 lg:px-6 max-w-3xl mx-auto w-full flex flex-col gap-6">
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">Add monitor</h1>
         <p className="text-muted-foreground text-sm mt-1">

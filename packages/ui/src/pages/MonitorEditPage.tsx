@@ -78,10 +78,15 @@ export function MonitorEditPage() {
     setTags(m.tags)
     setChannelIds(detail.data.channelIds)
     setConfig({ ...m.config })
-    if (m.type === 'http') {
-      const headers = (m.config as { headers?: Record<string, string> }).headers
-      setHeadersText(headers ? JSON.stringify(headers, null, 2) : '')
-    }
+    const headersJson =
+      m.type === 'http'
+        ? JSON.stringify(
+            (m.config as { headers?: Record<string, string> }).headers ?? {},
+            null,
+            2,
+          )
+        : ''
+    setHeadersText(headersJson)
     setError(null)
     setHeadersError(null)
     setBaseline({
@@ -93,6 +98,7 @@ export function MonitorEditPage() {
       tags: m.tags.join(','),
       channels: [...detail.data.channelIds].sort().join(','),
       config: JSON.stringify(m.config),
+      headersText: headersJson,
     })
   }, [detail.data])
 
@@ -108,6 +114,7 @@ export function MonitorEditPage() {
     tags: string
     channels: string
     config: string
+    headersText: string
   } | null>(null)
 
   const isDirty = useMemo(() => {
@@ -120,7 +127,8 @@ export function MonitorEditPage() {
       baseline.retryCount !== retryCount ||
       baseline.tags !== tags.join(',') ||
       baseline.channels !== [...channelIds].sort().join(',') ||
-      baseline.config !== JSON.stringify(config)
+      baseline.config !== JSON.stringify(config) ||
+      baseline.headersText !== headersText
     )
   }, [
     baseline,
@@ -132,6 +140,7 @@ export function MonitorEditPage() {
     tags,
     channelIds,
     config,
+    headersText,
   ])
 
   const confirmDiscard = useCallback(

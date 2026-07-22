@@ -75,8 +75,16 @@ export function AdminLayout() {
         ['--header-height' as string]: 'calc(var(--spacing) * 12)',
       }}
     >
+      {/* Screen-reader / keyboard-only: jump past the sidebar+header to the
+          main content. Visually hidden until focused. */}
+      <a
+        href="#main-content"
+        className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-3 focus-visible:top-3 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-foreground focus-visible:px-3 focus-visible:py-1.5 focus-visible:text-sm focus-visible:text-background focus-visible:shadow-lg"
+      >
+        Skip to main content
+      </a>
       <AppSidebar variant="inset" user={sidebarUser} onLogout={handleLogout} />
-      <SidebarInset>
+      <SidebarInset id="main-content" tabIndex={-1}>
         <SiteHeader title={title} />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">

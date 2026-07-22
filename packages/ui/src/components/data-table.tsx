@@ -234,7 +234,6 @@ export function DataTable({
 }: {
   data: z.infer<typeof schema>[]
 }) {
-  const navigate = useNavigate()
   const [rowSelection, setRowSelection] = React.useState({})
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
@@ -301,8 +300,6 @@ export function DataTable({
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
-                    className="cursor-pointer"
-                    onClick={() => navigate(`/admin/monitors/${row.original.id}`)}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
@@ -429,7 +426,6 @@ function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
     <div className="flex items-center gap-2 min-w-0">
       <Link
         to={`/admin/monitors/${item.id}`}
-        onClick={(e) => e.stopPropagation()}
         className="truncate font-medium text-foreground hover:underline underline-offset-4"
       >
         {item.name}
