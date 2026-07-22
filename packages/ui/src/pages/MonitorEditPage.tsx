@@ -8,6 +8,7 @@ import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
 import { ALLOWED_INTERVALS_SECONDS } from '@pingboard/shared'
 
 import { Panel } from '@/components/panel'
+import { QueryError } from '@/components/QueryError'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -377,6 +378,8 @@ export function MonitorEditPage() {
       <ChannelsCard
         channels={channelsQuery.data?.channels ?? []}
         loading={channelsQuery.isLoading}
+        error={channelsQuery.isError}
+        onRetry={() => void channelsQuery.refetch()}
         selected={channelIds}
         setSelected={setChannelIds}
       />
@@ -696,11 +699,15 @@ function DnsConfig({
 function ChannelsCard({
   channels,
   loading,
+  error,
+  onRetry,
   selected,
   setSelected,
 }: {
   channels: NotificationChannel[]
   loading: boolean
+  error?: boolean
+  onRetry?: () => void
   selected: string[]
   setSelected: (next: string[]) => void
 }) {
@@ -713,7 +720,12 @@ function ChannelsCard({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {loading ? (
+        {error ? (
+          <QueryError
+            subject="notification channels"
+            onRetry={() => onRetry?.()}
+          />
+        ) : loading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : channels.length === 0 ? (
           <p className="text-sm text-muted-foreground">

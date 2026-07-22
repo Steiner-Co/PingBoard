@@ -13,6 +13,7 @@ import { ALLOWED_INTERVALS_SECONDS } from '@pingboard/shared'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { QueryError } from '@/components/QueryError'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -386,6 +387,11 @@ export function MonitorWizardPage() {
             <>
               {channelsQuery.isLoading ? (
                 <p className="text-sm text-muted-foreground">Loading channels…</p>
+              ) : channelsQuery.isError ? (
+                <QueryError
+                  subject="notification channels"
+                  onRetry={() => void channelsQuery.refetch()}
+                />
               ) : channelsQuery.data?.channels.length === 0 ? (
                 <div className="rounded-md border border-dashed bg-muted/30 p-4 text-center space-y-2">
                   <p className="text-sm text-muted-foreground">
