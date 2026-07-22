@@ -50,25 +50,6 @@ function MoonIcon({ size = 16 }: { size?: number }) {
 }
 
 // no-op fallback for browsers that don't support startViewTransition
-function applyWithTransition(
-  origin: { x: number; y: number },
-  apply: () => void,
-) {
-  if (!document.startViewTransition || window.innerWidth > 1800) {
-    apply();
-    return;
-  }
-  const { x, y } = origin;
-  const endRadius = Math.hypot(
-    Math.max(x, window.innerWidth - x),
-    Math.max(y, window.innerHeight - y),
-  );
-  document.documentElement.style.setProperty("--vt-x", `${x}px`);
-  document.documentElement.style.setProperty("--vt-y", `${y}px`);
-  document.documentElement.style.setProperty("--vt-r", `${endRadius}px`);
-  document.startViewTransition(apply).ready.catch(() => {});
-}
-
 interface ThemeSwitchProps {
   /** @default 16 */
   iconSize?: number;
@@ -78,65 +59,54 @@ interface ThemeSwitchProps {
 function ThemeSwitch({ iconSize = 16, className }: ThemeSwitchProps) {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [hoverCapable, setHoverCapable] = useState(false);
-  const originRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => setMounted(true), []);
 
-  // motion's whileHover also fires on touch taps, where it reads as a stuck
-  // hover state. Tailwind auto-gates CSS `hover:`; this is the JS equivalent.
-  useEffect(() => {
-    const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
-    const sync = () => setHoverCapable(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-
-  const toggle = (e: React.MouseEvent<HTMLButtonElement>) => {
-    originRef.current = { x: e.clientX, y: e.clientY };
-    const next = resolvedTheme === "dark" ? "light" : "dark";
-    applyWithTransition(originRef.current, () => setTheme(next));
+  // Theme switching is a 100+/day control; the previous full-screen circular
+  // view-transition wipe was the largest motion in the product and over-
+  // stated the moment. Just swap the theme — the icon crossfade already
+  // signals the change.
+  const toggle = () => {
+    const next = resolvedTheme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
   };
 
-  const isDark = resolvedTheme === "dark";
+  const isDark = resolvedTheme === 'dark';
 
   if (!mounted) {
     // placeholder to prevent layout shift before hydration
-    return <div aria-hidden className={cn("size-7 rounded-md", className)} />;
+    return <div aria-hidden className={cn('size-7 rounded-md', className)} />;
   }
 
   return (
-    <motion.button
+    <button
+      type="button"
       onClick={toggle}
       className={cn(
-        "relative flex items-center justify-center size-7 rounded-md",
-        "cursor-pointer text-muted-foreground outline-none",
-        "transition-colors duration-150 ease-out hover:bg-accent hover:text-foreground",
-        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        'relative flex items-center justify-center size-7 rounded-md',
+        'cursor-pointer text-muted-foreground outline-none',
+        'transition-[background-color,transform] duration-150 ease-out',
+        'hover:bg-accent hover:text-foreground active:scale-[0.97]',
+        'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         className,
       )}
-      whileHover={hoverCapable ? { scale: 1.06 } : undefined}
-      whileTap={{ scale: 0.97 }}
-      transition={{ type: "spring", duration: 0.15, bounce: 0 }}
-      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
-      {/* Sync mode (not "wait") so exit and enter overlap into one crossfade —
-          the swap rides on top of the circular view transition and must not
-          outlast it. Icons are absolute so the overlap costs no layout. */}
-      <AnimatePresence initial={false}>
+      {/* mode="wait" so exit completes before enter — clean crossfade, no
+          layout shift. Icons are absolute so the overlap costs no layout. */}
+      <AnimatePresence mode="wait" initial={false}>
         <motion.span
-          key={isDark ? "moon" : "sun"}
+          key={isDark ? 'moon' : 'sun'}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.15, ease: "easeOut" }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
           className="absolute inset-0 flex items-center justify-center"
         >
           {isDark ? <MoonIcon size={iconSize} /> : <SunIcon size={iconSize} />}
         </motion.span>
       </AnimatePresence>
-    </motion.button>
+    </button>
   );
 }
 
