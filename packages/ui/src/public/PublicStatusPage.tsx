@@ -108,14 +108,19 @@ export function PublicStatusPage({ slug }: { slug: string }) {
 
   if (query.isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" aria-label="Loading">
-        <span className="relative inline-flex h-2.5 w-2.5">
+      <div
+        role="status"
+        aria-live="polite"
+        className="min-h-screen flex items-center justify-center"
+      >
+        <span aria-hidden className="relative inline-flex h-2.5 w-2.5">
           <span
             className="absolute inset-0 rounded-full bg-success opacity-40 motion-safe:animate-ping"
             style={{ animationDuration: '1.5s' }}
           />
           <span className="relative inline-block h-2.5 w-2.5 rounded-full bg-success" />
         </span>
+        <span className="sr-only">Loading status…</span>
       </div>
     )
   }
@@ -288,10 +293,27 @@ function OverallStatusBanner({
           ? 'border-warning/30 bg-warning/5'
           : 'border-border bg-muted/40'
 
+  const dotLabel =
+    tone === 'up'
+      ? 'All systems operational'
+      : tone === 'down'
+        ? 'Some systems are down'
+        : tone === 'degraded'
+          ? 'Some systems are degraded'
+          : 'Status unknown'
+
   return (
     <Panel className={cn('p-5 sm:p-6', surface)}>
-      <div className="flex items-center gap-3">
-        <span className="relative inline-flex h-2.5 w-2.5 shrink-0">
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="flex items-center gap-3"
+      >
+        <span
+          aria-hidden
+          className="relative inline-flex h-2.5 w-2.5 shrink-0"
+        >
           <span
             className={cn(
               'absolute inset-0 rounded-full opacity-40 motion-safe:animate-ping',
@@ -299,13 +321,23 @@ function OverallStatusBanner({
             )}
             style={{ animationDuration: '3s' }}
           />
-          <span className={cn('relative inline-block h-2.5 w-2.5 rounded-full', dot)} />
+          <span
+            aria-hidden
+            className={cn('relative inline-block h-2.5 w-2.5 rounded-full', dot)}
+          />
         </span>
         <div className="text-xl sm:text-2xl font-semibold tracking-tight">
-          {text}
+          <span className="sr-only">{dotLabel}.</span>
+          <span aria-hidden>{text}</span>
         </div>
       </div>
-      <div className="text-xs sm:text-sm text-muted-foreground mt-2 ml-5">
+      <div
+        // Ticks independently via the parent's formatRelative(updatedAt) so
+        // the age keeps counting up if refetches start failing. aria-live=off
+        // so we don't spam screen readers with every 30s refresh.
+        aria-live="off"
+        className="text-xs sm:text-sm text-muted-foreground mt-2 ml-5"
+      >
         {detail && <>{detail} · </>}
         Updated {formatRelative(updatedAt)}
         {stale && (
@@ -331,6 +363,14 @@ function MonitorRow({
         : monitor.currentStatus === 'degraded'
           ? 'bg-warning'
           : 'bg-muted-foreground'
+  const statusLabel =
+    monitor.currentStatus === 'up'
+      ? 'Operational'
+      : monitor.currentStatus === 'down'
+        ? 'Down'
+        : monitor.currentStatus === 'degraded'
+          ? 'Degraded'
+          : 'Unknown'
 
   return (
     <div className="p-4 sm:p-5 flex flex-col gap-3">
@@ -341,7 +381,11 @@ function MonitorRow({
               Maintenance
             </span>
           ) : (
-            <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', dotColor)} />
+            <span
+              role="img"
+              aria-label={`${monitor.name} status: ${statusLabel}`}
+              className={cn('h-2.5 w-2.5 rounded-full shrink-0', dotColor)}
+            />
           )}
           <span className="font-medium truncate">{monitor.name}</span>
         </div>
@@ -597,10 +641,15 @@ function MaintenanceBanner({
   const monitorName = (id: string) =>
     monitors.find((m) => m.id === id)?.name ?? 'a monitor'
   return (
-    <Panel className="border-warning/30 bg-warning/5 p-5 space-y-3">
-      <div className="text-sm font-semibold text-warning">
+    <Panel
+      role="status"
+      aria-live="polite"
+      aria-atomic="false"
+      className="border-warning/30 bg-warning/5 p-5 space-y-3"
+    >
+      <h2 className="text-sm font-semibold text-warning">
         Scheduled maintenance
-      </div>
+      </h2>
       <ul className="space-y-2 text-sm">
         {active.map((w) => (
           <li key={w.id} className="space-y-0.5">
@@ -644,10 +693,15 @@ function PasswordGate({
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!password) return
+    if (!password) {
+      setError('Enter the password to continue.')
+      inputRef.current?.focus()
+      return
+    }
     setSubmitting(true)
     setError(null)
     try {
@@ -658,11 +712,13 @@ function PasswordGate({
         body: JSON.stringify({ password }),
       })
       if (res.status === 401) {
-        setError('Incorrect password')
+        setError('Incorrect password. Try again.')
+        inputRef.current?.focus()
         return
       }
       if (!res.ok) {
         setError('Something went wrong. Try again.')
+        inputRef.current?.focus()
         return
       }
       setPassword('')
@@ -682,18 +738,37 @@ function PasswordGate({
             Enter the password to view this page.
           </p>
         </div>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          placeholder="Password"
-          autoFocus
-        />
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        <div className="space-y-1.5">
+          <label htmlFor="gate-password" className="text-xs font-medium">
+            Password
+          </label>
+          <input
+            ref={inputRef}
+            id="gate-password"
+            name="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? 'gate-error' : undefined}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            autoFocus
+          />
+        </div>
+        {error && (
+          <p
+            id="gate-error"
+            role="alert"
+            className="text-sm text-destructive"
+          >
+            {error}
+          </p>
+        )}
         <button
           type="submit"
-          disabled={!password || submitting}
+          aria-busy={submitting}
+          disabled={submitting}
           className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-[background-color,transform] duration-150 ease-out active:scale-[0.98]"
         >
           {submitting ? 'Checking…' : 'Continue'}

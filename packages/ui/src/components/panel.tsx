@@ -36,12 +36,13 @@ function Tick({ className }: { className: string }) {
 export function Panel({
   className,
   children,
-}: {
-  className?: string
-  children: React.ReactNode
-}) {
+  ...props
+}: React.ComponentProps<"section">) {
   return (
-    <section className={cn("relative border border-border/70 bg-card", className)}>
+    <section
+      className={cn("relative border border-border/70 bg-card", className)}
+      {...props}
+    >
       <CornerTicks />
       {children}
     </section>
