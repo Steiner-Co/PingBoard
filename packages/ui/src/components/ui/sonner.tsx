@@ -1,7 +1,11 @@
 import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { CheckmarkCircle02Icon, InformationCircleIcon, Alert02Icon, MultiplicationSignCircleIcon, Loading03Icon } from "@hugeicons/core-free-icons"
+import { Icon } from "@/components/ui/icon"
+import CheckCircle from "@solar-icons/react/csr/ui/CheckCircle"
+import InfoCircle from "@solar-icons/react/csr/ui/InfoCircle"
+import DangerTriangle from "@solar-icons/react/csr/ui/DangerTriangle"
+import CloseCircle from "@solar-icons/react/csr/ui/CloseCircle"
+import Refresh from "@solar-icons/react/csr/arrows/Refresh"
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme()
@@ -11,20 +15,15 @@ const Toaster = ({ ...props }: ToasterProps) => {
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
       icons={{
-        success: (
-          <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="size-4" />
-        ),
-        info: (
-          <HugeiconsIcon icon={InformationCircleIcon} strokeWidth={2} className="size-4" />
-        ),
-        warning: (
-          <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} className="size-4" />
-        ),
-        error: (
-          <HugeiconsIcon icon={MultiplicationSignCircleIcon} strokeWidth={2} className="size-4" />
-        ),
+        success: <Icon icon={CheckCircle} className="size-4" />,
+        info: <Icon icon={InfoCircle} className="size-4" />,
+        warning: <Icon icon={DangerTriangle} className="size-4" />,
+        error: <Icon icon={CloseCircle} className="size-4" />,
         loading: (
-          <HugeiconsIcon icon={Loading03Icon} strokeWidth={2} className="size-4 animate-spin" />
+          <Icon
+            icon={Refresh}
+            className="size-4 motion-safe:animate-spin"
+          />
         ),
       }}
       style={
