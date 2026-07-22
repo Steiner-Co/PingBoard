@@ -2,20 +2,17 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
-import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  ArrowDown01Icon,
-  ArrowUp01Icon,
-  CheckmarkCircle01Icon,
-  Copy01Icon,
-  Edit02Icon,
-  GlobeIcon,
-  LinkSquare02Icon,
-  LockPasswordIcon,
-  MoreVerticalCircle01Icon,
-  PlusSignIcon,
-  Delete02Icon,
-} from '@hugeicons/core-free-icons'
+import { Icon } from '@/components/ui/icon'
+import ArrowDown from '@solar-icons/react/csr/arrows/ArrowDown'
+import ArrowUp from '@solar-icons/react/csr/arrows/ArrowUp'
+import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
+import Copy from '@solar-icons/react/csr/ui/Copy'
+import Pen from '@solar-icons/react/csr/messages/Pen'
+import SquareArrowRightUp from '@solar-icons/react/csr/arrows/SquareArrowRightUp'
+import LockPassword from '@solar-icons/react/csr/security/LockPassword'
+import MenuDots from '@solar-icons/react/csr/ui/MenuDots'
+import AddSquare from '@solar-icons/react/csr/ui/AddSquare'
+import TrashBinTrash from '@solar-icons/react/csr/ui/TrashBinTrash'
 import Global from '@solar-icons/react/csr/map/Global'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -167,7 +164,7 @@ export function StatusPagesPage() {
       <div className="flex items-center justify-between gap-4">
         <p className="text-muted-foreground">Public dashboards you can share with users.</p>
         <Button onClick={() => setOpen(true)}>
-          <HugeiconsIcon icon={PlusSignIcon} className="h-4 w-4" />
+          <Icon icon={AddSquare} className="h-4 w-4" />
           Create page
         </Button>
       </div>
@@ -183,7 +180,7 @@ export function StatusPagesPage() {
           description="Create a public page to share live status with users, customers, or stakeholders. Each page can list a custom subset of your monitors."
           action={
             <Button onClick={() => setOpen(true)}>
-              <HugeiconsIcon icon={PlusSignIcon} className="h-4 w-4" />
+              <Icon icon={AddSquare} className="h-4 w-4" />
               Create your first page
             </Button>
           }
@@ -416,10 +413,9 @@ function PageRow({
           <span className="font-medium truncate">{page.title}</span>
           {page.passwordSet && (
             <Badge variant="warning" className="gap-1">
-              <HugeiconsIcon
-                icon={LockPasswordIcon}
+              <Icon
+                icon={LockPassword}
                 className="h-3 w-3"
-                strokeWidth={2}
               />
               Password
             </Badge>
@@ -442,12 +438,12 @@ function PageRow({
       <div className="flex shrink-0 items-center gap-2">
         <Button size="sm" variant="outline" asChild>
           <a href={`/${page.slug}`} target="_blank" rel="noreferrer">
-            <HugeiconsIcon icon={LinkSquare02Icon} className="h-3 w-3" />
+            <Icon icon={SquareArrowRightUp} className="h-3 w-3" />
             View
           </a>
         </Button>
         <Button size="sm" variant="outline" onClick={onEdit}>
-          <HugeiconsIcon icon={Edit02Icon} className="h-3 w-3" />
+          <Icon icon={Pen} className="h-3 w-3" />
           Edit
         </Button>
         <DropdownMenu>
@@ -457,16 +453,15 @@ function PageRow({
               variant="ghost"
               aria-label={`More actions for ${page.title}`}
             >
-              <HugeiconsIcon
-                icon={MoreVerticalCircle01Icon}
+              <Icon
+                icon={MenuDots}
                 className="h-3.5 w-3.5"
-                strokeWidth={2}
               />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={onSetPassword}>
-              <HugeiconsIcon icon={LockPasswordIcon} className="h-3.5 w-3.5" />
+              <Icon icon={LockPassword} className="h-3.5 w-3.5" />
               {page.passwordSet ? 'Change password' : 'Set password'}
             </DropdownMenuItem>
             {page.passwordSet && (
@@ -476,7 +471,7 @@ function PageRow({
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onSelect={onDelete}>
-              <HugeiconsIcon icon={Delete02Icon} className="h-3.5 w-3.5" />
+              <Icon icon={TrashBinTrash} className="h-3.5 w-3.5" />
               Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -506,13 +501,12 @@ function PublicUrl({ slug }: { slug: string }) {
     >
       <span className="truncate text-muted-foreground">{origin}</span>
       <span className="-ml-2 truncate font-medium text-foreground">/{slug}</span>
-      <HugeiconsIcon
-        icon={copied ? CheckmarkCircle01Icon : Copy01Icon}
+      <Icon
+        icon={copied ? CheckCircle : Copy}
         className={cn(
           'h-3 w-3 shrink-0 transition-colors',
           copied ? 'text-success' : 'text-muted-foreground/70',
         )}
-        strokeWidth={2}
       />
       <span className="sr-only">{copied ? 'Copied' : 'Copy'}</span>
     </button>
@@ -551,10 +545,9 @@ function CoveragePanel({
         </div>
       ) : unpublished.length === 0 ? (
         <div className="flex items-center gap-2.5 px-4 py-3.5">
-          <HugeiconsIcon
-            icon={CheckmarkCircle01Icon}
+          <Icon
+            icon={CheckCircle}
             className="h-4 w-4 shrink-0 text-success"
-            strokeWidth={2}
           />
           <span className="text-sm text-muted-foreground">
             {totalCount === 0
@@ -600,7 +593,7 @@ function CoveragePanel({
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button size="sm" variant="outline" className="shrink-0">
-                      <HugeiconsIcon icon={PlusSignIcon} className="h-3 w-3" />
+                      <Icon icon={AddSquare} className="h-3 w-3" />
                       Add to page
                     </Button>
                   </DropdownMenuTrigger>
@@ -1024,8 +1017,8 @@ function EditPageDialog({
                                 }
                                 onClick={() => moveOrder(m.id, -1)}
                               >
-                                <HugeiconsIcon
-                                  icon={ArrowUp01Icon}
+                                <Icon
+                                  icon={ArrowUp}
                                   className="h-3 w-3"
                                 />
                               </Button>
@@ -1040,8 +1033,8 @@ function EditPageDialog({
                                 }
                                 onClick={() => moveOrder(m.id, 1)}
                               >
-                                <HugeiconsIcon
-                                  icon={ArrowDown01Icon}
+                                <Icon
+                                  icon={ArrowDown}
                                   className="h-3 w-3"
                                 />
                               </Button>
