@@ -2,17 +2,15 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  ArrowLeft01Icon,
-  CheckmarkCircle01Icon,
-  Delete02Icon,
-  Edit02Icon,
-  MoreVerticalCircle01Icon,
-  PauseIcon,
-  PlayIcon,
-  Settings02Icon,
-} from '@hugeicons/core-free-icons'
+import { Icon } from '@/components/ui/icon'
+import ArrowLeft from '@solar-icons/react/csr/arrows/ArrowLeft'
+import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
+import TrashBinTrash from '@solar-icons/react/csr/ui/TrashBinTrash'
+import Pen from '@solar-icons/react/csr/messages/Pen'
+import MenuDots from '@solar-icons/react/csr/ui/MenuDots'
+import Pause from '@solar-icons/react/csr/video/Pause'
+import Play from '@solar-icons/react/csr/video/Play'
+import Settings from '@solar-icons/react/csr/settings/Settings'
 import { Input } from '@/components/ui/input'
 import { curveMonotoneX } from '@visx/curve'
 import { Area, AreaChart, ChartTooltip, Grid, XAxis } from '@/components/charts'
@@ -141,7 +139,7 @@ export function MonitorDetailPage() {
     <div className="px-4 lg:px-6 flex flex-col gap-6">
       <Button variant="ghost" size="sm" asChild className="self-start -ml-3">
         <Link to="/admin" className="gap-2">
-          <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
+          <Icon icon={ArrowLeft} className="h-4 w-4" />
           Back to dashboard
         </Link>
       </Button>
@@ -161,7 +159,7 @@ export function MonitorDetailPage() {
         <div className="flex gap-2 shrink-0">
           <Button variant="default" asChild>
             <Link to={`/admin/monitors/${monitor.id}/edit`} className="gap-2">
-              <HugeiconsIcon icon={Settings02Icon} className="h-4 w-4" />
+              <Icon icon={Settings} className="h-4 w-4" />
               Edit
             </Link>
           </Button>
@@ -171,9 +169,9 @@ export function MonitorDetailPage() {
             disabled={togglePause.isPending}
           >
             {monitor.paused ? (
-              <HugeiconsIcon icon={PlayIcon} className="h-4 w-4" />
+              <Icon icon={Play} className="h-4 w-4" />
             ) : (
-              <HugeiconsIcon icon={PauseIcon} className="h-4 w-4" />
+              <Icon icon={Pause} className="h-4 w-4" />
             )}
             {monitor.paused ? 'Resume' : 'Pause'}
           </Button>
@@ -185,11 +183,7 @@ export function MonitorDetailPage() {
                 aria-label="More actions"
                 disabled={deleteMutation.isPending}
               >
-                <HugeiconsIcon
-                  icon={MoreVerticalCircle01Icon}
-                  className="h-4 w-4"
-                  strokeWidth={2}
-                />
+                <Icon icon={MenuDots} className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -206,7 +200,7 @@ export function MonitorDetailPage() {
                   if (ok) deleteMutation.mutate()
                 }}
               >
-                <HugeiconsIcon icon={Delete02Icon} className="h-3.5 w-3.5" />
+                <Icon icon={TrashBinTrash} className="h-3.5 w-3.5" />
                 Delete monitor
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -483,7 +477,7 @@ function IncidentRow({
             <span className={incident.note ? '' : 'text-muted-foreground italic'}>
               {incident.note ?? 'Add a note…'}
             </span>
-            <HugeiconsIcon icon={Edit02Icon} className="h-3 w-3 opacity-40" />
+            <Icon icon={Pen} className="h-3 w-3 opacity-40" />
           </button>
         )}
       </TableCell>
@@ -495,7 +489,7 @@ function IncidentRow({
             onClick={() => resolve.mutate()}
             disabled={resolve.isPending}
           >
-            <HugeiconsIcon icon={CheckmarkCircle01Icon} className="h-3 w-3" />
+            <Icon icon={CheckCircle} className="h-3 w-3" />
             Resolve
           </Button>
         )}
@@ -728,7 +722,7 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
                       if (ok) remove.mutate(w.id)
                     }}
                   >
-                    <HugeiconsIcon icon={Delete02Icon} className="h-3 w-3" />
+                    <Icon icon={TrashBinTrash} className="h-3 w-3" />
                   </Button>
                 </div>
               )
