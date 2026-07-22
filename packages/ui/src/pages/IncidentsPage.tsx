@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { CheckmarkCircle01Icon, Edit02Icon, AlertCircleIcon } from '@hugeicons/core-free-icons'
+import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
 import { Bar, BarChart, BarXAxis, ChartTooltip, Grid } from '@/components/charts'
 
 import { Badge } from '@/components/ui/badge'
@@ -318,7 +319,7 @@ export function IncidentsPage() {
           Every down → up transition across all monitors.
         </p>
         <EmptyState
-          icon={CheckmarkCircle01Icon}
+          icon={CheckCircle}
           title="No incidents on record"
           description="Quiet is good. When a monitor flips down, it'll appear here with start time, duration, and any notes you add."
         />

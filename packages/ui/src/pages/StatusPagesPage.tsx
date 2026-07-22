@@ -16,6 +16,7 @@ import {
   PlusSignIcon,
   Delete02Icon,
 } from '@hugeicons/core-free-icons'
+import Global from '@solar-icons/react/csr/map/Global'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/EmptyState'
@@ -177,7 +178,7 @@ export function StatusPagesPage() {
         <PagesSkeleton />
       ) : pageList.length === 0 ? (
         <EmptyState
-          icon={GlobeIcon}
+          icon={Global}
           title="No status pages yet"
           description="Create a public page to share live status with users, customers, or stakeholders. Each page can list a custom subset of your monitors."
           action={

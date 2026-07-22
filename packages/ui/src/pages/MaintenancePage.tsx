@@ -8,6 +8,7 @@ import {
   Delete02Icon,
   LinkSquare02Icon,
 } from '@hugeicons/core-free-icons'
+import Calendar from '@solar-icons/react/csr/time/Calendar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/EmptyState'
@@ -113,7 +114,7 @@ export function MaintenancePage() {
       <div className="px-4 lg:px-6 flex flex-col gap-6">
         <p className="text-muted-foreground">{INTRO}</p>
         <EmptyState
-          icon={Calendar03Icon}
+          icon={Calendar}
           title="No maintenance windows scheduled"
           description="Windows are scheduled from a monitor's detail page — open the monitor you're planning downtime for and add one under Maintenance windows."
           action={

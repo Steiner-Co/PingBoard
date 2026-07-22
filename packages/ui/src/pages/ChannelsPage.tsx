@@ -13,6 +13,7 @@ import {
   CheckmarkCircle02Icon,
   ArrowRight01Icon,
 } from '@hugeicons/core-free-icons'
+import Bell from '@solar-icons/react/csr/notifications/Bell'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/EmptyState'
@@ -187,7 +188,7 @@ export function ChannelsPage() {
       <div className="px-4 lg:px-6 flex flex-col gap-6">
         {header}
         <EmptyState
-          icon={Notification03Icon}
+          icon={Bell}
           title="No notification channels yet"
           description={
             monitorList.length > 0

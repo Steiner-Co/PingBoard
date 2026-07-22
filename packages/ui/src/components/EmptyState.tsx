@@ -1,9 +1,10 @@
-import type { ReactNode } from 'react'
-import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react'
+import type { ReactNode, ComponentType } from 'react'
+import type { IconProps as SolarIconProps } from '@solar-icons/react'
+import { Icon } from '@/components/ui/icon'
 import { cn } from '@/lib/utils'
 
 interface EmptyStateProps {
-  icon: IconSvgElement
+  icon: ComponentType<SolarIconProps>
   title: string
   description?: string
   action?: ReactNode
@@ -28,7 +29,7 @@ export function EmptyState({
         aria-hidden="true"
         className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground"
       >
-        <HugeiconsIcon icon={icon} className="h-5 w-5" strokeWidth={1.75} />
+        <Icon icon={icon} className="h-5 w-5" />
       </div>
       <div className="space-y-2 max-w-md">
         <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
