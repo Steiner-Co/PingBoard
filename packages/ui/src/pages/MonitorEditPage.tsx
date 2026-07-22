@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -182,24 +182,65 @@ export function MonitorEditPage() {
       toast.success('Monitor saved')
       navigate(`/admin/monitors/${id}`)
     },
-    onError: (err) => setError(err instanceof Error ? err.message : 'Failed'),
+    onError: (err) => {
+      setError(err instanceof Error ? err.message : 'Failed')
+      setErrorField(null)
+    },
   })
+
+  const nameRef = useRef<HTMLInputElement>(null)
+  const targetRef = useRef<HTMLInputElement>(null)
+  const timeoutRef = useRef<HTMLInputElement>(null)
+  const retryRef = useRef<HTMLInputElement>(null)
+  const headersRef = useRef<HTMLTextAreaElement>(null)
+  // Field whose error to announce. `null` means form-level (general) error.
+  const [errorField, setErrorField] = useState<
+    'name' | 'target' | 'timeout' | 'retry' | 'headers' | null
+  >(null)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    if (!name.trim()) return setError('Name is required')
-    if (!target.trim()) return setError('Target is required')
-    if (timeoutSeconds === '') return setError('Timeout is required')
-    if (retryCount === '') return setError('Retries is required')
+    setHeadersError(null)
+    setErrorField(null)
+    if (!name.trim()) {
+      setError('Name is required')
+      setErrorField('name')
+      nameRef.current?.focus()
+      return
+    }
+    if (!target.trim()) {
+      setError('Target is required')
+      setErrorField('target')
+      targetRef.current?.focus()
+      return
+    }
+    if (timeoutSeconds === '') {
+      setError('Timeout is required')
+      setErrorField('timeout')
+      timeoutRef.current?.focus()
+      return
+    }
+    if (retryCount === '') {
+      setError('Retries is required')
+      setErrorField('retry')
+      retryRef.current?.focus()
+      return
+    }
 
     const builtConfig = buildConfigPayload(detail.data!.monitor.type, config)
-    if ('error' in builtConfig) return setError(builtConfig.error)
+    if ('error' in builtConfig) {
+      setError(builtConfig.error)
+      // Config-level errors don't map to a single input; let focus land on Save.
+      return
+    }
 
     if (detail.data!.monitor.type === 'http') {
       const headers = parseHeaders(headersText)
       if ('error' in headers) {
         setHeadersError(headers.error)
+        setErrorField('headers')
+        headersRef.current?.focus()
         return
       }
       setHeadersError(null)
@@ -291,15 +332,25 @@ export function MonitorEditPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="edit-name">Name</Label>
-            <Input id="edit-name" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input
+              ref={nameRef}
+              id="edit-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              aria-invalid={errorField === 'name' || undefined}
+              aria-describedby={errorField === 'name' ? 'edit-error' : undefined}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="edit-target">Target</Label>
             <Input
+              ref={targetRef}
               id="edit-target"
               value={target}
               onChange={(e) => setTarget(e.target.value)}
               className="font-mono text-xs"
+              aria-invalid={errorField === 'target' || undefined}
+              aria-describedby={errorField === 'target' ? 'edit-error' : undefined}
             />
             <p className="text-xs text-muted-foreground">
               {monitor.type === 'http' && 'Full URL, including protocol.'}
@@ -330,6 +381,7 @@ export function MonitorEditPage() {
             <div className="space-y-2">
               <Label htmlFor="edit-timeout">Timeout (seconds)</Label>
               <Input
+                ref={timeoutRef}
                 id="edit-timeout"
                 type="number"
                 min={1}
@@ -340,11 +392,14 @@ export function MonitorEditPage() {
                     e.target.value === '' ? '' : Number(e.target.value),
                   )
                 }
+                aria-invalid={errorField === 'timeout' || undefined}
+                aria-describedby={errorField === 'timeout' ? 'edit-error' : undefined}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-retry">Retries before down</Label>
               <Input
+                ref={retryRef}
                 id="edit-retry"
                 type="number"
                 min={0}
@@ -370,6 +425,8 @@ export function MonitorEditPage() {
           headersText={headersText}
           setHeadersText={setHeadersText}
           headersError={headersError}
+          headersRef={headersRef}
+          errorField={errorField}
         />
       )}
       {monitor.type === 'tcp' && <TcpConfig config={config} setConfig={setConfig} />}
@@ -384,7 +441,16 @@ export function MonitorEditPage() {
         setSelected={setChannelIds}
       />
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p
+          id="edit-error"
+          role="alert"
+          aria-live="polite"
+          className="text-sm text-destructive"
+        >
+          {error}
+        </p>
+      )}
 
       <div className="flex justify-end gap-2">
         <Button
@@ -411,12 +477,16 @@ function HttpConfig({
   headersText,
   setHeadersText,
   headersError,
+  headersRef,
+  errorField,
 }: {
   config: Record<string, unknown>
   setConfig: (next: Record<string, unknown>) => void
   headersText: string
   setHeadersText: (next: string) => void
   headersError: string | null
+  headersRef: React.RefObject<HTMLTextAreaElement>
+  errorField: 'name' | 'target' | 'timeout' | 'retry' | 'headers' | null
 }) {
   const set = <K extends string>(key: K, value: unknown) =>
     setConfig({ ...config, [key]: value })
@@ -489,14 +559,26 @@ function HttpConfig({
         <div className="space-y-2">
           <Label htmlFor="http-headers">Request headers (JSON)</Label>
           <textarea
+            ref={headersRef}
             id="http-headers"
             value={headersText}
             onChange={(e) => setHeadersText(e.target.value)}
             placeholder='{"Authorization": "Bearer …"}'
             rows={4}
+            aria-invalid={errorField === 'headers' || undefined}
+            aria-describedby={errorField === 'headers' ? 'http-headers-error' : undefined}
             className="w-full rounded-md border border-input bg-input/20 px-2 py-1.5 text-xs font-mono outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
           />
-          {headersError && <p className="text-xs text-destructive">{headersError}</p>}
+          {headersError && (
+            <p
+              id="http-headers-error"
+              role="alert"
+              aria-live="polite"
+              className="text-xs text-destructive"
+            >
+              {headersError}
+            </p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="http-body">Request body</Label>
