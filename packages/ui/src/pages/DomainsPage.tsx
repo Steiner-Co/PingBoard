@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Icon } from '@/components/ui/icon'
@@ -553,6 +553,7 @@ function AddDomainDialog({ open, onClose }: { open: boolean; onClose: () => void
   const [renewalDate, setRenewalDate] = useState('')
   const [selected, setSelected] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
+  const domainRef = useRef<HTMLInputElement>(null)
 
   const channels = useQuery({
     queryKey: ['channels'],
@@ -576,7 +577,10 @@ function AddDomainDialog({ open, onClose }: { open: boolean; onClose: () => void
       reset()
       onClose()
     },
-    onError: (err) => setError(err instanceof Error ? err.message : 'Failed to add domain'),
+    onError: (err) => {
+      setError(err instanceof Error ? err.message : 'Failed to add domain')
+      domainRef.current?.focus()
+    },
   })
 
   const normalized = domain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '')
@@ -621,6 +625,7 @@ function AddDomainDialog({ open, onClose }: { open: boolean; onClose: () => void
           <div className="space-y-2">
             <Label htmlFor="domain-name">Domain</Label>
             <Input
+              ref={domainRef}
               id="domain-name"
               name="domain"
               value={domain}
@@ -630,6 +635,8 @@ function AddDomainDialog({ open, onClose }: { open: boolean; onClose: () => void
               autoComplete="off"
               autoCapitalize="none"
               spellCheck={false}
+              aria-invalid={!!error || undefined}
+              aria-describedby={error ? 'add-domain-error' : undefined}
             />
             {normalized && normalized !== domain.trim().toLowerCase() && (
               <p className="text-xs text-muted-foreground">
@@ -691,7 +698,16 @@ function AddDomainDialog({ open, onClose }: { open: boolean; onClose: () => void
             )}
           </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <p
+              id="add-domain-error"
+              role="alert"
+              aria-live="polite"
+              className="text-sm text-destructive"
+            >
+              {error}
+            </p>
+          )}
           <DialogFooter>
             <Button
               type="button"
@@ -825,7 +841,16 @@ function EditDetailsDialog({
             The renewal date drives expiry alerts. Registered date and registrar
             are informational.
           </p>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <p
+              id="edit-domain-error"
+              role="alert"
+              aria-live="polite"
+              className="text-sm text-destructive"
+            >
+              {error}
+            </p>
+          )}
           <DialogFooter className="sm:justify-between">
             {hasManual ? (
               <Button

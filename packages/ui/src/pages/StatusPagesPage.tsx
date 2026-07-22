@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -692,6 +692,7 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [theme, setTheme] = useState<Theme>('auto')
   const [selected, setSelected] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
+  const slugRef = useRef<HTMLInputElement>(null)
 
   const monitors = useQuery({
     queryKey: ['monitors'],
@@ -716,7 +717,10 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
       reset()
       onClose()
     },
-    onError: (err) => setError(err instanceof Error ? err.message : 'Failed'),
+    onError: (err) => {
+      setError(err instanceof Error ? err.message : 'Failed')
+      slugRef.current?.focus()
+    },
   })
 
   const handleSubmit = () => {
@@ -748,11 +752,14 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
             <div className="space-y-2">
               <Label htmlFor="page-slug">Slug</Label>
               <Input
+                ref={slugRef}
                 id="page-slug"
                 name="slug"
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
                 placeholder="main"
+                aria-invalid={!!error || undefined}
+                aria-describedby={error ? 'page-dialog-error' : undefined}
               />
               <p className="text-xs text-muted-foreground">Public URL: /{slug || 'slug'}</p>
             </div>
@@ -1097,7 +1104,16 @@ function EditPageDialog({
                 public page (e.g. "API", "Web", "Database").
               </p>
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <p
+              id="page-dialog-error"
+              role="alert"
+              aria-live="polite"
+              className="text-sm text-destructive"
+            >
+              {error}
+            </p>
+          )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
