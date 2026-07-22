@@ -58,7 +58,7 @@ export function StatusSection() {
         lines={['Status pages', 'your users trust']}
         subtitle="Publish a branded page in a click. Incidents and maintenance windows appear automatically — fewer “is it down?” tickets."
       />
-      <div className="shrink-0 md:-mr-5 md:rotate-[4deg] lg:-mr-14">
+      <div aria-hidden="true" className="shrink-0 md:-mr-5 md:rotate-[4deg] lg:-mr-14">
         <StatusPageMock />
       </div>
     </section>

@@ -49,7 +49,7 @@ export function DomainsSection() {
         lines={['Every domain and', 'cert in one place']}
         subtitle="Expiry, registrar, nameservers and SSL for your whole portfolio — auto-detected via RDAP, or added by hand. Alerts before anything lapses."
       />
-      <div className="shrink-0 md:-mr-5 md:rotate-[4deg] lg:-mr-14">
+      <div aria-hidden="true" className="shrink-0 md:-mr-5 md:rotate-[4deg] lg:-mr-14">
         <DomainsMock />
       </div>
     </section>

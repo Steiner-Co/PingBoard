@@ -40,7 +40,7 @@ export function Hero() {
       {/* Wider than the panel so it breaks out onto the grey on both sides;
           the parent's items-center keeps the overflow symmetric (no mx-auto,
           which would collapse to 0 and pin it left). */}
-      <div className="w-full md:w-[696px] md:max-w-none">
+      <div aria-hidden="true" className="w-full md:w-[696px] md:max-w-none">
         <DashboardMock />
       </div>
     </section>

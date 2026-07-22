@@ -58,7 +58,7 @@ export function AppSidebar({ user, onLogout, ...props }: AppSidebarProps) {
                 {/* No pulse: constant motion in a dashboard fatigues. The dot
                     is still the brand mark; quiet is part of "all good". */}
                 <span className="inline-block size-2.5 rounded-full bg-success" />
-                <span className="text-base font-semibold">PingBoard</span>
+                <span translate="no" className="text-base font-semibold">PingBoard</span>
               </GuardedLink>
             </SidebarMenuButton>
           </SidebarMenuItem>

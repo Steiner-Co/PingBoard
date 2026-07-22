@@ -37,7 +37,7 @@ export function ChannelsSection() {
         lines={['Alerts where your', 'team already is']}
         subtitle="Email, webhooks, Discord, Slack or ntfy — wired up in seconds, routed per monitor, and silenced during maintenance."
       />
-      <div className="shrink-0 md:-ml-5 md:-rotate-[4deg] lg:-ml-14">
+      <div aria-hidden="true" className="shrink-0 md:-ml-5 md:-rotate-[4deg] lg:-ml-14">
         <ChannelsMock />
       </div>
     </section>

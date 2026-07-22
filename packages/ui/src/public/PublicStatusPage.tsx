@@ -251,7 +251,7 @@ export function PublicStatusPage({ slug }: { slug: string }) {
               rel="noreferrer noopener"
               className="hover:text-foreground hover:underline underline-offset-4"
             >
-              PingBoard
+              <span translate="no">PingBoard</span>
             </a>
           </span>
         </footer>
