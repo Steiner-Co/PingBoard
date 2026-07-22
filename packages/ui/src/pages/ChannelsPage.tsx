@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
+import { Checkbox } from '@/components/ui/checkbox'
 import AddSquare from '@solar-icons/react/csr/ui/AddSquare'
 import TestTube from '@solar-icons/react/csr/medicine/TestTube'
 import TrashBinTrash from '@solar-icons/react/csr/ui/TrashBinTrash'
@@ -840,11 +841,9 @@ function ChannelDialog({
           />
           {isEdit && (
             <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={enabled}
-                onChange={(e) => setEnabled(e.target.checked)}
-                className="h-4 w-4 rounded border-input"
+                onCheckedChange={(checked) => setEnabled(checked === true)}
               />
               Enabled (receives notifications)
             </label>

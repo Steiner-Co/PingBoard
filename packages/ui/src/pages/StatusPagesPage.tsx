@@ -3,6 +3,7 @@ import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/rea
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
+import { Checkbox } from '@/components/ui/checkbox'
 import ArrowDown from '@solar-icons/react/csr/arrows/ArrowDown'
 import ArrowUp from '@solar-icons/react/csr/arrows/ArrowUp'
 import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
@@ -818,15 +819,13 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
                 const checked = selected.includes(m.id)
                 return (
                   <label key={m.id} className="flex items-center gap-3 p-3 cursor-pointer hover:bg-accent/50">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={checked}
-                      onChange={() =>
+                      onCheckedChange={() =>
                         setSelected((prev) =>
                           prev.includes(m.id) ? prev.filter((id) => id !== m.id) : [...prev, m.id],
                         )
                       }
-                      className="h-4 w-4"
                     />
                     <div className="flex-1 text-sm">
                       <div className="font-medium">{m.name}</div>
@@ -1033,11 +1032,9 @@ function EditPageDialog({
                     const checked = selected.has(m.id)
                     return (
                       <div key={m.id} className="p-3 flex items-center gap-3">
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={checked}
-                          onChange={() => toggle(m.id)}
-                          className="h-4 w-4"
+                          onCheckedChange={() => toggle(m.id)}
                         />
                         <div className="flex-1 min-w-0 text-sm">
                           <div className="font-medium truncate">{m.name}</div>

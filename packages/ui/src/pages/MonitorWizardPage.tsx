@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
+import { Checkbox } from '@/components/ui/checkbox'
 import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
 import ArrowLeft from '@solar-icons/react/csr/arrows/ArrowLeft'
 import ArrowRight from '@solar-icons/react/csr/arrows/ArrowRight'
@@ -426,17 +427,15 @@ export function MonitorWizardPage() {
                           checked ? 'bg-accent border-primary' : 'hover:bg-accent/50',
                         )}
                       >
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={checked}
-                          onChange={() =>
+                          onCheckedChange={() =>
                             setSelectedChannels((prev) =>
                               prev.includes(c.id)
                                 ? prev.filter((id) => id !== c.id)
                                 : [...prev, c.id],
                             )
                           }
-                          className="h-4 w-4"
                         />
                         <div className="flex-1">
                           <div className="text-sm font-medium">{c.name}</div>

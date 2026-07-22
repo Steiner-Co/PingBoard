@@ -5,6 +5,7 @@ import { ALLOWED_RETENTION_DAYS } from '@pingboard/shared'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -565,11 +566,9 @@ function SmtpCard() {
             </div>
           </div>
           <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.secure}
-              onChange={(e) => set('secure')(e.target.checked)}
-              className="h-4 w-4 rounded border-input"
+              onCheckedChange={(checked) => set('secure')(checked === true)}
             />
             Use TLS (auto-enabled for port 465)
           </label>

@@ -12,6 +12,8 @@ import { QueryError } from '@/components/QueryError'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -558,7 +560,7 @@ function HttpConfig({
         </div>
         <div className="space-y-2">
           <Label htmlFor="http-headers">Request headers (JSON)</Label>
-          <textarea
+          <Textarea
             ref={headersRef}
             id="http-headers"
             value={headersText}
@@ -567,7 +569,7 @@ function HttpConfig({
             rows={4}
             aria-invalid={errorField === 'headers' || undefined}
             aria-describedby={errorField === 'headers' ? 'http-headers-error' : undefined}
-            className="w-full rounded-md border border-input bg-input/20 px-2 py-1.5 text-xs font-mono outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="font-mono text-xs"
           />
           {headersError && (
             <p
@@ -582,13 +584,13 @@ function HttpConfig({
         </div>
         <div className="space-y-2">
           <Label htmlFor="http-body">Request body</Label>
-          <textarea
+          <Textarea
             id="http-body"
             value={c.body ?? ''}
             onChange={(e) => set('body', e.target.value || undefined)}
             placeholder="Optional"
             rows={3}
-            className="w-full rounded-md border border-input bg-input/20 px-2 py-1.5 text-xs font-mono outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="font-mono text-xs"
           />
         </div>
         <div className="space-y-2">
@@ -825,17 +827,15 @@ function ChannelsCard({
                     checked ? 'bg-accent border-primary' : 'hover:bg-accent/50',
                   )}
                 >
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={checked}
-                    onChange={() =>
+                    onCheckedChange={() =>
                       setSelected(
                         checked
                           ? selected.filter((id) => id !== c.id)
                           : [...selected, c.id],
                       )
                     }
-                    className="h-4 w-4"
                   />
                   <div className="flex-1">
                     <div className="text-sm font-medium">{c.name}</div>
