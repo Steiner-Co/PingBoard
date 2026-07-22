@@ -1,5 +1,5 @@
-import { HugeiconsIcon } from '@hugeicons/react'
-import { AlertCircleIcon } from '@hugeicons/core-free-icons'
+import { Icon } from '@/components/ui/icon'
+import DangerCircle from '@solar-icons/react/csr/ui/DangerCircle'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -26,7 +26,7 @@ export function QueryError({ subject, onRetry, className }: QueryErrorProps) {
       )}
     >
       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-        <HugeiconsIcon icon={AlertCircleIcon} className="h-5 w-5" strokeWidth={1.75} />
+        <Icon icon={DangerCircle} className="h-5 w-5" />
       </div>
       <div className="max-w-sm space-y-1">
         <h2 className="text-sm font-medium">Couldn't load {subject}</h2>

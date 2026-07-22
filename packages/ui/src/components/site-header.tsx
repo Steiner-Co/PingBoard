@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { LinkSquare02Icon } from "@hugeicons/core-free-icons"
+import { Icon } from "@/components/ui/icon"
+import SquareArrowRightUp from "@solar-icons/react/csr/arrows/SquareArrowRightUp"
 
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
@@ -48,7 +48,7 @@ export function SiteHeader({ title = "Dashboard" }: { title?: string }) {
               rel="noreferrer noopener"
               className={statusLinkClass}
             >
-              <HugeiconsIcon icon={LinkSquare02Icon} className="size-3.5" strokeWidth={2} />
+              <Icon icon={SquareArrowRightUp} className="size-3.5" />
               Status page
             </a>
           ) : pages.isPending ? (
