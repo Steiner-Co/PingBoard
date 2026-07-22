@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -44,7 +45,16 @@ export function MonitorWizardPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const confirm = useConfirm()
-  const [step, setStep] = useState(0)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const stepParam = searchParams.get('step')
+  const step = stepParam != null ? Math.max(0, Math.min(2, Number(stepParam) || 0)) : 0
+  const setStep = (n: number) => {
+    const clamped = Math.max(0, Math.min(2, n))
+    const next = new URLSearchParams(searchParams)
+    if (clamped === 0) next.delete('step')
+    else next.set('step', String(clamped))
+    setSearchParams(next, { replace: true })
+  }
   const [target, setTarget] = useState('')
   const [typeOverride, setTypeOverride] = useState<MonitorType | 'auto'>('auto')
   const [name, setName] = useState('')
