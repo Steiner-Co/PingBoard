@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select'
 import { useConfirm } from '@/components/confirm-provider'
 import { Panel } from '@/components/panel'
+import { QueryError } from '@/components/QueryError'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api } from '@/lib/api'
 import { useAuth } from '@/contexts/auth'
@@ -310,10 +311,10 @@ function RetentionCard() {
           <Select
             value={days != null ? String(days) : undefined}
             onValueChange={(v) => void change(Number(v))}
-            disabled={query.isLoading || update.isPending}
+            disabled={query.isLoading || query.isError || update.isPending}
           >
             <SelectTrigger id="retention-days" className="w-[180px]">
-              <SelectValue placeholder="Loading…" />
+              <SelectValue placeholder={query.isError ? 'Unavailable' : 'Loading…'} />
             </SelectTrigger>
             <SelectContent>
               {ALLOWED_RETENTION_DAYS.map((d) => (
@@ -327,6 +328,18 @@ function RetentionCard() {
             <span className="text-xs text-muted-foreground">Saving…</span>
           )}
         </div>
+        {query.isError && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Couldn't load the current retention.{' '}
+            <button
+              type="button"
+              onClick={() => query.refetch()}
+              className="text-foreground underline underline-offset-4"
+            >
+              Try again
+            </button>
+          </p>
+        )}
       </CardContent>
     </Card>
   )
@@ -376,6 +389,19 @@ function SmtpCard() {
     setRevealPassword(!query.data.smtp.passwordSet)
     setTouched(false)
   }, [query.data])
+
+  if (query.isError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Email defaults (SMTP)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <QueryError subject="SMTP settings" onRetry={() => query.refetch()} />
+        </CardContent>
+      </Card>
+    )
+  }
 
   const update = useMutation({
     mutationFn: (smtp: Record<string, unknown>) =>
