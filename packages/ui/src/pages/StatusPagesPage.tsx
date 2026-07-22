@@ -737,27 +737,52 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
           <DialogTitle>Create status page</DialogTitle>
           <DialogDescription>Public, shareable, and updates live.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            handleSubmit()
+          }}
+          className="space-y-4"
+        >
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-2">
               <Label htmlFor="page-slug">Slug</Label>
-              <Input id="page-slug" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="main" />
+              <Input
+                id="page-slug"
+                name="slug"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                placeholder="main"
+              />
               <p className="text-xs text-muted-foreground">Public URL: /{slug || 'slug'}</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="page-title">Title</Label>
-              <Input id="page-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="My Service Status" />
+              <Input
+                id="page-title"
+                name="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="My Service Status"
+              />
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="page-desc">Description</Label>
-            <Input id="page-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" />
+            <Input
+              id="page-desc"
+              name="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Optional"
+            />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-2">
               <Label htmlFor="page-password">Password (optional)</Label>
               <Input
                 id="page-password"
+                name="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -811,13 +836,15 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
             </div>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!slug.trim() || create.isPending}>
-            {create.isPending ? 'Creating…' : 'Create'}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!slug.trim() || create.isPending}>
+              {create.isPending ? 'Creating…' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )
@@ -950,11 +977,18 @@ function EditPageDialog({
         {detail.isLoading ? (
           <p className="text-sm text-muted-foreground py-8 text-center">Loading…</p>
         ) : (
-          <div className="space-y-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleSubmit()
+            }}
+            className="space-y-4"
+          >
             <div className="space-y-2">
               <Label htmlFor="edit-title">Title</Label>
               <Input
                 id="edit-title"
+                name="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
@@ -963,6 +997,7 @@ function EditPageDialog({
               <Label htmlFor="edit-desc">Description</Label>
               <Input
                 id="edit-desc"
+                name="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Optional"
@@ -1063,14 +1098,16 @@ function EditPageDialog({
               </p>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-          </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={save.isPending || detail.isLoading}>
+                {save.isPending ? 'Saving…' : 'Save changes'}
+              </Button>
+            </DialogFooter>
+          </form>
         )}
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={save.isPending || detail.isLoading}>
-            {save.isPending ? 'Saving…' : 'Save changes'}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

@@ -611,14 +611,20 @@ function AddDomainDialog({ open, onClose }: { open: boolean; onClose: () => void
             PingBoard watches its expiry, registrar, nameservers and SSL cert.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            handleSubmit()
+          }}
+          className="space-y-4"
+        >
           <div className="space-y-2">
             <Label htmlFor="domain-name">Domain</Label>
             <Input
               id="domain-name"
+              name="domain"
               value={domain}
               onChange={(e) => setDomain(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
               placeholder="example.com"
               autoFocus
               autoComplete="off"
@@ -639,6 +645,7 @@ function AddDomainDialog({ open, onClose }: { open: boolean; onClose: () => void
             </Label>
             <Input
               id="domain-renewal"
+              name="renewalDate"
               type="date"
               value={renewalDate}
               onChange={(e) => setRenewalDate(e.target.value)}
@@ -685,15 +692,19 @@ function AddDomainDialog({ open, onClose }: { open: boolean; onClose: () => void
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => (reset(), onClose())}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={create.isPending}>
-            {create.isPending ? 'Adding…' : 'Add domain'}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => (reset(), onClose())}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={create.isPending}>
+              {create.isPending ? 'Adding…' : 'Add domain'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )
@@ -770,12 +781,19 @@ function EditDetailsDialog({
             always take precedence over these.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            submit()
+          }}
+          className="space-y-4"
+        >
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="edit-expiry">Expires on</Label>
               <Input
                 id="edit-expiry"
+                name="expiry"
                 type="date"
                 value={expiry}
                 onChange={(e) => setExpiry(e.target.value)}
@@ -786,6 +804,7 @@ function EditDetailsDialog({
               <Label htmlFor="edit-registered">Registered on</Label>
               <Input
                 id="edit-registered"
+                name="registered"
                 type="date"
                 value={registered}
                 onChange={(e) => setRegistered(e.target.value)}
@@ -796,6 +815,7 @@ function EditDetailsDialog({
             <Label htmlFor="edit-registrar">Registrar</Label>
             <Input
               id="edit-registrar"
+              name="registrar"
               value={registrar}
               onChange={(e) => setRegistrar(e.target.value)}
               placeholder="e.g. Namecheap"
@@ -806,29 +826,30 @@ function EditDetailsDialog({
             are informational.
           </p>
           {error && <p className="text-sm text-destructive">{error}</p>}
-        </div>
-        <DialogFooter className="sm:justify-between">
-          {hasManual ? (
-            <Button
-              variant="ghost"
-              onClick={() => submit(true)}
-              disabled={save.isPending}
-              className="text-muted-foreground"
-            >
-              Clear all
-            </Button>
-          ) : (
-            <span />
-          )}
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button onClick={() => submit()} disabled={save.isPending}>
-              {save.isPending ? 'Saving…' : 'Save'}
-            </Button>
-          </div>
-        </DialogFooter>
+          <DialogFooter className="sm:justify-between">
+            {hasManual ? (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => submit(true)}
+                disabled={save.isPending}
+                className="text-muted-foreground"
+              >
+                Clear all
+              </Button>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={save.isPending}>
+                {save.isPending ? 'Saving…' : 'Save'}
+              </Button>
+            </div>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )
