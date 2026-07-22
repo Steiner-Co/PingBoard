@@ -2,16 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  Tick02Icon,
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
-  Cancel01Icon,
-  TestTube02Icon,
-  CheckmarkCircle01Icon,
-  AlertCircleIcon,
-} from '@hugeicons/core-free-icons'
+import { Icon } from '@/components/ui/icon'
+import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
+import ArrowLeft from '@solar-icons/react/csr/arrows/ArrowLeft'
+import ArrowRight from '@solar-icons/react/csr/arrows/ArrowRight'
+import CloseSquare from '@solar-icons/react/csr/ui/CloseSquare'
+import TestTube from '@solar-icons/react/csr/medicine/TestTube'
+import DangerCircle from '@solar-icons/react/csr/ui/DangerCircle'
 import { ALLOWED_INTERVALS_SECONDS } from '@pingboard/shared'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -327,7 +324,7 @@ export function MonitorWizardPage() {
                       onClick={() => testMutation.mutate()}
                       disabled={!effectiveTarget || testMutation.isPending}
                     >
-                      <HugeiconsIcon icon={TestTube02Icon} className="h-3 w-3" />
+                      <Icon icon={TestTube} className="h-3 w-3" />
                       {testMutation.isPending ? 'Checking…' : 'Test now'}
                     </Button>
                   </div>
@@ -455,7 +452,7 @@ export function MonitorWizardPage() {
           }}
           disabled={createMutation.isPending}
         >
-          <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
+          <Icon icon={ArrowLeft} className="h-4 w-4" />
           {step === 0 ? 'Cancel' : 'Back'}
         </Button>
         {/* Stays enabled when fields are missing — clicking it names the
@@ -464,12 +461,12 @@ export function MonitorWizardPage() {
           {step < STEPS.length - 1 ? (
             <>
               Continue
-              <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
+              <Icon icon={ArrowRight} className="h-4 w-4" />
             </>
           ) : (
             <>
               {createMutation.isPending ? 'Creating…' : 'Create monitor'}
-              <HugeiconsIcon icon={Tick02Icon} className="h-4 w-4" />
+              <Icon icon={CheckCircle} className="h-4 w-4" />
             </>
           )}
         </Button>
@@ -495,7 +492,7 @@ function Stepper({ current }: { current: number }) {
               i > current && 'bg-muted text-muted-foreground',
             )}
           >
-            {i < current ? <HugeiconsIcon icon={Tick02Icon} className="h-3 w-3" /> : i + 1}
+            {i < current ? <Icon icon={CheckCircle} className="h-3 w-3" /> : i + 1}
           </span>
           <span className={cn(i === current ? 'font-medium' : 'text-muted-foreground')}>
             {label}
@@ -568,7 +565,7 @@ export function TagInput({
               className="opacity-60 hover:opacity-100"
               aria-label={`Remove ${tag}`}
             >
-              <HugeiconsIcon icon={Cancel01Icon} className="h-3 w-3" />
+              <Icon icon={CloseSquare} className="h-3 w-3" />
             </button>
           </Badge>
         ))}
@@ -608,11 +605,11 @@ export function TagInput({
 
 function TestResultRow({ result }: { result: TestResult }) {
   const ok = result.status === 'up'
-  const icon = ok ? CheckmarkCircle01Icon : AlertCircleIcon
+  const icon = ok ? CheckCircle : DangerCircle
   const tone = ok ? 'text-success' : 'text-destructive'
   return (
     <div className="flex items-start gap-2 text-sm">
-      <HugeiconsIcon icon={icon} className={`h-4 w-4 mt-0.5 ${tone}`} />
+      <Icon icon={icon} className={`h-4 w-4 mt-0.5 ${tone}`} />
       <div className="flex-1 min-w-0 space-y-0.5">
         <div className="font-medium">
           {ok ? 'Check passed' : `Check ${result.status}`}
