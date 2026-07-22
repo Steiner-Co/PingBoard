@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from 'next-themes'
-import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  ComputerIcon,
-  Moon02Icon,
-  Sun02Icon,
-} from '@hugeicons/core-free-icons'
+import { Icon } from '@/components/ui/icon'
+import Sun from '@solar-icons/react/csr/weather/Sun'
+import Moon from '@solar-icons/react/csr/weather/Moon'
+import Display from '@solar-icons/react/csr/devices/Display'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -716,7 +714,7 @@ function ThemeToggle() {
     return <div aria-hidden className="h-9 w-9 rounded-full border border-border" />
   }
 
-  const Icon = resolvedTheme === 'dark' ? Moon02Icon : Sun02Icon
+  const ThemeIcon = resolvedTheme === 'dark' ? Moon : Sun
 
   return (
     <DropdownMenu>
@@ -726,22 +724,22 @@ function ThemeToggle() {
           aria-label="Theme"
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-accent transition-[color,background-color,transform] duration-150 ease-out active:scale-95"
         >
-          <HugeiconsIcon icon={Icon} strokeWidth={2} className="h-4 w-4" />
+          <Icon icon={ThemeIcon} className="h-4 w-4" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onSelect={() => setTheme('light')}>
-          <HugeiconsIcon icon={Sun02Icon} className="h-3.5 w-3.5" />
+          <Icon icon={Sun} className="h-3.5 w-3.5" />
           Light
           {theme === 'light' && <span className="ml-auto text-xs">✓</span>}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => setTheme('dark')}>
-          <HugeiconsIcon icon={Moon02Icon} className="h-3.5 w-3.5" />
+          <Icon icon={Moon} className="h-3.5 w-3.5" />
           Dark
           {theme === 'dark' && <span className="ml-auto text-xs">✓</span>}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => setTheme('system')}>
-          <HugeiconsIcon icon={ComputerIcon} className="h-3.5 w-3.5" />
+          <Icon icon={Display} className="h-3.5 w-3.5" />
           System
           {theme === 'system' && <span className="ml-auto text-xs">✓</span>}
         </DropdownMenuItem>
