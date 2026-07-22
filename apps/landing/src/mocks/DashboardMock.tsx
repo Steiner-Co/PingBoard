@@ -21,7 +21,7 @@ export function DashboardMock() {
   return (
     <div className="w-full overflow-hidden rounded-[14px] border border-border bg-card">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-        <Logo className="size-4" />
+        <Logo className="size-4 rounded-[4px]" />
         <span className="text-[12px] font-semibold tracking-tight">PingBoard</span>
         <div className="ml-4 hidden items-center gap-1 text-[11px] sm:flex">
           <span className="rounded-full bg-muted px-2 py-0.5 text-foreground">Monitors</span>

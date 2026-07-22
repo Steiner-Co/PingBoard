@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Wordmark } from '@/components/logo'
-import { CheckIcon, CopyIcon, TerminalIcon } from '@/components/icons'
+import { CheckIcon, CopyIcon, DockerIcon } from '@/components/icons'
 
 const CMD = 'docker run -d -p 3000:3000 -v pingboard_data:/data ghcr.io/steiner-co/pingboard'
 
@@ -28,7 +28,7 @@ export function FooterCTA() {
 
       <div className="flex w-full max-w-[470px] items-center gap-2 rounded-[12px] border border-border bg-muted p-1.5">
         <div className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-card">
-          <TerminalIcon className="size-4 text-foreground/70" />
+          <DockerIcon className="size-4 text-foreground/70" />
         </div>
         <code className="flex-1 overflow-x-auto whitespace-nowrap font-mono text-[11px] text-foreground/70 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {CMD}
