@@ -2,18 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
-import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  PlusSignIcon,
-  TestTube02Icon,
-  Delete02Icon,
-  Edit02Icon,
-  Notification03Icon,
-  Alert02Icon,
-  CheckmarkCircle02Icon,
-  ArrowRight01Icon,
-} from '@hugeicons/core-free-icons'
+import { Icon } from '@/components/ui/icon'
+import AddSquare from '@solar-icons/react/csr/ui/AddSquare'
+import TestTube from '@solar-icons/react/csr/medicine/TestTube'
+import TrashBinTrash from '@solar-icons/react/csr/ui/TrashBinTrash'
+import Pen from '@solar-icons/react/csr/messages/Pen'
 import Bell from '@solar-icons/react/csr/notifications/Bell'
+import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
+import AltArrowRight from '@solar-icons/react/csr/arrows/AltArrowRight'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/EmptyState'
@@ -146,7 +142,7 @@ export function ChannelsPage() {
     <div className="flex items-center justify-between gap-4">
       <p className="text-muted-foreground">Where alerts go when monitors change state.</p>
       <Button onClick={() => setOpen(true)}>
-        <HugeiconsIcon icon={PlusSignIcon} className="h-4 w-4" />
+              <Icon icon={AddSquare} className="h-4 w-4" />
         Add channel
       </Button>
     </div>
@@ -197,7 +193,7 @@ export function ChannelsPage() {
           }
           action={
             <Button onClick={() => setOpen(true)}>
-              <HugeiconsIcon icon={PlusSignIcon} className="h-4 w-4" />
+        <Icon icon={AddSquare} className="h-4 w-4" />
               Add your first channel
             </Button>
           }
@@ -369,11 +365,11 @@ function ChannelRow({
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Button size="sm" variant="outline" onClick={onTest} disabled={testPending}>
-            <HugeiconsIcon icon={TestTube02Icon} className="h-3 w-3" />
+            <Icon icon={TestTube} className="h-3 w-3" />
             Test
           </Button>
           <Button size="sm" variant="outline" onClick={onEdit}>
-            <HugeiconsIcon icon={Edit02Icon} className="h-3 w-3" />
+            <Icon icon={Pen} className="h-3 w-3" />
             Edit
           </Button>
           <Button
@@ -382,7 +378,7 @@ function ChannelRow({
             aria-label={`Delete ${channel.name}`}
             onClick={onDelete}
           >
-            <HugeiconsIcon icon={Delete02Icon} className="h-3 w-3" />
+            <Icon icon={TrashBinTrash} className="h-3 w-3" />
           </Button>
         </div>
       </div>
@@ -506,10 +502,9 @@ function RoutingGaps({
           <h2 className="text-sm font-medium">Alert routing</h2>
         </header>
         <div className="flex items-start gap-2.5 px-4 py-4">
-          <HugeiconsIcon
-            icon={CheckmarkCircle02Icon}
+          <Icon
+            icon={CheckCircle}
             className="mt-px size-3.5 shrink-0 text-success"
-            strokeWidth={2}
           />
           <p className="text-xs text-muted-foreground">
             {activeTotal === 0
@@ -531,7 +526,7 @@ function RoutingGaps({
     <Panel className="border-warning/40">
       <header className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2.5">
         <h2 className="flex items-center gap-2 text-sm font-medium text-warning">
-          <HugeiconsIcon icon={Alert02Icon} className="size-3.5 shrink-0" strokeWidth={2} />
+          <Icon icon={Bell} className="size-3.5 shrink-0" />
           Unrouted monitors
         </h2>
         <span className="font-mono text-[11px] tabular-nums text-warning">{gaps.length}</span>
@@ -557,10 +552,9 @@ function RoutingGaps({
                   {monitor.type}
                 </span>
               )}
-              <HugeiconsIcon
-                icon={ArrowRight01Icon}
+              <Icon
+                icon={AltArrowRight}
                 className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
-                strokeWidth={2}
               />
             </Link>
           </li>
