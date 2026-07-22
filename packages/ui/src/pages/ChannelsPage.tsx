@@ -539,7 +539,7 @@ function RoutingGaps({
           <li key={monitor.id}>
             <Link
               to={`/admin/monitors/${monitor.id}/edit`}
-              className="group flex items-center gap-2 px-4 py-2.5 outline-none transition-colors hover:bg-muted/40 focus-visible:bg-muted/40"
+              className="group flex items-center gap-2 px-4 py-2.5 outline-none transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/30"
             >
               <StatusDot monitor={monitor} />
               <span className="min-w-0 flex-1 truncate text-xs font-medium">
