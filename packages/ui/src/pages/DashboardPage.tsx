@@ -214,16 +214,11 @@ function LiveActivity({
       <header className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
         <h2 className="text-sm font-medium">Activity</h2>
         <span className="flex items-center gap-1.5 font-mono text-[10px] font-medium uppercase tracking-widest text-success">
-          <span className="relative inline-flex size-1.5">
-            {/* Keyed on the newest item so the ring replays once per arrival
-                instead of looping forever. */}
-            <span
-              key={feed[0]?.key ?? 'idle'}
-              className="absolute inset-0 rounded-full bg-success opacity-50 motion-safe:animate-ping"
-              style={{ animationDuration: '1.2s', animationIterationCount: 1 }}
-            />
-            <span className="relative inline-block size-1.5 rounded-full bg-success" />
-          </span>
+          {/* The dot is the steady signal — its color carries the state, so a
+              ping-per-heartbeat ring would restate "I'm here" on top of a
+              already-lit indicator. Per Emil: pulse must encode new state,
+              not restate the resting state. */}
+          <span aria-hidden className="inline-block size-1.5 rounded-full bg-success" />
           Live
         </span>
       </header>
