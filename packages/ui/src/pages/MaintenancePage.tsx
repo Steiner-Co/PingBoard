@@ -332,16 +332,14 @@ function Timeline({
 
   return (
     <Panel>
-      <div className="flex items-center justify-between gap-4 border-b border-border/60 px-4 py-3">
-        <div className="font-mono text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-          Next {TIMELINE_DAYS} days
-        </div>
-        <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground tabular-nums">
+      <header className="flex items-baseline justify-between gap-4 border-b border-border/60 px-4 py-2.5">
+        <h2 className="text-sm font-medium">Next {TIMELINE_DAYS} days</h2>
+        <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground tabular-nums">
           {bars.length === 0
             ? 'Clear'
             : `${bars.length} ${bars.length === 1 ? 'window' : 'windows'}`}
-        </div>
-      </div>
+        </span>
+      </header>
 
       <div className="p-4">
         <div className="relative" style={{ height: trackH }}>
@@ -478,14 +476,12 @@ function WindowList({
 }) {
   return (
     <Panel>
-      <div className="flex items-center justify-between gap-4 border-b border-border/60 px-4 py-3">
-        <div className="font-mono text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-          {label}
-        </div>
-        <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground tabular-nums">
+      <header className="flex items-baseline justify-between gap-4 border-b border-border/60 px-4 py-2.5">
+        <h2 className="text-sm font-medium">{label}</h2>
+        <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground tabular-nums">
           {count}
-        </div>
-      </div>
+        </span>
+      </header>
 
       {windows.length === 0 ? (
         <p className="px-4 py-3.5 text-sm text-muted-foreground">{empty}</p>
@@ -606,13 +602,13 @@ function StatCell({
 
   return (
     <div className={cn('flex flex-col gap-2.5 p-4 sm:p-5', className)}>
-      <div className="font-mono text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
         {label}
       </div>
       <div className="flex items-baseline gap-1.5">
         <span
           className={cn(
-            'text-3xl font-semibold tracking-tight tabular-nums',
+            'text-2xl font-semibold tracking-tight tabular-nums',
             valueTone,
           )}
         >
