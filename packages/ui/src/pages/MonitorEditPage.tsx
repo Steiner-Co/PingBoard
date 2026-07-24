@@ -263,7 +263,7 @@ export function MonitorEditPage() {
 
   if (detail.isLoading) {
     return (
-      <div className="px-4 lg:px-6 max-w-3xl flex flex-col gap-6">
+      <div className="px-4 lg:px-6 max-w-3xl w-full mx-auto flex flex-col gap-6">
         <Skeleton className="h-7 w-32" />
         <Skeleton className="h-9 w-72" />
         <Panel className="p-6 space-y-4">
@@ -281,7 +281,7 @@ export function MonitorEditPage() {
   }
   if (detail.isError || !detail.data) {
     return (
-      <div className="px-4 lg:px-6">
+      <div className="px-4 lg:px-6 max-w-3xl w-full mx-auto">
         <div className="rounded-lg border border-dashed bg-card/50 p-8 text-center text-sm text-muted-foreground">
           Couldn't load this monitor.{' '}
           <button
@@ -306,7 +306,7 @@ export function MonitorEditPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="px-4 lg:px-6 max-w-3xl flex flex-col gap-6">
+    <form onSubmit={handleSubmit} className="px-4 lg:px-6 max-w-3xl w-full mx-auto flex flex-col gap-6">
       <Button
         variant="ghost"
         size="sm"
