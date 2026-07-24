@@ -184,7 +184,7 @@ function RowActions({ row }: { row: MonitorRow }) {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
+          className="relative z-10 flex size-8 text-muted-foreground data-[state=open]:bg-muted"
           size="icon"
           aria-label={`Actions for ${row.name}`}
         >
@@ -275,7 +275,7 @@ export function DataTable({
         <Panel>
           <div className="hidden overflow-x-auto sm:block">
           <Table>
-            <TableHeader className="sticky top-0 z-10 bg-muted">
+            <TableHeader className="sticky top-0 z-10 bg-card">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
@@ -298,6 +298,7 @@ export function DataTable({
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
+                    className="relative cursor-pointer"
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
@@ -320,9 +321,9 @@ export function DataTable({
                 <TableRow>
                   <TableCell
                     colSpan={columns.length}
-                    className="h-24 text-center"
+                    className="py-10 text-center text-sm text-muted-foreground"
                   >
-                    No results.
+                    No monitors match this filter.
                   </TableCell>
                 </TableRow>
               )}
@@ -424,7 +425,7 @@ function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
     <div className="flex items-center gap-2 min-w-0">
       <Link
         to={`/admin/monitors/${item.id}`}
-        className="truncate font-medium text-foreground hover:underline underline-offset-4"
+        className="truncate font-medium text-foreground after:absolute after:inset-0 after:content-[''] hover:underline underline-offset-4"
       >
         {item.name}
       </Link>

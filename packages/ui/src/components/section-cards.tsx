@@ -147,7 +147,7 @@ function StatCell({
         className,
       )}
     >
-      <div className="font-mono text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
         {label}
       </div>
       <div className="flex items-baseline gap-1.5">
