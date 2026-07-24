@@ -14,7 +14,7 @@ import { FleetChart } from '@/components/fleet-chart'
 import { QueryError } from '@/components/QueryError'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Panel } from '@/components/panel'
-import { SectionCards } from '@/components/section-cards'
+import { StatusHero } from '@/components/status-hero'
 import { cn, formatDuration, formatInterval, formatRelative } from '@/lib/utils'
 import { api } from '@/lib/api'
 import { useSSE, type HeartbeatPayload } from '@/lib/sse'
@@ -151,54 +151,50 @@ export function DashboardPage() {
   }
 
   return (
-    <>
-      <SectionCards monitors={monitors} />
-      <div className="grid gap-6 px-4 lg:px-6 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="flex min-w-0 flex-col gap-4">
-          <FleetChart />
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative w-full sm:max-w-xs">
-              <Icon
-                icon={Magnifier}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
-              />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name, target, or tag…"
-                className="pl-7"
-                aria-label="Search monitors"
-              />
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {STATUS_FILTERS.map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setStatusFilter(f.id)}
-                  className={cn(
-                    'rounded-full border px-2.5 py-0.5 text-xs font-medium outline-none',
-                    'transition-[color,background-color,border-color,transform] duration-150 ease-out',
-                    'focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.98]',
-                    statusFilter === f.id
-                      ? 'border-foreground/20 bg-foreground text-background'
-                      : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground',
-                  )}
-                  aria-pressed={statusFilter === f.id}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <DataTable data={rows} />
+    <div className="flex flex-col gap-6 px-4 lg:px-6">
+      <StatusHero monitors={monitors} />
+      <FleetChart />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:max-w-xs">
+          <Icon
+            icon={Magnifier}
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
+          />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, target, or tag…"
+            className="pl-7"
+            aria-label="Search monitors"
+          />
         </div>
-        <aside className="flex min-w-0 flex-col gap-4">
-          <LiveActivity feed={feed} nameById={nameById} />
-          <RecentIncidents nameById={nameById} />
-        </aside>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {STATUS_FILTERS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setStatusFilter(f.id)}
+              className={cn(
+                'rounded-full border px-2.5 py-0.5 text-xs font-medium outline-none',
+                'transition-[color,background-color,border-color,transform] duration-150 ease-out',
+                'focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.98]',
+                statusFilter === f.id
+                  ? 'border-foreground/20 bg-foreground text-background'
+                  : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground',
+              )}
+              aria-pressed={statusFilter === f.id}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
-    </>
+      <DataTable data={rows} />
+      <div className="grid gap-6 xl:grid-cols-2">
+        <LiveActivity feed={feed} nameById={nameById} />
+        <RecentIncidents nameById={nameById} />
+      </div>
+    </div>
   )
 }
 
@@ -343,43 +339,45 @@ function RecentIncidents({ nameById }: { nameById: Map<string, string> }) {
 
 function DashboardSkeleton() {
   return (
-    <>
-      <div className="px-4 lg:px-6">
-        <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="flex flex-col gap-2.5 p-4 sm:p-5">
-              <Skeleton className="h-3 w-24" />
-              <Skeleton className="h-8 w-20" />
-              <Skeleton className="h-3 w-32" />
+    <div className="flex flex-col gap-6 px-4 lg:px-6">
+      <Panel className="flex flex-col gap-6 px-5 py-6 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center gap-3.5">
+          <Skeleton className="size-3 rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-56" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+        </div>
+        <div className="flex items-center gap-8 pl-7 sm:gap-10 lg:pl-0">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex flex-col gap-1.5">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-7 w-12" />
             </div>
           ))}
+        </div>
+      </Panel>
+      <Panel className="p-4">
+        <Skeleton className="h-[150px] w-full" />
+      </Panel>
+      <Panel className="divide-y divide-border/60">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} className="flex items-center gap-4 p-3">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="ml-auto h-4 w-24" />
+          </div>
+        ))}
+      </Panel>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Panel className="p-4">
+          <Skeleton className="h-24 w-full" />
+        </Panel>
+        <Panel className="p-4">
+          <Skeleton className="h-24 w-full" />
         </Panel>
       </div>
-      <div className="grid gap-6 px-4 lg:px-6 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="flex min-w-0 flex-col gap-4">
-          <Panel className="p-4">
-            <Skeleton className="h-[150px] w-full" />
-          </Panel>
-          <Panel className="divide-y divide-border/60">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex items-center gap-4 p-3">
-                <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="ml-auto h-4 w-24" />
-              </div>
-            ))}
-          </Panel>
-        </div>
-        <aside className="flex min-w-0 flex-col gap-4">
-          <Panel className="p-4">
-            <Skeleton className="h-24 w-full" />
-          </Panel>
-          <Panel className="p-4">
-            <Skeleton className="h-24 w-full" />
-          </Panel>
-        </aside>
-      </div>
-    </>
+    </div>
   )
 }
 

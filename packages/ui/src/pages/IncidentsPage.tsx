@@ -499,7 +499,7 @@ export function IncidentsPage() {
   )
 }
 
-// Mirrors the dashboard's SectionCards stat cell. Duplicated rather than
+// Mirrors the dashboard's StatusHero metric cell. Duplicated rather than
 // imported because that component owns its own props shape (monitor stats);
 // the visual contract — mono micro-label, tabular value, tone ramp — is kept
 // identical on purpose.
