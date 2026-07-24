@@ -242,7 +242,7 @@ export function PublicStatusPage({ slug }: { slug: string }) {
         <IncidentHistory incidents={incidents} />
 
         <footer className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground pt-8">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
+          <img src="/logomark.png" alt="" className="size-3.5 rounded-sm" />
           <span>
             Powered by{' '}
             <a

@@ -37,7 +37,7 @@ export function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <span className="inline-block h-2.5 w-2.5 rounded-full bg-success" />
+            <img src="/logomark.png" alt="" className="size-5 rounded-md" />
             <CardTitle>Sign in</CardTitle>
           </div>
           <CardDescription>Welcome back to PingBoard.</CardDescription>

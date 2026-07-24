@@ -39,7 +39,7 @@ export function SetupPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <span className="inline-block h-2.5 w-2.5 rounded-full bg-success motion-safe:animate-pulse" />
+            <img src="/logomark.png" alt="" className="size-5 rounded-md" />
             <CardTitle>Welcome to PingBoard</CardTitle>
           </div>
           <CardDescription>

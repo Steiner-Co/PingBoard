@@ -55,9 +55,7 @@ export function AppSidebar({ user, onLogout, ...props }: AppSidebarProps) {
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
               <GuardedLink to="/admin">
-                {/* No pulse: constant motion in a dashboard fatigues. The dot
-                    is still the brand mark; quiet is part of "all good". */}
-                <span className="inline-block size-2.5 rounded-full bg-success" />
+                <img src="/logomark.png" alt="" className="size-5 rounded-md" />
                 <span translate="no" className="text-base font-semibold">PingBoard</span>
               </GuardedLink>
             </SidebarMenuButton>
