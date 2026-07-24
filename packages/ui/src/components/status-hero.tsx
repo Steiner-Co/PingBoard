@@ -51,119 +51,127 @@ function computeStats(monitors: MonitorWithLatest[]): Stats {
   }
 }
 
-// Monitors that have reported at least once and aren't paused. Used as the
-// uptime-percentage denominator so we don't show "0% up" while pending.
-function reportingCount(stats: Stats): number {
-  return stats.up + stats.down
-}
-
-export function SectionCards({ monitors }: { monitors: MonitorWithLatest[] }) {
+/**
+ * Full-width fleet answer to "is everything ok?" — the first thing on the
+ * dashboard. Status headline on the left, key numbers on the right.
+ */
+export function StatusHero({ monitors }: { monitors: MonitorWithLatest[] }) {
   const stats = useMemo(() => computeStats(monitors), [monitors])
-  const reporting = reportingCount(stats)
+  // Monitors that have reported at least once and aren't paused — the
+  // uptime-percentage denominator, so we don't show "0% up" while pending.
+  const reporting = stats.up + stats.down
   const uptimePct =
     reporting === 0 ? null : Math.round((stats.up / reporting) * 100)
 
+  const state = stats.down > 0 ? "down" : reporting === 0 ? "pending" : "ok"
+
   return (
-    <div className="px-4 lg:px-6">
-      <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
-        <StatCell
-          label="Active monitors"
-          value={`${stats.active}`}
-          valueSuffix={`/ ${stats.total}`}
-          sub={
-            stats.total === 0
-              ? "No monitors yet"
-              : stats.paused > 0 || stats.pending > 0
-                ? `${stats.paused} paused · ${stats.pending} pending`
-                : "All scheduled"
-          }
-          className="border-b border-border/60 lg:border-b-0 border-r lg:border-r-0"
-        />
-        <StatCell
-          label="Uptime"
-          value={uptimePct == null ? "—" : `${uptimePct}%`}
-          tone={
-            uptimePct == null ? "muted" : uptimePct === 100 ? "success" : "warn"
-          }
-          sub={
-            reporting === 0
-              ? "Waiting for heartbeats"
-              : `${stats.up} of ${reporting} reporting healthy`
-          }
-          className="border-b border-border/60 lg:border-b-0"
-        />
-        <StatCell
-          to={stats.down > 0 ? "/admin/incidents" : undefined}
-          label="Down"
-          value={String(stats.down)}
-          tone={stats.down > 0 ? "destructive" : "muted"}
-          sub={stats.down === 0 ? "Nothing failing right now" : "Open incidents →"}
-          className="border-r border-border/60 lg:border-r-0"
-        />
-        <StatCell
-          label="Avg response"
-          value={stats.avgResponseMs == null ? "—" : String(stats.avgResponseMs)}
-          valueSuffix={stats.avgResponseMs == null ? undefined : "ms"}
-          sub="Latest heartbeat per healthy monitor"
-        />
-      </Panel>
-    </div>
+    <Panel className="px-5 py-6 sm:px-6">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center gap-3.5">
+          <span
+            aria-hidden
+            className={cn(
+              "size-3 shrink-0 rounded-full",
+              state === "down"
+                ? "bg-destructive"
+                : state === "ok"
+                  ? "bg-success"
+                  : "bg-warning",
+            )}
+          />
+          <div className="space-y-1">
+            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+              {state === "down"
+                ? `${stats.down} ${stats.down === 1 ? "monitor" : "monitors"} down`
+                : state === "ok"
+                  ? "All systems operational"
+                  : "Waiting for first heartbeats"}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {state === "down" ? (
+                <Link
+                  to="/admin/incidents"
+                  className="underline underline-offset-4 transition-colors hover:text-foreground"
+                >
+                  View open incidents →
+                </Link>
+              ) : state === "ok" ? (
+                `${reporting} ${reporting === 1 ? "monitor" : "monitors"} reporting healthy`
+              ) : (
+                "Checks appear here as soon as the first one lands."
+              )}
+            </p>
+          </div>
+        </div>
+        <dl className="flex items-center gap-8 pl-7 sm:gap-10 lg:pl-0">
+          <Metric
+            label="Uptime"
+            value={uptimePct == null ? "—" : `${uptimePct}%`}
+            tone={
+              uptimePct == null
+                ? "muted"
+                : uptimePct === 100
+                  ? "success"
+                  : "warn"
+            }
+          />
+          <Metric
+            label="Avg response"
+            value={stats.avgResponseMs == null ? "—" : String(stats.avgResponseMs)}
+            suffix={stats.avgResponseMs == null ? undefined : "ms"}
+          />
+          <Metric
+            label="Active"
+            value={String(stats.active)}
+            suffix={`/ ${stats.total}`}
+          />
+        </dl>
+      </div>
+    </Panel>
   )
 }
 
-function StatCell({
-  to,
+function Metric({
   label,
   value,
-  valueSuffix,
-  sub,
+  suffix,
   tone = "default",
-  className,
 }: {
-  to?: string
   label: string
   value: string
-  valueSuffix?: string
-  sub: string
-  tone?: "default" | "success" | "destructive" | "warn" | "muted"
-  className?: string
+  suffix?: string
+  tone?: "default" | "success" | "warn" | "muted"
 }) {
   const valueTone =
     tone === "success"
       ? "text-success"
-      : tone === "destructive"
-        ? "text-destructive"
-        : tone === "warn"
-          ? "text-warning"
-          : tone === "muted"
-            ? "text-muted-foreground"
-            : "text-foreground"
+      : tone === "warn"
+        ? "text-warning"
+        : tone === "muted"
+          ? "text-muted-foreground"
+          : "text-foreground"
 
-  const body = (
-    <div
-      className={cn(
-        "flex flex-col gap-2.5 p-4 sm:p-5 transition-colors",
-        to && "cursor-pointer hover:bg-muted/40",
-        className,
-      )}
-    >
-      <div className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+  return (
+    <div className="flex flex-col gap-1.5">
+      <dt className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
         {label}
-      </div>
-      <div className="flex items-baseline gap-1.5">
-        <span className={cn("text-3xl font-semibold tracking-tight tabular-nums", valueTone)}>
+      </dt>
+      <dd className="flex items-baseline gap-1">
+        <span
+          className={cn(
+            "text-2xl font-semibold tracking-tight tabular-nums",
+            valueTone,
+          )}
+        >
           {value}
         </span>
-        {valueSuffix && (
+        {suffix && (
           <span className="text-sm font-medium text-muted-foreground tabular-nums">
-            {valueSuffix}
+            {suffix}
           </span>
         )}
-      </div>
-      <div className="text-xs text-muted-foreground line-clamp-1">{sub}</div>
+      </dd>
     </div>
   )
-
-  if (!to) return body
-  return <Link to={to}>{body}</Link>
 }
