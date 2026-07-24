@@ -850,8 +850,11 @@ function useDocumentMeta(
     if (monitors && monitors.length > 0) {
       const anyDown = monitors.some((m) => m.currentStatus === 'down')
       const allUp = monitors.every((m) => m.currentStatus === 'up')
-      const color = anyDown ? '#dc2626' : allUp ? '#16a34a' : '#71717a'
-      setMeta('theme-color', color)
+      // Resolve from CSS tokens so the tint follows the active theme.
+      const css = getComputedStyle(document.documentElement)
+      const token = anyDown ? '--destructive' : allUp ? '--success' : '--muted-foreground'
+      const color = css.getPropertyValue(token).trim()
+      if (color) setMeta('theme-color', color)
     }
   }, [page, monitors])
 }
