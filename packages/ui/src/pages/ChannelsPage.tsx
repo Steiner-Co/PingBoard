@@ -266,7 +266,7 @@ export function ChannelsPage() {
         <Panel className="min-w-0">
           <header className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
             <h2 className="text-sm font-medium">Channels</h2>
-            <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground tabular-nums">
+            <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground tabular-nums">
               {items.length} configured
             </span>
           </header>
@@ -637,11 +637,11 @@ function StatCell({
 
   return (
     <div className={cn('flex flex-col gap-2.5 p-4 sm:p-5', className)}>
-      <div className="font-mono text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
         {label}
       </div>
       <div className="flex items-baseline gap-1.5">
-        <span className={cn('text-3xl font-semibold tracking-tight tabular-nums', valueTone)}>
+        <span className={cn('text-2xl font-semibold tracking-tight tabular-nums', valueTone)}>
           {value}
         </span>
         {valueSuffix && (
