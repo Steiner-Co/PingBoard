@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ALLOWED_RETENTION_DAYS } from '@pingboard/shared'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -187,12 +186,14 @@ function AccountCard({ email }: { email: string }) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Account</CardTitle>
-        <CardDescription>You're signed in as the admin.</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <Panel>
+      <header className="space-y-0.5 border-b border-border/60 px-4 py-2.5">
+        <h2 className="text-sm font-medium">Account</h2>
+        <p className="text-xs text-muted-foreground">
+          You're signed in as the admin.
+        </p>
+      </header>
+      <div className="px-4 py-4">
         <div className="text-sm mb-6">
           <span className="text-muted-foreground">Email:</span>{' '}
           <span className="font-mono">{email}</span>
@@ -231,7 +232,7 @@ function AccountCard({ email }: { email: string }) {
               />
             </div>
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           {success && (
             <p className="text-sm text-success">Password updated.</p>
           )}
@@ -251,8 +252,8 @@ function AccountCard({ email }: { email: string }) {
             </p>
           </div>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+    </Panel>
   )
 }
 
@@ -296,15 +297,15 @@ function RetentionCard() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Retention</CardTitle>
-        <CardDescription>
+    <Panel>
+      <header className="space-y-0.5 border-b border-border/60 px-4 py-2.5">
+        <h2 className="text-sm font-medium">Retention</h2>
+        <p className="text-xs text-muted-foreground">
           Heartbeats older than this are aggregated into daily stats; raw rows
           are deleted. Aggregated history is kept forever.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+        </p>
+      </header>
+      <div className="px-4 py-4">
         <div className="flex items-center gap-3">
           <Label htmlFor="retention-days" className="shrink-0">
             Keep raw heartbeats for
@@ -341,8 +342,8 @@ function RetentionCard() {
             </button>
           </p>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </Panel>
   )
 }
 
@@ -393,14 +394,14 @@ function SmtpCard() {
 
   if (query.isError) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Email defaults (SMTP)</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Panel>
+        <header className="border-b border-border/60 px-4 py-2.5">
+          <h2 className="text-sm font-medium">Email defaults (SMTP)</h2>
+        </header>
+        <div className="px-4 py-4">
           <QueryError subject="SMTP settings" onRetry={() => query.refetch()} />
-        </CardContent>
-      </Card>
+        </div>
+      </Panel>
     )
   }
 
@@ -448,15 +449,15 @@ function SmtpCard() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Email defaults (SMTP)</CardTitle>
-        <CardDescription>
+    <Panel>
+      <header className="space-y-0.5 border-b border-border/60 px-4 py-2.5">
+        <h2 className="text-sm font-medium">Email defaults (SMTP)</h2>
+        <p className="text-xs text-muted-foreground">
           Used when an email channel doesn't specify its own SMTP credentials.
           Leaving a field blank clears it.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+        </p>
+      </header>
+      <div className="px-4 py-4">
         <form onSubmit={submit} className="flex flex-col gap-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
@@ -572,7 +573,7 @@ function SmtpCard() {
             />
             Use TLS (auto-enabled for port 465)
           </label>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           {success && (
             <p className="text-sm text-success">SMTP defaults saved.</p>
           )}
@@ -582,8 +583,8 @@ function SmtpCard() {
             </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+    </Panel>
   )
 }
 
@@ -647,18 +648,18 @@ function ApiTokensCard() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>API tokens</CardTitle>
-        <CardDescription>
+    <Panel>
+      <header className="space-y-0.5 border-b border-border/60 px-4 py-2.5">
+        <h2 className="text-sm font-medium">API tokens</h2>
+        <p className="text-xs text-muted-foreground">
           Authenticate scripts and integrations with{' '}
           <code className="rounded bg-muted px-1 py-0.5 text-foreground">
             Authorization: Bearer &lt;token&gt;
           </code>
           . A token has the same access as this admin account.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        </p>
+      </header>
+      <div className="space-y-4 px-4 py-4">
         {freshSecret && (
           <div className="space-y-2 border border-success/40 bg-success/5 p-3" role="status">
             <p className="text-xs font-medium text-success">
@@ -764,7 +765,7 @@ function ApiTokensCard() {
             ))}
           </ul>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </Panel>
   )
 }

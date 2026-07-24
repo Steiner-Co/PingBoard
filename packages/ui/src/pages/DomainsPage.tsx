@@ -175,6 +175,27 @@ export function DomainsPage() {
     return { total: domains.length, expiringSoon, sslSoon, notAlerting }
   }, [domains, now])
 
+  // Time-critical domains, soonest first — the reason this screen exists,
+  // lifted out of the list so nothing about to lapse needs hunting for.
+  const attention = useMemo(() => {
+    return domains
+      .map((d) => {
+        const de = daysUntil(d.facts?.expiryAt ?? null, now)
+        const se = daysUntil(d.facts?.sslExpiryAt ?? null, now)
+        return {
+          d,
+          de: de !== null && de <= 30 ? de : null,
+          se: se !== null && se <= 14 ? se : null,
+        }
+      })
+      .filter((x) => x.de !== null || x.se !== null)
+      .sort(
+        (a, b) =>
+          Math.min(a.de ?? Infinity, a.se ?? Infinity) -
+          Math.min(b.de ?? Infinity, b.se ?? Infinity),
+      )
+  }, [domains, now])
+
   if (query.isPending) return <DomainsSkeleton />
   if (query.isError) {
     return (
@@ -245,6 +266,48 @@ export function DomainsPage() {
             Add domain
           </Button>
         </div>
+
+        {attention.length > 0 && (
+          <Panel className="border-warning/40">
+            <header className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2.5">
+              <h2 className="flex items-center gap-2 text-sm font-medium text-warning">
+                <Icon icon={DangerCircle} className="size-3.5 shrink-0" />
+                Expiring soon
+              </h2>
+              <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-warning tabular-nums">
+                {attention.length} {attention.length === 1 ? 'domain' : 'domains'}
+              </span>
+            </header>
+            <ul className="divide-y divide-border/60">
+              {attention.map(({ d, de, se }) => (
+                <li key={d.id} className="flex items-center gap-3 px-4 py-2.5">
+                  <Link
+                    to={`/admin/monitors/${d.id}`}
+                    className="min-w-0 flex-1 truncate text-xs font-medium hover:underline underline-offset-4"
+                  >
+                    {d.name}
+                  </Link>
+                  {de !== null && (
+                    <span className="flex shrink-0 items-baseline gap-1.5">
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                        Domain
+                      </span>
+                      <ExpiryValue iso={d.facts?.expiryAt ?? null} now={now} critical={7} warn={30} className="text-xs" />
+                    </span>
+                  )}
+                  {se !== null && (
+                    <span className="flex shrink-0 items-baseline gap-1.5">
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                        SSL
+                      </span>
+                      <ExpiryValue iso={d.facts?.sslExpiryAt ?? null} now={now} critical={14} warn={30} className="text-xs" />
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        )}
 
         <Panel>
           {filtered.length === 0 ? (
@@ -538,10 +601,10 @@ function Stat({
         : 'text-foreground'
   return (
     <div className="flex flex-col gap-2.5 p-4 sm:p-5">
-      <div className="font-mono text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
         {label}
       </div>
-      <div className={cn('text-3xl font-semibold tracking-tight tabular-nums', valueTone)}>
+      <div className={cn('text-2xl font-semibold tracking-tight tabular-nums', valueTone)}>
         {value}
       </div>
       <div className="text-xs text-muted-foreground line-clamp-1">{sub}</div>
