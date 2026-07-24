@@ -13,6 +13,7 @@ import SquareArrowRightUp from '@solar-icons/react/csr/arrows/SquareArrowRightUp
 import LockPassword from '@solar-icons/react/csr/security/LockPassword'
 import MenuDots from '@solar-icons/react/csr/ui/MenuDots'
 import AddSquare from '@solar-icons/react/csr/ui/AddSquare'
+import Bell from '@solar-icons/react/csr/notifications/Bell'
 import TrashBinTrash from '@solar-icons/react/csr/ui/TrashBinTrash'
 import Global from '@solar-icons/react/csr/map/Global'
 import { Badge } from '@/components/ui/badge'
@@ -49,7 +50,7 @@ import {
 } from '@/components/ui/select'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
-import type { Monitor, StatusPage, Theme } from '@/types'
+import type { Monitor, MonitorWithLatest, StatusPage, Theme } from '@/types'
 
 // Sort: selected monitors in their explicit `order` first, then unselected
 // monitors after. Lets the user see the live ordering while still being able
@@ -81,6 +82,13 @@ interface PageDetail {
   monitors: LinkedMonitor[]
 }
 
+interface PageHealth {
+  up: number
+  down: number
+  /** Paused, pending, or degraded — nothing to alert on, not fully green. */
+  other: number
+}
+
 export function StatusPagesPage() {
   const queryClient = useQueryClient()
   const confirm = useConfirm()
@@ -96,9 +104,10 @@ export function StatusPagesPage() {
     queryFn: () => api.get<{ pages: StatusPage[] }>('/api/admin/pages'),
   })
 
+  // Typed with `latest` so each page row can show live aggregate health.
   const monitors = useQuery({
     queryKey: ['monitors'],
-    queryFn: () => api.get<{ monitors: Monitor[] }>('/api/admin/monitors'),
+    queryFn: () => api.get<{ monitors: MonitorWithLatest[] }>('/api/admin/monitors'),
   })
 
   const pageList = pages.data?.pages ?? []
@@ -122,6 +131,23 @@ export function StatusPagesPage() {
     details.length === pageList.length && details.every((d) => d.data != null)
 
   const allMonitors = monitors.data?.monitors ?? []
+  const statusById = new Map(allMonitors.map((m) => [m.id, m]))
+  // Aggregate live health per page — the answer to "is the page my users see
+  // green right now?" without opening each page.
+  const healthByPageId = new Map<string, PageHealth>()
+  pageList.forEach((p, i) => {
+    const linked = details[i]?.data?.monitors
+    if (!linked) return
+    const health: PageHealth = { up: 0, down: 0, other: 0 }
+    for (const l of linked) {
+      const m = statusById.get(l.monitorId)
+      if (!m || m.paused || !m.latest) health.other++
+      else if (m.latest.status === 'up') health.up++
+      else if (m.latest.status === 'down') health.down++
+      else health.other++
+    }
+    healthByPageId.set(p.id, health)
+  })
   const unpublished = coverageReady
     ? allMonitors
         .filter((m) => !publishedIds.has(m.id))
@@ -131,7 +157,6 @@ export function StatusPagesPage() {
     : []
 
   const protectedCount = pageList.filter((p) => p.passwordSet).length
-  const emptyPages = pageList.filter((p) => (p.monitorCount ?? 0) === 0).length
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/api/admin/pages/${id}`),
@@ -188,7 +213,7 @@ export function StatusPagesPage() {
         />
       ) : (
         <>
-          <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
+          <Panel className="grid grid-cols-2 lg:divide-x divide-border/60">
             <StatCell
               label="Status pages"
               value={String(pageList.length)}
@@ -197,60 +222,40 @@ export function StatusPagesPage() {
                   ? 'All publicly reachable'
                   : `${pageList.length - protectedCount} public · ${protectedCount} protected`
               }
-              className="border-b border-border/60 lg:border-b-0 border-r lg:border-r-0"
+              className="border-r border-border/60 lg:border-r-0"
             />
             <StatCell
               label="Monitors published"
               value={coverageReady ? String(publishedIds.size) : '—'}
               valueSuffix={coverageReady ? `/ ${allMonitors.length}` : undefined}
               sub="Listed on at least one page"
-              className="border-b border-border/60 lg:border-b-0"
-            />
-            <StatCell
-              label="Unpublished"
-              value={coverageReady ? String(unpublished.length) : '—'}
-              tone={
-                !coverageReady
-                  ? 'muted'
-                  : unpublished.length > 0
-                    ? 'warn'
-                    : 'success'
-              }
-              sub={
-                !coverageReady
-                  ? 'Checking coverage…'
-                  : unpublished.length === 0
-                    ? 'Every monitor is visible'
-                    : 'Not on any status page'
-              }
-              className="border-r border-border/60 lg:border-r-0"
-            />
-            <StatCell
-              label="Empty pages"
-              value={String(emptyPages)}
-              tone={emptyPages > 0 ? 'warn' : 'muted'}
-              sub={
-                emptyPages > 0
-                  ? 'Render with nothing to show'
-                  : 'Every page lists monitors'
-              }
             />
           </Panel>
 
+          {coverageReady && unpublished.length > 0 && (
+            <CoverageBanner
+              unpublished={unpublished}
+              pages={pageList}
+              onAddToPage={(page, monitorId) => {
+                setPresetMonitorId(monitorId)
+                setEditTarget(page)
+              }}
+            />
+          )}
+
           <Panel>
-            <div className="flex items-center justify-between gap-4 border-b border-border/60 px-4 py-3">
-              <div className="font-mono text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Pages
-              </div>
-              <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground tabular-nums">
+            <header className="flex items-baseline justify-between gap-4 border-b border-border/60 px-4 py-2.5">
+              <h2 className="text-sm font-medium">Pages</h2>
+              <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground tabular-nums">
                 {pageList.length} total
-              </div>
-            </div>
+              </span>
+            </header>
             <div className="divide-y divide-border/60">
               {pageList.map((p) => (
                 <PageRow
                   key={p.id}
                   page={p}
+                  health={healthByPageId.get(p.id) ?? null}
                   onEdit={() => {
                     setPresetMonitorId(null)
                     setEditTarget(p)
@@ -281,17 +286,6 @@ export function StatusPagesPage() {
             </div>
           </Panel>
 
-          <CoveragePanel
-            ready={coverageReady}
-            unpublished={unpublished}
-            publishedCount={publishedIds.size}
-            totalCount={allMonitors.length}
-            pages={pageList}
-            onAddToPage={(page, monitorId) => {
-              setPresetMonitorId(monitorId)
-              setEditTarget(page)
-            }}
-          />
         </>
       )}
 
@@ -342,13 +336,13 @@ function StatCell({
 
   return (
     <div className={cn('flex flex-col gap-2.5 p-4 sm:p-5', className)}>
-      <div className="font-mono text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
         {label}
       </div>
       <div className="flex items-baseline gap-1.5">
         <span
           className={cn(
-            'text-3xl font-semibold tracking-tight tabular-nums',
+            'text-2xl font-semibold tracking-tight tabular-nums',
             valueTone,
           )}
         >
@@ -368,8 +362,8 @@ function StatCell({
 function PagesSkeleton() {
   return (
     <>
-      <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
-        {[0, 1, 2, 3].map((i) => (
+      <Panel className="grid grid-cols-2 lg:divide-x divide-border/60">
+        {[0, 1].map((i) => (
           <div key={i} className="flex flex-col gap-2.5 p-4 sm:p-5">
             <Skeleton className="h-3 w-24" />
             <Skeleton className="h-8 w-16" />
@@ -394,12 +388,14 @@ function PagesSkeleton() {
 
 function PageRow({
   page,
+  health,
   onEdit,
   onSetPassword,
   onRemovePassword,
   onDelete,
 }: {
   page: StatusPage
+  health: PageHealth | null
   onEdit: () => void
   onSetPassword: () => void
   onRemovePassword: () => void
@@ -434,6 +430,30 @@ function PageRow({
           <span aria-hidden>·</span>
           <span>{page.passwordSet ? 'Protected' : 'Public'}</span>
         </div>
+
+        {health && count > 0 && (
+          <div className="flex items-center gap-2 text-xs">
+            <span
+              aria-hidden
+              className={cn(
+                'size-1.5 shrink-0 rounded-full',
+                health.down > 0
+                  ? 'bg-destructive'
+                  : health.up > 0 && health.other === 0
+                    ? 'bg-success'
+                    : health.up > 0
+                      ? 'bg-warning'
+                      : 'bg-muted-foreground/50',
+              )}
+            />
+            <span className="tabular-nums text-muted-foreground">
+              {health.up} up
+              {health.down > 0 && (
+                <span className="text-destructive"> · {health.down} down</span>
+              )}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
@@ -514,108 +534,66 @@ function PublicUrl({ slug }: { slug: string }) {
   )
 }
 
-function CoveragePanel({
-  ready,
+function CoverageBanner({
   unpublished,
-  publishedCount,
-  totalCount,
   pages,
   onAddToPage,
 }: {
-  ready: boolean
   unpublished: Monitor[]
-  publishedCount: number
-  totalCount: number
   pages: StatusPage[]
   onAddToPage: (page: StatusPage, monitorId: string) => void
 }) {
   return (
-    <Panel>
-      <div className="flex items-center justify-between gap-4 border-b border-border/60 px-4 py-3">
-        <div className="font-mono text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-          Monitor coverage
-        </div>
-        <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground tabular-nums">
-          {ready ? `${publishedCount} / ${totalCount} published` : 'Checking…'}
-        </div>
-      </div>
-
-      {!ready ? (
-        <div className="px-4 py-3.5 text-sm text-muted-foreground">
-          Checking which monitors appear on a status page…
-        </div>
-      ) : unpublished.length === 0 ? (
-        <div className="flex items-center gap-2.5 px-4 py-3.5">
-          <Icon
-            icon={CheckCircle}
-            className="h-4 w-4 shrink-0 text-success"
-          />
-          <span className="text-sm text-muted-foreground">
-            {totalCount === 0
-              ? 'No monitors yet — nothing to publish.'
-              : `All ${totalCount} monitors appear on at least one status page.`}
-          </span>
-        </div>
-      ) : (
-        <>
-          <p className="border-b border-border/60 px-4 py-3 text-sm text-muted-foreground">
-            {unpublished.length === 1 ? 'This monitor is' : 'These monitors are'}{' '}
-            not listed on any status page, so customers can&apos;t see{' '}
-            {unpublished.length === 1 ? 'its' : 'their'} status.
-          </p>
-          <div className="divide-y divide-border/60">
-            {unpublished.map((m) => (
-              <div
-                key={m.id}
-                className="flex items-center justify-between gap-3 px-4 py-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Link
-                      to={`/admin/monitors/${m.id}`}
-                      className="truncate text-sm font-medium hover:underline underline-offset-4"
-                    >
-                      {m.name}
-                    </Link>
-                    {m.paused && <Badge variant="secondary">Paused</Badge>}
-                  </div>
-                  <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground">
-                    <span className="uppercase tracking-wider">{m.type}</span>
-                    {/* Push monitors carry "push" as their target — repeating
-                        it would just read as "PUSH · PUSH". */}
-                    {m.target && m.target.toLowerCase() !== m.type && (
-                      <>
-                        <span aria-hidden>·</span>
-                        <span className="truncate">{m.target}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button size="sm" variant="outline" className="shrink-0">
-                      <Icon icon={AddSquare} className="h-3 w-3" />
-                      Add to page
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Add to status page</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {pages.map((p) => (
-                      <DropdownMenuItem
-                        key={p.id}
-                        onSelect={() => onAddToPage(p, m.id)}
-                      >
-                        {p.title}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+    <Panel className="border-warning/40">
+      <header className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2.5">
+        <h2 className="flex items-center gap-2 text-sm font-medium text-warning">
+          <Icon icon={Bell} className="size-3.5 shrink-0" />
+          Hidden monitors
+        </h2>
+        <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-warning tabular-nums">
+          {unpublished.length} not on any page
+        </span>
+      </header>
+      <p className="border-b border-border/60 px-4 py-2.5 text-xs text-muted-foreground">
+        Customers can&apos;t see {unpublished.length === 1 ? 'its' : 'their'}{' '}
+        status. Add {unpublished.length === 1 ? 'it' : 'them'} to a page:
+      </p>
+      <ul className="divide-y divide-border/60">
+        {unpublished.map((m) => (
+          <li key={m.id} className="flex items-center gap-2.5 px-4 py-2.5">
+            <Link
+              to={`/admin/monitors/${m.id}`}
+              className="min-w-0 flex-1 truncate text-xs font-medium hover:underline underline-offset-4"
+            >
+              {m.name}
+            </Link>
+            {m.paused && <Badge variant="secondary">Paused</Badge>}
+            <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              {m.type}
+            </span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" className="shrink-0">
+                  <Icon icon={AddSquare} className="h-3 w-3" />
+                  Add to page
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Add to status page</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {pages.map((p) => (
+                  <DropdownMenuItem
+                    key={p.id}
+                    onSelect={() => onAddToPage(p, m.id)}
+                  >
+                    {p.title}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </li>
+        ))}
+      </ul>
     </Panel>
   )
 }
@@ -829,7 +807,7 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
                     />
                     <div className="flex-1 text-sm">
                       <div className="font-medium">{m.name}</div>
-                      <div className="text-xs text-muted-foreground uppercase">{m.type}</div>
+                      <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{m.type}</div>
                     </div>
                   </label>
                 )
@@ -841,7 +819,11 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
               )}
             </div>
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <p id="page-dialog-error" role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
@@ -1038,7 +1020,7 @@ function EditPageDialog({
                         />
                         <div className="flex-1 min-w-0 text-sm">
                           <div className="font-medium truncate">{m.name}</div>
-                          <div className="text-xs text-muted-foreground uppercase">
+                          <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
                             {m.type}
                           </div>
                         </div>
@@ -1101,16 +1083,16 @@ function EditPageDialog({
                 public page (e.g. "API", "Web", "Database").
               </p>
             </div>
-          {error && (
-            <p
-              id="page-dialog-error"
-              role="alert"
-              aria-live="polite"
-              className="text-sm text-destructive"
-            >
-              {error}
-            </p>
-          )}
+            {error && (
+              <p
+                id="page-dialog-error"
+                role="alert"
+                aria-live="polite"
+                className="text-sm text-destructive"
+              >
+                {error}
+              </p>
+            )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
