@@ -37,6 +37,7 @@ import {
   deleteMonitor,
   deleteStatusPage,
   getMonitor,
+  getMonitorTimeline,
   getStatusPage,
   listChannels,
   listIncidents,
@@ -172,6 +173,11 @@ async function main() {
             return createMonitor(req, adminDeps)
           if (path === '/api/admin/monitors/run' && method === 'POST')
             return runMonitorCheck(req, adminDeps)
+          const monitorTimelineMatch = path.match(
+            /^\/api\/admin\/monitors\/([\w-]+)\/timeline$/,
+          )
+          if (monitorTimelineMatch?.[1] && method === 'GET')
+            return getMonitorTimeline(monitorTimelineMatch[1], adminDeps)
           const monitorMatch = path.match(/^\/api\/admin\/monitors\/([\w-]+)$/)
           if (monitorMatch?.[1]) {
             const id = monitorMatch[1]

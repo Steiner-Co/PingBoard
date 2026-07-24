@@ -1,6 +1,7 @@
 import { and, desc, eq, gte, sql } from 'drizzle-orm'
 import type { DB } from '@pingboard/db'
 import {
+  dailyStats,
   domainFacts,
   heartbeats,
   incidents,
@@ -160,6 +161,50 @@ export async function getMonitor(id: string, deps: AdminDeps): Promise<Response>
     incidents: incidentRows,
     channelIds: linkedChannels.map((l) => l.channelId),
   })
+}
+
+/**
+ * Per-day uptime for one monitor over the last 90 days, from daily_stats with
+ * today's partial day computed from raw heartbeats. Feeds the detail page's
+ * uptime strip — same shape the public status page timeline uses.
+ */
+export async function getMonitorTimeline(id: string, deps: AdminDeps): Promise<Response> {
+  const [monitor] = await deps.db
+    .select({ id: monitors.id })
+    .from(monitors)
+    .where(eq(monitors.id, id))
+  if (!monitor) return error(404, 'Monitor not found')
+
+  const now = new Date()
+  const days = 90
+  const isoDay = (d: Date) => d.toISOString().slice(0, 10)
+  const today = isoDay(now)
+  const since = isoDay(new Date(now.getTime() - days * 24 * 60 * 60 * 1000))
+
+  const stats = await deps.db
+    .select({ date: dailyStats.date, uptimePct: dailyStats.uptimePct })
+    .from(dailyStats)
+    .where(and(eq(dailyStats.monitorId, id), gte(dailyStats.date, since)))
+  const pctByDate = new Map(stats.map((s) => [s.date, s.uptimePct]))
+
+  // The current day may not have an aggregated row yet — compute it live.
+  const dayStart = new Date(now)
+  dayStart.setUTCHours(0, 0, 0, 0)
+  const todayHeartbeats = await deps.db
+    .select({ status: heartbeats.status })
+    .from(heartbeats)
+    .where(and(eq(heartbeats.monitorId, id), gte(heartbeats.checkedAt, dayStart)))
+  if (todayHeartbeats.length > 0) {
+    const ups = todayHeartbeats.filter((h) => h.status === 'up').length
+    pctByDate.set(today, (ups / todayHeartbeats.length) * 100)
+  }
+
+  const timeline: Array<{ date: string; uptimePct: number | null }> = []
+  for (let i = days - 1; i >= 0; i--) {
+    const key = isoDay(new Date(now.getTime() - i * 24 * 60 * 60 * 1000))
+    timeline.push({ date: key, uptimePct: pctByDate.get(key) ?? null })
+  }
+  return json({ timeline })
 }
 
 export async function createMonitor(req: Request, deps: AdminDeps): Promise<Response> {

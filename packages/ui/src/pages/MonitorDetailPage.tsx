@@ -18,7 +18,14 @@ import { Area, AreaChart, ChartTooltip, Grid, XAxis } from '@/components/charts'
 import { Badge } from '@/components/ui/badge'
 import { Panel } from '@/components/panel'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +35,7 @@ import {
 import { TagInput } from '@/pages/MonitorWizardPage'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { StatusBadge } from '@/components/StatusBadge'
+import { UptimeTimeline, type TimelineDay } from '@/components/uptime-timeline'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useConfirm } from '@/components/confirm-provider'
 import { api } from '@/lib/api'
@@ -59,6 +67,13 @@ export function MonitorDetailPage() {
   const query = useQuery({
     queryKey: ['monitor', id],
     queryFn: () => api.get<DetailResponse>(`/api/admin/monitors/${id}`),
+    enabled: !!id,
+  })
+
+  const timelineQuery = useQuery({
+    queryKey: ['monitor-timeline', id],
+    queryFn: () =>
+      api.get<{ timeline: TimelineDay[] }>(`/api/admin/monitors/${id}/timeline`),
     enabled: !!id,
   })
 
@@ -151,7 +166,7 @@ export function MonitorDetailPage() {
             {monitor.name}
           </h1>
           <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground min-w-0">
-            <span className="uppercase shrink-0">{monitor.type}</span>
+            <span className="shrink-0 font-mono text-[11px] uppercase tracking-wider">{monitor.type}</span>
             <span className="shrink-0">·</span>
             <span className="font-mono truncate">{monitor.target}</span>
           </div>
@@ -202,58 +217,72 @@ export function MonitorDetailPage() {
                 }}
               >
                 <Icon icon={TrashBinTrash} className="h-3.5 w-3.5" />
-                Delete monitor
+                Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardDescription>Current status</CardDescription>
-          </CardHeader>
-          <CardContent>
+      <Panel className="grid grid-cols-1 sm:grid-cols-3 sm:divide-x sm:divide-border/60">
+        <div className="flex flex-col gap-2 p-4 sm:p-5">
+          <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            Current status
+          </span>
+          <div>
             <StatusBadge
               status={monitor.paused ? 'paused' : (latest?.status ?? 'unknown')}
               responseTimeMs={latest?.responseTimeMs}
             />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Uptime (last 24h)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold tabular-nums">
-              {uptimePct === null ? '—' : `${uptimePct}%`}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Last check</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold tabular-nums">
-              {latest ? formatRelative(latest.checkedAt) : '—'}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </div>
+        <div className="flex flex-col gap-2 p-4 sm:p-5">
+          <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            Uptime · 24h
+          </span>
+          <span className="text-2xl font-semibold tracking-tight tabular-nums">
+            {uptimePct === null ? '—' : `${uptimePct}%`}
+          </span>
+        </div>
+        <div className="flex flex-col gap-2 p-4 sm:p-5">
+          <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            Last check
+          </span>
+          <span className="text-2xl font-semibold tracking-tight tabular-nums">
+            {latest ? formatRelative(latest.checkedAt) : '—'}
+          </span>
+        </div>
+      </Panel>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Response time</CardTitle>
-          <CardDescription>
-            Last 24 hours
-            {msRange ? ` · ${msRange.min}–${msRange.max} ms` : ''}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <Panel>
+        <header className="flex items-baseline justify-between gap-3 border-b border-border/60 px-4 py-2.5">
+          <h2 className="text-sm font-medium">Uptime</h2>
+          <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            Last 90 days
+          </span>
+        </header>
+        <div className="px-4 py-4">
+          {timelineQuery.data ? (
+            <UptimeTimeline
+              timeline={timelineQuery.data.timeline}
+              monitorName={monitor.name}
+            />
+          ) : (
+            <Skeleton className="h-6 w-full" />
+          )}
+        </div>
+      </Panel>
+
+      <Panel>
+        <header className="flex items-baseline justify-between gap-3 border-b border-border/60 px-4 py-2.5">
+          <h2 className="text-sm font-medium">Response time</h2>
+          <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            Last 24h{msRange ? ` · ${msRange.min}–${msRange.max} ms` : ''}
+          </span>
+        </header>
+        <div className="px-2 pt-3 pb-1">
           {chartData.length === 0 ? (
-            <div className="text-sm text-muted-foreground py-8 text-center">
+            <div className="flex h-[240px] items-center justify-center text-xs text-muted-foreground">
               Waiting for the first successful check…
             </div>
           ) : (
@@ -268,41 +297,43 @@ export function MonitorDetailPage() {
               <ChartTooltip />
             </AreaChart>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </Panel>
 
       {monitor.type === 'push' && <PushUrlCard monitor={monitor} />}
 
       <MaintenanceWindowsCard monitorId={monitor.id} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Incidents</CardTitle>
-          <CardDescription>
-            {incidents.length === 0 ? 'No incidents yet.' : `${incidents.length} recent`}
-          </CardDescription>
-        </CardHeader>
-        {incidents.length > 0 && (
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Started</TableHead>
-                  <TableHead>Resolved</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>Note</TableHead>
-                  <TableHead className="text-right" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {incidents.map((i) => (
-                  <IncidentRow key={i.id} incident={i} monitorId={monitor.id} />
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
+      <Panel>
+        <header className="flex items-baseline justify-between gap-3 border-b border-border/60 px-4 py-2.5">
+          <h2 className="text-sm font-medium">Incidents</h2>
+          <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            {incidents.length === 0 ? 'None yet' : `${incidents.length} recent`}
+          </span>
+        </header>
+        {incidents.length === 0 ? (
+          <p className="px-4 py-5 text-xs text-muted-foreground">
+            No incidents yet — quiet is good.
+          </p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Started</TableHead>
+                <TableHead>Resolved</TableHead>
+                <TableHead>Duration</TableHead>
+                <TableHead>Note</TableHead>
+                <TableHead className="text-right" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {incidents.map((i) => (
+                <IncidentRow key={i.id} incident={i} monitorId={monitor.id} />
+              ))}
+            </TableBody>
+          </Table>
         )}
-      </Card>
+      </Panel>
     </div>
   )
 }
@@ -514,16 +545,16 @@ function PushUrlCard({ monitor }: { monitor: Monitor }) {
   if (!url) return null
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Push endpoint</CardTitle>
-        <CardDescription>
+    <Panel>
+      <header className="space-y-0.5 border-b border-border/60 px-4 py-2.5">
+        <h2 className="text-sm font-medium">Push endpoint</h2>
+        <p className="text-xs text-muted-foreground">
           Have your job POST to this URL on every successful run. PingBoard
           marks the monitor down if it doesn't hear from you within the check
           interval (plus grace period).
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
+        </p>
+      </header>
+      <div className="space-y-3 px-4 py-4">
         <div className="flex items-center gap-2">
           <code className="flex-1 rounded-md bg-muted px-3 py-2 text-sm font-mono break-all">
             {url}
@@ -543,8 +574,8 @@ function PushUrlCard({ monitor }: { monitor: Monitor }) {
         <pre className="text-xs text-muted-foreground bg-muted/50 rounded-md p-3 overflow-x-auto">
           {`curl -X POST ${url}`}
         </pre>
-      </CardContent>
-    </Card>
+      </div>
+    </Panel>
   )
 }
 
@@ -560,7 +591,7 @@ interface MaintenanceWindowRow {
 function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
   const queryClient = useQueryClient()
   const confirm = useConfirm()
-  const [adding, setAdding] = useState(false)
+  const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [startsAt, setStartsAt] = useState<Date | undefined>(new Date())
@@ -583,7 +614,7 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['maintenance', monitorId] })
       toast.success('Maintenance window scheduled')
-      setAdding(false)
+      setOpen(false)
       setTitle('')
       setDescription('')
       setStartsAt(new Date())
@@ -622,81 +653,24 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
   const now = useNow()
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div>
-          <CardTitle>Maintenance windows</CardTitle>
-          <CardDescription>
+    <Panel>
+      <header className="flex items-start justify-between gap-4 border-b border-border/60 px-4 py-2.5">
+        <div className="space-y-0.5">
+          <h2 className="text-sm font-medium">Maintenance windows</h2>
+          <p className="text-xs text-muted-foreground">
             Suppress alerts during scheduled downtime. The status page shows a
             banner; heartbeats are still recorded honestly.
-          </CardDescription>
+          </p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => setAdding((v) => !v)}>
-          {adding ? 'Cancel' : 'Schedule'}
+        <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+          Schedule
         </Button>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {adding && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              submit()
-            }}
-            className="rounded-md border bg-muted/30 p-4 space-y-3"
-          >
-            <Input
-              placeholder="Title (e.g. Database upgrade)"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-            <Input
-              placeholder="Description (optional)"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label
-                  htmlFor="window-start"
-                  className="text-xs text-muted-foreground"
-                >
-                  Start
-                </label>
-                <DateTimePicker
-                  id="window-start"
-                  value={startsAt}
-                  onChange={setStartsAt}
-                />
-              </div>
-              <div className="space-y-1">
-                <label
-                  htmlFor="window-end"
-                  className="text-xs text-muted-foreground"
-                >
-                  End
-                </label>
-                <DateTimePicker
-                  id="window-end"
-                  value={endsAt}
-                  onChange={setEndsAt}
-                />
-              </div>
-            </div>
-            {error && <div className="text-sm text-destructive">{error}</div>}
-            <div className="flex justify-end">
-              <Button type="submit" size="sm" disabled={create.isPending}>
-                Save window
-              </Button>
-            </div>
-          </form>
-        )}
-
+      </header>
+      <div className="space-y-4 px-4 py-4">
         {windows.length === 0 ? (
-          !adding && (
-            <div className="text-sm text-muted-foreground">
-              No maintenance windows scheduled.
-            </div>
-          )
+          <div className="text-sm text-muted-foreground">
+            No maintenance windows scheduled.
+          </div>
         ) : (
           <div className="divide-y">
             {windows.map((w) => {
@@ -754,8 +728,106 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
             })}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+      <Dialog
+        open={open}
+        onOpenChange={(v) => {
+          setOpen(v)
+          if (!v) setError(null)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Schedule maintenance</DialogTitle>
+            <DialogDescription>
+              Alerts stay quiet during the window; heartbeats keep recording.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              submit()
+            }}
+            className="space-y-4"
+          >
+            <div className="space-y-1.5">
+              <label
+                htmlFor="window-title"
+                className="text-xs text-muted-foreground"
+              >
+                Title
+              </label>
+              <Input
+                id="window-title"
+                placeholder="e.g. Database upgrade"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label
+                htmlFor="window-description"
+                className="text-xs text-muted-foreground"
+              >
+                Description (optional)
+              </label>
+              <Input
+                id="window-description"
+                placeholder="What is happening and why"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="window-start"
+                  className="text-xs text-muted-foreground"
+                >
+                  Start
+                </label>
+                <DateTimePicker
+                  id="window-start"
+                  value={startsAt}
+                  onChange={setStartsAt}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="window-end"
+                  className="text-xs text-muted-foreground"
+                >
+                  End
+                </label>
+                <DateTimePicker
+                  id="window-end"
+                  value={endsAt}
+                  onChange={setEndsAt}
+                />
+              </div>
+            </div>
+            {error && (
+              <p role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
+            )}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={create.isPending}>
+                Save window
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </Panel>
   )
 }
 
@@ -774,14 +846,14 @@ function MonitorDetailSkeleton() {
           <Skeleton className="h-7 w-16" />
         </div>
       </div>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <Panel className="grid grid-cols-1 sm:grid-cols-3 sm:divide-x sm:divide-border/60">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="relative rounded-lg border bg-card p-6 space-y-3">
+          <div key={i} className="flex flex-col gap-2 p-4 sm:p-5">
             <Skeleton className="h-3 w-24" />
             <Skeleton className="h-7 w-20" />
           </div>
         ))}
-      </div>
+      </Panel>
       <Panel className="p-6 space-y-4">
         <Skeleton className="h-4 w-32" />
         <Skeleton className="h-[260px] w-full" />
