@@ -1,6 +1,5 @@
 import * as React from "react"
 
-import { CornerTicks } from "@/components/panel"
 import { cn } from "@/lib/utils"
 
 function Card({
@@ -14,17 +13,13 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        // Sharp corners + corner ticks: the app-wide "blueprint" container
-        // style. Controls (buttons, inputs, overlays) stay rounded.
-        "group/card relative flex flex-col gap-4 rounded-none bg-card py-4 text-xs/relaxed text-card-foreground ring-1 ring-foreground/10 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3",
+        // Container surface — radius comes from the global --radius tokens.
+        "group/card relative flex flex-col gap-4 rounded-lg bg-card py-4 text-xs/relaxed text-card-foreground ring-1 ring-foreground/10 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3",
         className
       )}
       {...props}
     >
       {children}
-      {/* Absolutely positioned, so they sit last to keep :first-child
-          selectors pointing at real content. */}
-      <CornerTicks />
     </div>
   )
 }

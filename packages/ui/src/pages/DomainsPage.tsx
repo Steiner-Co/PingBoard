@@ -674,7 +674,7 @@ function AddDomainDialog({ open, onClose }: { open: boolean; onClose: () => void
                 to be warned before it expires.
               </p>
             ) : (
-              <div className="max-h-40 space-y-1.5 overflow-y-auto rounded-none border border-border/70 p-2">
+              <div className="max-h-40 space-y-1.5 overflow-y-auto rounded-md border border-border/70 p-2">
                 {chans.map((c) => (
                   <label
                     key={c.id}
@@ -885,7 +885,7 @@ function EditDetailsDialog({
 function EmptyDomains({ onAdd }: { onAdd: () => void }) {
   return (
     <div className="px-4 lg:px-6">
-      <div className="flex min-h-[420px] flex-col items-center justify-center gap-6 rounded-none border border-dashed bg-card/50 p-10 text-center">
+      <div className="flex min-h-[420px] flex-col items-center justify-center gap-6 rounded-lg border border-dashed bg-card/50 p-10 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <Icon icon={Global} className="h-6 w-6" />
         </div>

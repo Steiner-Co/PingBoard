@@ -282,7 +282,7 @@ export function MonitorEditPage() {
   if (detail.isError || !detail.data) {
     return (
       <div className="px-4 lg:px-6">
-        <div className="rounded-none border border-dashed bg-card/50 p-8 text-center text-sm text-muted-foreground">
+        <div className="rounded-lg border border-dashed bg-card/50 p-8 text-center text-sm text-muted-foreground">
           Couldn't load this monitor.{' '}
           <button
             type="button"
