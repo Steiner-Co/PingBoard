@@ -232,6 +232,10 @@
   }
   html {
     @apply font-sans;
+    /* Product reads ~10% too small at 100%; validated against 110% browser
+       zoom. CSS zoom scales rem AND px (unlike a root font-size bump, which
+       would leave the text-[10px]/text-[11px] mono labels behind). */
+    zoom: 1.1;
   }
   body {
     @apply bg-background text-foreground;
