@@ -37,7 +37,7 @@ export function FooterCTA() {
           type="button"
           onClick={copy}
           aria-label="Copy install command"
-          className="flex size-8 shrink-0 items-center justify-center rounded-[8px] outline-none transition-colors hover:bg-card focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-95"
+          className="flex size-8 shrink-0 items-center justify-center rounded-[8px] outline-none transition-[color,background-color,transform] duration-150 ease-out hover:bg-card focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-[0.97]"
         >
           {copied ? (
             <CheckIcon className="size-4 text-success" />

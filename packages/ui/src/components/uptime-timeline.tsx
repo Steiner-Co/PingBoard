@@ -19,6 +19,9 @@ export function UptimeTimeline({
   monitorName: string
 }) {
   const [hovered, setHovered] = useState<number | null>(null)
+  // Pointer hovers get the 100ms tooltip entry; keyboard focus does not —
+  // sweeping 90 days with arrow keys must not replay 90 keyframes.
+  const [viaPointer, setViaPointer] = useState(false)
   // Roving tabindex: the strip is one tab stop and arrows walk the days.
   // 90 individually-tabbable bars per monitor would bury every control
   // below the timeline.
@@ -60,7 +63,11 @@ export function UptimeTimeline({
           <div
             // Purely visual — each bar's accessible name already says the same.
             aria-hidden
-            className="pointer-events-none absolute -top-8 z-10 left-[var(--tip-left-mobile)] sm:left-[var(--tip-left)] -translate-x-1/2 rounded-md border bg-popover px-2 py-1 text-[11px] whitespace-nowrap text-popover-foreground shadow-sm tabular-nums motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-100"
+            className={cn(
+              "pointer-events-none absolute -top-8 z-10 left-[var(--tip-left-mobile)] sm:left-[var(--tip-left)] -translate-x-1/2 origin-bottom rounded-md border bg-popover px-2 py-1 text-[11px] whitespace-nowrap text-popover-foreground shadow-sm tabular-nums",
+              viaPointer &&
+                "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-100",
+            )}
             style={
               {
                 // Two offsets: below `sm` only the last 30 bars render, so the
@@ -84,7 +91,10 @@ export function UptimeTimeline({
           role="group"
           aria-label={`${monitorName} — daily uptime, ${timeline.length} days. Use arrow keys to review days.`}
           className="flex h-6 items-end gap-px"
-          onPointerLeave={() => setHovered(null)}
+          onPointerLeave={() => {
+            setHovered(null)
+            setViaPointer(false)
+          }}
           onKeyDown={(e) => {
             const step =
               e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0
@@ -107,9 +117,15 @@ export function UptimeTimeline({
               data-idx={i}
               tabIndex={i === Math.min(roving, timeline.length - 1) ? 0 : -1}
               aria-label={barLabel(d)}
-              onPointerEnter={() => setHovered(i)}
+              onPointerEnter={() => {
+                setHovered(i)
+                setViaPointer(true)
+              }}
               onFocus={() => setHovered(i)}
-              onBlur={() => setHovered(null)}
+              onBlur={() => {
+                setHovered(null)
+                setViaPointer(false)
+              }}
               className={cn(
                 'h-full flex-1 cursor-default rounded-sm transition-[filter] duration-100',
                 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',

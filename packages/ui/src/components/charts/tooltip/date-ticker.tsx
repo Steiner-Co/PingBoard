@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useSpring } from "motion/react";
+import { motion, useReducedMotion, useSpring } from "motion/react";
 import { memo, useMemo, useRef } from "react";
 
 const TICKER_ITEM_HEIGHT = 24;
@@ -77,17 +77,29 @@ const DateTickerInner = memo(function DateTickerInner({
   // Track previous month index
   const prevMonthIndexRef = useRef(-1);
 
-  // Animated Y offsets
+  // Animated Y offsets. Reduced-motion users get instant updates: jump()
+  // sets the spring's value without playing the animation.
+  const reducedMotion = useReducedMotion();
   const dayY = useSpring(0, { stiffness: 400, damping: 35 });
   const monthY = useSpring(0, { stiffness: 400, damping: 35 });
 
-  dayY.set(-currentIndex * TICKER_ITEM_HEIGHT);
+  const dayTarget = -currentIndex * TICKER_ITEM_HEIGHT;
+  if (reducedMotion) {
+    dayY.jump(dayTarget);
+  } else {
+    dayY.set(dayTarget);
+  }
 
   if (currentMonthIndex >= 0) {
     const isFirstRender = prevMonthIndexRef.current === -1;
     const monthChanged = prevMonthIndexRef.current !== currentMonthIndex;
     if (isFirstRender || monthChanged) {
-      monthY.set(-currentMonthIndex * TICKER_ITEM_HEIGHT);
+      const monthTarget = -currentMonthIndex * TICKER_ITEM_HEIGHT;
+      if (reducedMotion) {
+        monthY.jump(monthTarget);
+      } else {
+        monthY.set(monthTarget);
+      }
       prevMonthIndexRef.current = currentMonthIndex;
     }
   }

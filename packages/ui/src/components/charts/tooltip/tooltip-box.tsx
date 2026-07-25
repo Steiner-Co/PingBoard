@@ -218,10 +218,11 @@ function TooltipBoxInner({
       <motion.div
         animate={{ scale: 1, opacity: 1, x: 0 }}
         className={panelClassName}
-        initial={{ scale: 0.85, opacity: 0, x: isFlipped ? 20 : -20 }}
+        initial={{ scale: 0.95, opacity: 0, x: isFlipped ? 20 : -20 }}
         key={flipKey}
         style={panelStyleResolved}
-        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        // Data UI stays crisp: a short quart-out tween, not a spring.
+        transition={{ duration: 0.15, ease: [0.25, 1, 0.5, 1] }}
       >
         {children}
       </motion.div>

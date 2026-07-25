@@ -12,7 +12,7 @@ const LINKS = [
 export function TopNav() {
   return (
     <header className="flex w-full items-center justify-between">
-      <a href="#top" aria-label="PingBoard home" className="transition-transform active:scale-95">
+      <a href="#top" aria-label="PingBoard home" className="transition-transform active:scale-[0.97]">
         <Logo className="size-[34px] rounded-[4px]" />
       </a>
       <div className="flex items-center gap-2">

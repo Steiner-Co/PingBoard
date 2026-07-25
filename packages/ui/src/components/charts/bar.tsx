@@ -102,7 +102,6 @@ interface AnimatedBarProps {
   index: number;
   isFaded: boolean;
   animationType: BarAnimationType;
-  innerHeight: number;
   fadedOpacity: number;
   staggerDelay: number;
   enterTransition?: Transition;
@@ -121,7 +120,6 @@ function AnimatedBar({
   index,
   isFaded,
   animationType,
-  innerHeight,
   fadedOpacity,
   staggerDelay,
   enterTransition,
@@ -151,12 +149,10 @@ function AnimatedBar({
     );
   }
 
-  const initial = isHorizontal
-    ? { width: 0, height, x: 0, y }
-    : { width, height: 0, x, y: innerHeight };
-  const target = isHorizontal
-    ? { width, height, x: 0, y }
-    : { width, height, x, y };
+  // GPU-only grow: scale from the baseline (bottom / y-axis) instead of
+  // animating width/height, which triggers layout + paint for every bar.
+  const initial = isHorizontal ? { scaleX: 0 } : { scaleY: 0 };
+  const target = { scaleX: 1, scaleY: 1 };
 
   return (
     <g
@@ -166,11 +162,19 @@ function AnimatedBar({
       <motion.rect
         animate={target}
         fill={fill}
+        height={height}
         initial={initial}
         key={`grow-${index}-${revealEpoch}`}
         rx={rx}
         ry={ry}
+        style={{
+          transformBox: "fill-box",
+          transformOrigin: isHorizontal ? "left" : "bottom",
+        }}
         transition={enterAnim}
+        width={width}
+        x={x}
+        y={y}
       />
     </g>
   );
@@ -204,17 +208,15 @@ const BarInner = memo(function BarInner({
     orientation,
     stacked,
     stackOffsets,
-    animationDuration,
     enterTransition,
     revealEpoch = 0,
   } = useChart();
 
-  // Calculate stagger delay automatically if not provided
-  // Total animation duration is ~1200ms, with 40% for stagger spread and 60% for bar animation
-  const totalAnimDuration = animationDuration || 800;
-  const staggerSpread = totalAnimDuration * 0.4; // 40% of time for stagger spread
+  // Flat per-item stagger: 50ms stays inside Emil's 30–80ms window at any bar
+  // count; the old 40%-of-duration spread fell outside it at both extremes
+  // (88ms for 5 bars, 13ms for 36).
   const calculatedStaggerDelay =
-    staggerDelay ?? (data.length > 1 ? staggerSpread / 1000 / data.length : 0);
+    staggerDelay ?? (data.length > 1 ? 0.05 : 0);
   const uniqueId = useId();
 
   const isHorizontal = orientation === "horizontal";
@@ -405,7 +407,6 @@ const BarInner = memo(function BarInner({
               fill={fill}
               height={barHeight}
               index={i}
-              innerHeight={innerHeight}
               isFaded={isFaded}
               isHorizontal={isHorizontal}
               key={barKey}

@@ -227,7 +227,7 @@ function LiveActivity({
           {feed.map((item) => (
             <li
               key={item.key}
-              className="grid grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-200 ease-out motion-safe:starting:grid-rows-[0fr] motion-safe:starting:opacity-0"
+              className="opacity-100 transition-[opacity,transform] duration-200 ease-out motion-safe:starting:opacity-0 motion-safe:starting:-translate-y-1"
             >
               <div className="flex items-center gap-2.5 overflow-hidden px-4 py-2">
               <span

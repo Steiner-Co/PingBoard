@@ -313,20 +313,8 @@ function OverallStatusBanner({
       >
         <span
           aria-hidden
-          className="relative inline-flex h-2.5 w-2.5 shrink-0"
-        >
-          <span
-            className={cn(
-              'absolute inset-0 rounded-full opacity-40 motion-safe:animate-ping',
-              dot,
-            )}
-            style={{ animationDuration: '3s' }}
-          />
-          <span
-            aria-hidden
-            className={cn('relative inline-block h-2.5 w-2.5 rounded-full', dot)}
-          />
-        </span>
+          className={cn('h-2.5 w-2.5 shrink-0 rounded-full', dot)}
+        />
         <div className="text-xl sm:text-2xl font-semibold tracking-tight">
           <span className="sr-only">{dotLabel}.</span>
           <span aria-hidden>{text}</span>
@@ -651,7 +639,7 @@ function ThemeToggle() {
         <button
           type="button"
           aria-label="Theme"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-accent transition-[color,background-color,transform] duration-150 ease-out active:scale-95"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-accent transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.97]"
         >
           <Icon icon={ThemeIcon} className="h-4 w-4" />
         </button>
