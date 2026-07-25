@@ -23,7 +23,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Icon } from "@/components/ui/icon"
-import AltArrowLeft from "@solar-icons/react/csr/arrows/AltArrowLeft"
+import SidebarMinimalistic from "@solar-icons/react/csr/it/SidebarMinimalistic"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -283,7 +283,7 @@ function SidebarTrigger({
       }}
       {...props}
     >
-      <Icon icon={AltArrowLeft} />
+      <Icon icon={SidebarMinimalistic} />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )
