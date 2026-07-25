@@ -63,7 +63,7 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                       asChild
                       tooltip={item.title}
                       isActive={isActive}
-                      className="data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium"
+                      className="data-[active=true]:bg-primary/10 data-[active=true]:text-primary-text data-[active=true]:font-medium"
                     >
                       <GuardedLink to={item.url}>
                         <Icon icon={item.icon} />

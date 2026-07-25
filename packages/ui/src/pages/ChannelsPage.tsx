@@ -506,7 +506,7 @@ function RoutingGaps({
         <div className="flex items-start gap-2.5 px-4 py-4">
           <Icon
             icon={CheckCircle}
-            className="mt-px size-3.5 shrink-0 text-success"
+            className="mt-px size-3.5 shrink-0 text-success-text"
           />
           <p className="text-xs text-muted-foreground">
             {activeTotal === 0
@@ -627,7 +627,7 @@ function StatCell({
 }) {
   const valueTone =
     tone === 'success'
-      ? 'text-success'
+      ? 'text-success-text'
       : tone === 'destructive'
         ? 'text-destructive'
         : tone === 'warn'

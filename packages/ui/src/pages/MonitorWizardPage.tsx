@@ -621,7 +621,7 @@ export function TagInput({
 function TestResultRow({ result }: { result: TestResult }) {
   const ok = result.status === 'up'
   const icon = ok ? CheckCircle : DangerCircle
-  const tone = ok ? 'text-success' : 'text-destructive'
+  const tone = ok ? 'text-success-text' : 'text-destructive'
   return (
     <div className="flex items-start gap-2 text-sm">
       <Icon icon={icon} className={`h-4 w-4 mt-0.5 ${tone}`} />

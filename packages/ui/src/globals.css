@@ -29,6 +29,8 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-success-text: var(--success-text);
+  --color-primary-text: var(--primary-text);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --color-border: var(--border);
@@ -85,11 +87,14 @@
   --popover-foreground: oklch(0.4386 0 0);
   --primary: oklch(0.8348 0.1302 160.9080);
   --primary-foreground: oklch(0.2626 0.0147 166.4589);
-  --secondary: oklch(0.9940 0 0);
+  --secondary: oklch(0.92 0 0);
   --secondary-foreground: oklch(0.2046 0 0);
-  --muted: oklch(0.9461 0 0);
+  /* --muted/--accent at 0.9461 sat 0.045 from --background, so hover fills
+     (bg-muted, bg-muted/50 rows) were near-invisible in light mode. 0.92
+     keeps even /50 modulations perceptible. */
+  --muted: oklch(0.92 0 0);
   --muted-foreground: oklch(0.2435 0 0);
-  --accent: oklch(0.9461 0 0);
+  --accent: oklch(0.92 0 0);
   --accent-foreground: oklch(0.2435 0 0);
   --destructive: oklch(0.5523 0.1927 32.7272);
   --destructive-foreground: oklch(0.9934 0.0032 17.2118);
@@ -99,6 +104,11 @@
   --success-foreground: oklch(1 0 0);
   --warning: oklch(0.52 0.15 62);
   --warning-foreground: oklch(1 0 0);
+  /* Text-grade tones: --success/--primary are fill colors (paired with white/
+     dark foregrounds); as small text on light surfaces they fail contrast
+     (≈2:1 / ≈1.5:1). Use *-text for text, keep the base tokens for fills. */
+  --success-text: oklch(0.55 0.17 149.579);
+  --primary-text: oklch(0.5 0.11 160.9080);
   --border: oklch(0.9037 0 0);
   /* --input doubles as the control border color (border-input) and the fill
      (bg-input/20). At 0.9731 it sat 0.02 from --background and light-mode
@@ -115,7 +125,7 @@
   --sidebar-foreground: oklch(0.5452 0 0);
   --sidebar-primary: oklch(0.8348 0.1302 160.9080);
   --sidebar-primary-foreground: oklch(0.2626 0.0147 166.4589);
-  --sidebar-accent: oklch(0.9461 0 0);
+  --sidebar-accent: oklch(0.92 0 0);
   --sidebar-accent-foreground: oklch(0.2435 0 0);
   --sidebar-border: oklch(0.9037 0 0);
   --sidebar-ring: oklch(0.8348 0.1302 160.9080);
@@ -153,9 +163,14 @@
   --success-foreground: oklch(1 0 0);
   --warning: oklch(0.78 0.16 75);
   --warning-foreground: oklch(0.13 0 0);
-  --border: oklch(0.2809 0 0);
+  /* Text-grade tones for dark surfaces — see light :root. */
+  --success-text: oklch(0.723 0.219 149.579);
+  --primary-text: oklch(0.8 0.14 160.9080);
+  /* 0.2809 sat 0.021 from --popover, so inputs and separators inside dark
+     dialogs/popovers vanished. 0.32 keeps the boundary on every surface. */
+  --border: oklch(0.32 0 0);
   /* Tracks --border: border-input is the control boundary — see light :root. */
-  --input: oklch(0.2809 0 0);
+  --input: oklch(0.32 0 0);
   --ring: oklch(0.8003 0.1821 151.7110);
   --chart-1: oklch(0.8003 0.1821 151.7110);
   --chart-2: oklch(0.7137 0.1434 254.6240);

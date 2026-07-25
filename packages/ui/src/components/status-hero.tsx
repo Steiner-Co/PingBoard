@@ -145,7 +145,7 @@ function Metric({
 }) {
   const valueTone =
     tone === "success"
-      ? "text-success"
+      ? "text-success-text"
       : tone === "warn"
         ? "text-warning"
         : tone === "muted"

@@ -209,7 +209,7 @@ function LiveActivity({
     <Panel>
       <header className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
         <h2 className="text-sm font-medium">Activity</h2>
-        <span className="flex items-center gap-1.5 font-mono text-[10px] font-medium uppercase tracking-widest text-success">
+        <span className="flex items-center gap-1.5 font-mono text-[10px] font-medium uppercase tracking-widest text-success-text">
           {/* The dot is the steady signal — its color carries the state, so a
               ping-per-heartbeat ring would restate "I'm here" on top of a
               already-lit indicator. Per Emil: pulse must encode new state,

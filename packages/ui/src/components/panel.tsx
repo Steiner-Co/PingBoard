@@ -13,7 +13,7 @@ export function Panel({
 }: React.ComponentProps<"section">) {
   return (
     <section
-      className={cn("relative rounded-lg border border-border/70 bg-card", className)}
+      className={cn("relative rounded-lg border border-border bg-card", className)}
       {...props}
     >
       {children}

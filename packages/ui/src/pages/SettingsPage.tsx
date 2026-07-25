@@ -234,7 +234,7 @@ function AccountCard({ email }: { email: string }) {
           </div>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           {success && (
-            <p className="text-sm text-success">Password updated.</p>
+            <p className="text-sm text-success-text">Password updated.</p>
           )}
           <div className="flex items-center gap-3">
             <Button
@@ -575,7 +575,7 @@ function SmtpCard() {
           </label>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           {success && (
-            <p className="text-sm text-success">SMTP defaults saved.</p>
+            <p className="text-sm text-success-text">SMTP defaults saved.</p>
           )}
           <div>
             <Button type="submit" disabled={!touched || update.isPending}>
@@ -662,7 +662,7 @@ function ApiTokensCard() {
       <div className="space-y-4 px-4 py-4">
         {freshSecret && (
           <div className="space-y-2 border border-success/40 bg-success/5 p-3" role="status">
-            <p className="text-xs font-medium text-success">
+            <p className="text-xs font-medium text-success-text">
               Copy this now — it can't be shown again.
             </p>
             <div className="flex items-center gap-2">

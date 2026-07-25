@@ -99,7 +99,7 @@ export function SetupPage() {
                   password.length === 0
                     ? 'text-xs text-muted-foreground'
                     : password.length >= 8
-                      ? 'text-xs text-success'
+                      ? 'text-xs text-success-text'
                       : 'text-xs text-warning'
                 }
               >

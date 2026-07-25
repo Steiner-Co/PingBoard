@@ -64,7 +64,7 @@ export function UptimeTimeline({
             // Purely visual — each bar's accessible name already says the same.
             aria-hidden
             className={cn(
-              "pointer-events-none absolute -top-8 z-10 left-[var(--tip-left-mobile)] sm:left-[var(--tip-left)] -translate-x-1/2 origin-bottom rounded-md border bg-popover px-2 py-1 text-[11px] whitespace-nowrap text-popover-foreground shadow-sm tabular-nums",
+              "pointer-events-none absolute -top-8 z-10 left-[var(--tip-left-mobile)] sm:left-[var(--tip-left)] -translate-x-1/2 origin-bottom rounded-md bg-popover px-2 py-1 text-[11px] whitespace-nowrap text-popover-foreground ring-1 ring-foreground/10 tabular-nums",
               viaPointer &&
                 "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-100",
             )}

@@ -325,7 +325,7 @@ function StatCell({
 }) {
   const valueTone =
     tone === 'success'
-      ? 'text-success'
+      ? 'text-success-text'
       : tone === 'destructive'
         ? 'text-destructive'
         : tone === 'warn'
@@ -526,7 +526,7 @@ function PublicUrl({ slug }: { slug: string }) {
         icon={copied ? CheckCircle : Copy}
         className={cn(
           'h-3.5 w-3.5 shrink-0 transition-colors',
-          copied ? 'text-success' : 'text-muted-foreground/70',
+          copied ? 'text-success-text' : 'text-muted-foreground/70',
         )}
       />
       <span className="sr-only">{copied ? 'Copied' : 'Copy'}</span>

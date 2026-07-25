@@ -80,7 +80,7 @@ export function DateTimePicker({
           onSelect={applyTime}
           autoFocus
         />
-        <div className="flex items-end gap-2 border-t border-border/70 p-3">
+        <div className="flex items-end gap-2 border-t border-border p-3">
           <div className="space-y-1">
             <label
               htmlFor={`${id ?? 'dtp'}-hours`}

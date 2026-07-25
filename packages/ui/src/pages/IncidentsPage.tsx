@@ -512,7 +512,7 @@ function StatCell({
 }) {
   const valueTone =
     tone === 'success'
-      ? 'text-success'
+      ? 'text-success-text'
       : tone === 'destructive'
         ? 'text-destructive'
         : tone === 'warn'

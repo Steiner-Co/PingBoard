@@ -176,10 +176,9 @@ function TooltipBoxInner({
   const transformOrigin = isFlipped ? "right top" : "left top";
 
   const panelClassName = cn(
-    "min-w-[140px] overflow-hidden rounded-lg text-chart-tooltip-foreground shadow-lg",
-    panelStyle?.backgroundColor === undefined &&
-      backgroundColor === chartCssVars.tooltipBackground &&
-      "bg-chart-tooltip-background",
+    // ring-foreground/10: popover == background in light mode, so a bare
+    // shadow was the panel's only edge. Matches dialog/dropdown popovers.
+    "min-w-[140px] overflow-hidden rounded-lg text-popover-foreground shadow-lg ring-1 ring-foreground/10",
     panelStyle?.backdropFilter === undefined && "backdrop-blur-md"
   );
   const panelStyleResolved = {
