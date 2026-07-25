@@ -9,6 +9,7 @@ import TestTube from '@solar-icons/react/csr/medicine/TestTube'
 import TrashBinTrash from '@solar-icons/react/csr/ui/TrashBinTrash'
 import Pen from '@solar-icons/react/csr/messages/Pen'
 import Bell from '@solar-icons/react/csr/notifications/Bell'
+import DangerTriangle from '@solar-icons/react/csr/ui/DangerTriangle'
 import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
 import AltArrowRight from '@solar-icons/react/csr/arrows/AltArrowRight'
 import { Badge } from '@/components/ui/badge'
@@ -366,11 +367,11 @@ function ChannelRow({
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Button size="sm" variant="outline" onClick={onTest} disabled={testPending}>
-            <Icon icon={TestTube} className="h-3 w-3" />
+            <Icon icon={TestTube} className="h-3.5 w-3.5" />
             Test
           </Button>
           <Button size="sm" variant="outline" onClick={onEdit}>
-            <Icon icon={Pen} className="h-3 w-3" />
+            <Icon icon={Pen} className="h-3.5 w-3.5" />
             Edit
           </Button>
           <Button
@@ -379,7 +380,7 @@ function ChannelRow({
             aria-label={`Delete ${channel.name}`}
             onClick={onDelete}
           >
-            <Icon icon={TrashBinTrash} className="h-3 w-3" />
+            <Icon icon={TrashBinTrash} className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
@@ -527,7 +528,7 @@ function RoutingGaps({
     <Panel className="border-warning/40">
       <header className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2.5">
         <h2 className="flex items-center gap-2 text-sm font-medium text-warning">
-          <Icon icon={Bell} className="size-3.5 shrink-0" />
+          <Icon icon={DangerTriangle} className="size-3.5 shrink-0" />
           Unrouted monitors
         </h2>
         <span className="font-mono text-[11px] tabular-nums text-warning">{gaps.length}</span>

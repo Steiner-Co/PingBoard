@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
-import DangerCircle from '@solar-icons/react/csr/ui/DangerCircle'
+import Magnifier from '@solar-icons/react/csr/search/Magnifier'
 import Pen from '@solar-icons/react/csr/messages/Pen'
 import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
 import { Bar, BarChart, BarXAxis, ChartTooltip, Grid } from '@/components/charts'
@@ -462,7 +462,7 @@ export function IncidentsPage() {
         </header>
         {filtered.length === 0 ? (
           <div className="py-10 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
-            <Icon icon={DangerCircle} className="h-5 w-5 opacity-50" />
+            <Icon icon={Magnifier} className="h-5 w-5 opacity-50" />
             No incidents match this filter.
           </div>
         ) : (
@@ -724,7 +724,7 @@ function Row({ incident }: { incident: IncidentRow }) {
             <span className={incident.note ? '' : 'text-muted-foreground italic'}>
               {incident.note ?? 'Add a note…'}
             </span>
-            <Icon icon={Pen} className="h-3 w-3 opacity-40" />
+            <Icon icon={Pen} className="h-3.5 w-3.5 opacity-40" />
           </button>
         )}
       </TableCell>
@@ -736,7 +736,7 @@ function Row({ incident }: { incident: IncidentRow }) {
             onClick={() => resolve.mutate()}
             disabled={resolve.isPending}
           >
-            <Icon icon={CheckCircle} className="h-3 w-3" />
+            <Icon icon={CheckCircle} className="h-3.5 w-3.5" />
             Resolve
           </Button>
         )}

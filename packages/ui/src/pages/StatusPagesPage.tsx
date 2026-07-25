@@ -13,7 +13,7 @@ import SquareArrowRightUp from '@solar-icons/react/csr/arrows/SquareArrowRightUp
 import LockPassword from '@solar-icons/react/csr/security/LockPassword'
 import MenuDots from '@solar-icons/react/csr/ui/MenuDots'
 import AddSquare from '@solar-icons/react/csr/ui/AddSquare'
-import Bell from '@solar-icons/react/csr/notifications/Bell'
+import DangerTriangle from '@solar-icons/react/csr/ui/DangerTriangle'
 import TrashBinTrash from '@solar-icons/react/csr/ui/TrashBinTrash'
 import Global from '@solar-icons/react/csr/map/Global'
 import { Badge } from '@/components/ui/badge'
@@ -412,7 +412,7 @@ function PageRow({
             <Badge variant="warning" className="gap-1">
               <Icon
                 icon={LockPassword}
-                className="h-3 w-3"
+                className="h-3.5 w-3.5"
               />
               Password
             </Badge>
@@ -459,12 +459,12 @@ function PageRow({
       <div className="flex shrink-0 items-center gap-2">
         <Button size="sm" variant="outline" asChild>
           <a href={`/${page.slug}`} target="_blank" rel="noreferrer">
-            <Icon icon={SquareArrowRightUp} className="h-3 w-3" />
+            <Icon icon={SquareArrowRightUp} className="h-3.5 w-3.5" />
             View
           </a>
         </Button>
         <Button size="sm" variant="outline" onClick={onEdit}>
-          <Icon icon={Pen} className="h-3 w-3" />
+          <Icon icon={Pen} className="h-3.5 w-3.5" />
           Edit
         </Button>
         <DropdownMenu>
@@ -525,7 +525,7 @@ function PublicUrl({ slug }: { slug: string }) {
       <Icon
         icon={copied ? CheckCircle : Copy}
         className={cn(
-          'h-3 w-3 shrink-0 transition-colors',
+          'h-3.5 w-3.5 shrink-0 transition-colors',
           copied ? 'text-success' : 'text-muted-foreground/70',
         )}
       />
@@ -547,7 +547,7 @@ function CoverageBanner({
     <Panel className="border-warning/40">
       <header className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2.5">
         <h2 className="flex items-center gap-2 text-sm font-medium text-warning">
-          <Icon icon={Bell} className="size-3.5 shrink-0" />
+          <Icon icon={DangerTriangle} className="size-3.5 shrink-0" />
           Hidden monitors
         </h2>
         <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-warning tabular-nums">
@@ -574,7 +574,7 @@ function CoverageBanner({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" variant="outline" className="shrink-0">
-                  <Icon icon={AddSquare} className="h-3 w-3" />
+                  <Icon icon={AddSquare} className="h-3.5 w-3.5" />
                   Add to page
                 </Button>
               </DropdownMenuTrigger>
@@ -1040,7 +1040,7 @@ function EditPageDialog({
                               >
                                 <Icon
                                   icon={ArrowUp}
-                                  className="h-3 w-3"
+                                  className="h-3.5 w-3.5"
                                 />
                               </Button>
                               <Button
@@ -1056,7 +1056,7 @@ function EditPageDialog({
                               >
                                 <Icon
                                   icon={ArrowDown}
-                                  className="h-3 w-3"
+                                  className="h-3.5 w-3.5"
                                 />
                               </Button>
                             </div>

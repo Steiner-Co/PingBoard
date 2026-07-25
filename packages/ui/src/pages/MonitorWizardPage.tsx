@@ -336,7 +336,7 @@ export function MonitorWizardPage() {
                       onClick={() => testMutation.mutate()}
                       disabled={!effectiveTarget || testMutation.isPending}
                     >
-                      <Icon icon={TestTube} className="h-3 w-3" />
+                      <Icon icon={TestTube} className="h-3.5 w-3.5" />
                       {testMutation.isPending ? 'Checking…' : 'Test now'}
                     </Button>
                   </div>
@@ -507,7 +507,7 @@ function Stepper({ current }: { current: number }) {
               i > current && 'bg-muted text-muted-foreground',
             )}
           >
-            {i < current ? <Icon icon={CheckCircle} className="h-3 w-3" /> : i + 1}
+            {i < current ? <Icon icon={CheckCircle} className="h-3.5 w-3.5" /> : i + 1}
           </span>
           <span className={cn(i === current ? 'font-medium' : 'text-muted-foreground')}>
             {label}
@@ -580,7 +580,7 @@ export function TagInput({
               className="opacity-60 hover:opacity-100"
               aria-label={`Remove ${tag}`}
             >
-              <Icon icon={CloseSquare} className="h-3 w-3" />
+              <Icon icon={CloseSquare} className="h-3.5 w-3.5" />
             </button>
           </Badge>
         ))}

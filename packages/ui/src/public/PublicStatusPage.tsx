@@ -6,6 +6,7 @@ import { Icon } from '@/components/ui/icon'
 import Sun from '@solar-icons/react/csr/weather/Sun'
 import Moon from '@solar-icons/react/csr/weather/Moon'
 import Display from '@solar-icons/react/csr/devices/Display'
+import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -648,17 +649,23 @@ function ThemeToggle() {
         <DropdownMenuItem onSelect={() => setTheme('light')}>
           <Icon icon={Sun} className="h-3.5 w-3.5" />
           Light
-          {theme === 'light' && <span className="ml-auto text-xs">✓</span>}
+          {theme === 'light' && (
+            <Icon icon={CheckCircle} className="ml-auto h-3.5 w-3.5" />
+          )}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => setTheme('dark')}>
           <Icon icon={Moon} className="h-3.5 w-3.5" />
           Dark
-          {theme === 'dark' && <span className="ml-auto text-xs">✓</span>}
+          {theme === 'dark' && (
+            <Icon icon={CheckCircle} className="ml-auto h-3.5 w-3.5" />
+          )}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => setTheme('system')}>
           <Icon icon={Display} className="h-3.5 w-3.5" />
           System
-          {theme === 'system' && <span className="ml-auto text-xs">✓</span>}
+          {theme === 'system' && (
+            <Icon icon={CheckCircle} className="ml-auto h-3.5 w-3.5" />
+          )}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

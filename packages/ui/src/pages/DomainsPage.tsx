@@ -3,9 +3,10 @@ import { format } from 'date-fns'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Icon } from '@/components/ui/icon'
+import DangerTriangle from '@solar-icons/react/csr/ui/DangerTriangle'
 import DangerCircle from '@solar-icons/react/csr/ui/DangerCircle'
-import ArrowDown from '@solar-icons/react/csr/arrows/ArrowDown'
-import ArrowRight from '@solar-icons/react/csr/arrows/ArrowRight'
+import AltArrowDown from '@solar-icons/react/csr/arrows/AltArrowDown'
+import AltArrowRight from '@solar-icons/react/csr/arrows/AltArrowRight'
 import Calendar from '@solar-icons/react/csr/time/Calendar'
 import VerifiedCheck from '@solar-icons/react/csr/money/VerifiedCheck'
 import Global from '@solar-icons/react/csr/map/Global'
@@ -271,7 +272,7 @@ export function DomainsPage() {
           <Panel className="border-warning/40">
             <header className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2.5">
               <h2 className="flex items-center gap-2 text-sm font-medium text-warning">
-                <Icon icon={DangerCircle} className="size-3.5 shrink-0" />
+                <Icon icon={DangerTriangle} className="size-3.5 shrink-0" />
                 Expiring soon
               </h2>
               <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-warning tabular-nums">
@@ -368,7 +369,7 @@ function DomainRow({
         className="flex w-full items-center gap-3 px-4 py-3 text-left outline-none transition-colors hover:bg-accent/40 focus-visible:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring/30"
       >
         <Icon
-          icon={open ? ArrowDown : ArrowRight}
+          icon={open ? AltArrowDown : AltArrowRight}
           className="h-4 w-4 shrink-0 text-muted-foreground"
         />
         <div className="min-w-0 flex-1">
@@ -376,7 +377,7 @@ function DomainRow({
             <span className="truncate font-medium">{d.name}</span>
             {d.channelIds.length === 0 && (
               <Badge variant="warning" className="gap-1">
-                <Icon icon={DangerCircle} className="h-3 w-3" />
+                <Icon icon={DangerCircle} className="h-3.5 w-3.5" />
                 Not alerting
               </Badge>
             )}

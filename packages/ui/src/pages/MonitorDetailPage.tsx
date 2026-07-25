@@ -11,7 +11,6 @@ import Pen from '@solar-icons/react/csr/messages/Pen'
 import MenuDots from '@solar-icons/react/csr/ui/MenuDots'
 import Pause from '@solar-icons/react/csr/video/Pause'
 import Play from '@solar-icons/react/csr/video/Play'
-import Settings from '@solar-icons/react/csr/settings/Settings'
 import { Input } from '@/components/ui/input'
 import { curveMonotoneX } from '@visx/curve'
 import { Area, AreaChart, ChartTooltip, Grid, XAxis } from '@/components/charts'
@@ -175,7 +174,7 @@ export function MonitorDetailPage() {
         <div className="flex gap-2 shrink-0">
           <Button variant="default" asChild>
             <Link to={`/admin/monitors/${monitor.id}/edit`} className="gap-2">
-              <Icon icon={Settings} className="h-4 w-4" />
+              <Icon icon={Pen} className="h-4 w-4" />
               Edit
             </Link>
           </Button>
@@ -515,7 +514,7 @@ function IncidentRow({
             <span className={incident.note ? '' : 'text-muted-foreground italic'}>
               {incident.note ?? 'Add a note…'}
             </span>
-            <Icon icon={Pen} className="h-3 w-3 opacity-40" />
+            <Icon icon={Pen} className="h-3.5 w-3.5 opacity-40" />
           </button>
         )}
       </TableCell>
@@ -527,7 +526,7 @@ function IncidentRow({
             onClick={() => resolve.mutate()}
             disabled={resolve.isPending}
           >
-            <Icon icon={CheckCircle} className="h-3 w-3" />
+            <Icon icon={CheckCircle} className="h-3.5 w-3.5" />
             Resolve
           </Button>
         )}
@@ -721,7 +720,7 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
                       if (ok) remove.mutate(w.id)
                     }}
                   >
-                    <Icon icon={TrashBinTrash} className="h-3 w-3" />
+                    <Icon icon={TrashBinTrash} className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               )

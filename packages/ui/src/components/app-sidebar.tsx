@@ -18,6 +18,7 @@ import DangerCircle from "@solar-icons/react/csr/ui/DangerCircle"
 import Calendar from "@solar-icons/react/csr/time/Calendar"
 import Bell from "@solar-icons/react/csr/notifications/Bell"
 import Settings from "@solar-icons/react/csr/settings/Settings"
+import Monitor from "@solar-icons/react/csr/devices/Monitor"
 
 const navGroups = [
   {
@@ -33,7 +34,7 @@ const navGroups = [
     label: "Configure",
     items: [
       { title: "Channels", url: "/admin/channels", icon: Bell },
-      { title: "Status pages", url: "/admin/pages", icon: Global },
+      { title: "Status pages", url: "/admin/pages", icon: Monitor },
       { title: "Settings", url: "/admin/settings", icon: Settings },
     ],
   },

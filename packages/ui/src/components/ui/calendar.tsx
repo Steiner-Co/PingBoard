@@ -5,6 +5,7 @@ import AltArrowRight from '@solar-icons/react/csr/arrows/AltArrowRight'
 
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
+import { Icon } from '@/components/ui/icon'
 
 // shadCN-style Calendar: react-day-picker v10 styled to match the rest of
 // the design system. Calendar chevrons use Solar's AltArrow icons to stay
@@ -62,9 +63,9 @@ function Calendar({
       components={{
         Chevron: ({ orientation, ..._chevronProps }) =>
           orientation === 'left' ? (
-            <AltArrowLeft aria-hidden className="size-4" />
+            <Icon icon={AltArrowLeft} className="size-4" />
           ) : (
-            <AltArrowRight aria-hidden className="size-4" />
+            <Icon icon={AltArrowRight} className="size-4" />
           ),
       }}
       {...props}

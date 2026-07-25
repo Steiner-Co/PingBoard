@@ -553,7 +553,7 @@ function WindowRow({
         >
           <Icon
             icon={LinkIcon}
-            className="h-3 w-3"
+            className="h-3.5 w-3.5"
           />
           {w.monitorName}
         </Link>
@@ -570,7 +570,7 @@ function WindowRow({
         className="shrink-0 self-start"
         onClick={() => onDelete(w)}
       >
-        <Icon icon={TrashBinTrash} className="h-3 w-3" />
+        <Icon icon={TrashBinTrash} className="h-3.5 w-3.5" />
       </Button>
     </div>
   )
