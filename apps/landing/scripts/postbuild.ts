@@ -48,7 +48,7 @@ const posts = mdxFiles(BLOG_DIR)
   .map((f) => ({ slug: f.replace(/\.mdx$/, ''), ...parseFrontmatter(resolve(BLOG_DIR, f)) }))
   .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
 
-const staticRoutes = ['/', '/docs', '/blog']
+const staticRoutes = ['/', '/about', '/docs', '/blog']
 const routes = [
   ...staticRoutes,
   ...docSlugs.map((s) => `/docs/${s}`),

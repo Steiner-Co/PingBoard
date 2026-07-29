@@ -8,6 +8,7 @@ import { DocsLayout } from './layouts/DocsLayout'
 import { DocsPage, DocsRedirect } from './pages/DocsPage'
 import { BlogIndex } from './pages/BlogIndex'
 import { BlogPost } from './pages/BlogPost'
+import { AboutPage } from './pages/AboutPage'
 import { NotFound } from './pages/NotFound'
 
 export const routes: RouteRecord[] = [
@@ -43,6 +44,10 @@ export const routes: RouteRecord[] = [
           { index: true, element: <BlogIndex /> },
           { path: ':slug', element: <BlogPost /> },
         ],
+      },
+      {
+        path: 'about',
+        element: <SiteLayout><AboutPage /></SiteLayout>,
       },
       { path: '*', element: <SiteLayout><NotFound /></SiteLayout> },
     ],

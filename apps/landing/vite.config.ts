@@ -67,6 +67,7 @@ export default defineConfig({
     includedRoutes() {
       return [
         '/',
+        '/about',
         '/docs',
         ...docSlugs.map((s) => `/docs/${s}`),
         '/blog',

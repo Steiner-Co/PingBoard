@@ -5,17 +5,18 @@ import { cn } from '@/lib/utils'
 
 interface NavLink {
   label: string
-  /** Internal route (rendered as react-router Link) or hash anchor (plain <a>). */
-  href: string
-  internal?: boolean
+  /** Passed to react-router Link; may include a hash (/#features). */
+  to: string
   isActive: (pathname: string) => boolean
 }
 
 const LINKS: NavLink[] = [
-  { label: 'Product', href: '/#features', isActive: (p) => p === '/' },
-  { label: 'About', href: '/#about', isActive: () => false },
-  { label: 'Docs', href: '/docs', internal: true, isActive: (p) => p.startsWith('/docs') },
-  { label: 'Blog', href: '/blog', internal: true, isActive: (p) => p.startsWith('/blog') },
+  // Product points at the hero anchor (#top), not the feature grid —
+  // it goes through the router either way, so no full page reload.
+  { label: 'Product', to: '/#top', isActive: (p) => p === '/' },
+  { label: 'About', to: '/about', isActive: (p) => p === '/about' },
+  { label: 'Docs', to: '/docs', isActive: (p) => p.startsWith('/docs') },
+  { label: 'Blog', to: '/blog', isActive: (p) => p.startsWith('/blog') },
 ]
 
 export function TopNav() {
@@ -40,14 +41,10 @@ export function TopNav() {
         <nav className="flex items-center rounded-full bg-muted">
           {LINKS.map((l) => {
             const active = l.isActive(pathname)
-            return l.internal ? (
-              <Link key={l.label} to={l.href} aria-current={active ? 'page' : undefined} className={linkClass(active)}>
+            return (
+              <Link key={l.label} to={l.to} aria-current={active ? 'page' : undefined} className={linkClass(active)}>
                 {l.label}
               </Link>
-            ) : (
-              <a key={l.label} href={l.href} aria-current={active ? 'page' : undefined} className={linkClass(active)}>
-                {l.label}
-              </a>
             )
           })}
         </nav>
