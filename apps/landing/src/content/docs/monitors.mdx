@@ -1,0 +1,58 @@
+---
+title: Monitors
+description: How monitors work — scheduling, timeouts, retries, tags, pausing, and alert routing.
+group: Guides
+order: 1
+---
+
+A monitor is one recurring check against one target. Every monitor has a name, a [type](/docs/monitor-types), a target, and the shared scheduling options below. The first check runs immediately after you save; the in-process scheduler then re-checks on your interval.
+
+## Shared configuration
+
+| Field | Allowed values | Default | Notes |
+|---|---|---|---|
+| `intervalSeconds` | `10`, `30`, `60`, `300`, `900`, `3600` | `60` | How often the check runs |
+| `timeoutSeconds` | 1–60 | `10` | Per-attempt timeout |
+| `retryCount` | 0–5 | `1` | Extra attempts before a check counts as failed |
+| `tags` | up to 16 per monitor | — | Lowercase letters, digits, hyphens; max 32 chars each |
+| `channelIds` | any notification channels | none | Which channels get alerted for this monitor |
+
+### Retries
+
+When a check fails, PingBoard retries up to `retryCount` more times, immediately, within the same cycle. As soon as one attempt comes back `up`, the cycle succeeds. Only if every attempt fails is the heartbeat recorded as `down` — so a single dropped packet doesn't page you.
+
+### Timeouts
+
+The timeout applies per attempt. An HTTP check that hangs is aborted after `timeoutSeconds`; a ping check passes the same value to the system `ping` as its deadline. Slow-but-alive targets can read as down if the timeout is tighter than their real latency — raise it before you raise the interval.
+
+## Up, down, degraded
+
+Checks resolve to one of three statuses:
+
+- **up** — everything passed.
+- **down** — the check failed. Opens an incident and fires notifications.
+- **degraded** — a warning state (SSL/domain expiry approaching its warning threshold, or a domain whose expiry couldn't be verified). Degraded shows amber on the dashboard and status pages but does **not** open an incident or send alerts.
+
+Incidents are pure down→up transitions: a `down` result with no open incident opens one; an `up` result closes it and sends the "is UP" recovery notification. See [Notifications](/docs/notifications).
+
+## Pause and resume
+
+Pausing a monitor stops its scheduler entry — no checks run, no heartbeats are recorded, no incidents open. Push monitors that are paused acknowledge incoming heartbeats but ignore them. Resume picks the schedule back up with an immediate check.
+
+For *planned* downtime, prefer a [maintenance window](/docs/maintenance-windows) over pausing: heartbeats keep recording honestly during a window, only the alerting is suppressed.
+
+## Tags
+
+Tags are free-form labels for filtering the monitor list. They're normalized to lowercase, so `API` and `api` are the same tag.
+
+## Per-monitor notification routing
+
+Alerts don't go to "the instance" — they go to the channels linked to each monitor. When you create or edit a monitor, tick the channels that should fire for it. A monitor with no channels linked still tracks uptime and incidents on the dashboard; it just pages nobody. Channels themselves can be disabled instance-wide without unlinking them. See [Notifications](/docs/notifications).
+
+## Silencing with maintenance windows
+
+A maintenance window suppresses incident creation (and therefore notifications) for one monitor between `startsAt` and `endsAt`. Checks keep running and failures are still recorded — the status page shows the window as the reason. Full details in [Maintenance windows](/docs/maintenance-windows).
+
+## Testing before you save
+
+The monitor form's **Test now** button runs your target and config through the real checker once, without saving anything — the result (status, response time, error message) comes straight back so you can confirm before committing. Push monitors can't be tested this way; they're driven by incoming heartbeats, not polled.

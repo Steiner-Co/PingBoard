@@ -1,0 +1,88 @@
+---
+title: Self-hosting
+description: Environment variables, reverse proxy setup, backups, upgrades, and data retention.
+group: Reference
+order: 4
+---
+
+PingBoard is one container with one SQLite file. Everything it needs lives under a single volume mounted at `/data`.
+
+## Environment variables
+
+All optional — no env vars are required to boot.
+
+| Variable | Default | What it does |
+|---|---|---|
+| `PORT` | `3000` | HTTP port |
+| `DATA_DIR` | `/data` | SQLite database location |
+| `PINGBOARD_BASE_URL` | (auto) | Used in alert links — set to your public URL when behind a reverse proxy |
+| `LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error` |
+
+Two more variables exist but are managed by the Docker image (`PINGBOARD_STATIC_DIR`, `PINGBOARD_MIGRATIONS_DIR`) — don't set them yourself.
+
+The container exposes port 3000, declares a volume at `/data`, and ships a healthcheck against `GET /_health` (returns `ok`) — useful for Docker's own health status or an external watchdog.
+
+## Reverse proxy
+
+PingBoard does not handle TLS itself. Put it behind Caddy, nginx, or Traefik with a normal HTTP-to-app proxy, and set `PINGBOARD_BASE_URL` to the public origin so alert links and status-page share previews point at the right host.
+
+Caddy:
+
+```caddyfile
+status.example.com {
+  reverse_proxy pingboard:3000
+}
+```
+
+nginx:
+
+```nginx
+server {
+  listen 443 ssl;
+  server_name status.example.com;
+
+  location / {
+    proxy_pass http://pingboard:3000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    # Live updates use Server-Sent Events — don't buffer them.
+    proxy_buffering off;
+  }
+}
+```
+
+Forwarding `X-Forwarded-For` matters: the public API is rate-limited per client IP (60 requests/minute), and without the header every visitor looks like the proxy. To serve a status page on a dedicated hostname, see [Status pages](/docs/status-pages#serving-a-page-on-its-own-hostname).
+
+## Backups
+
+Everything is in `/data`: `pingboard.db` plus its WAL file. Stop the container, copy the files, restart:
+
+```bash
+docker stop pingboard
+cp -r /var/lib/docker/volumes/pingboard /backups/pingboard-$(date +%F)
+docker start pingboard
+```
+
+Copy both `pingboard.db` and `pingboard.db-wal` if present — the WAL holds recent writes. Restoring is the reverse: put the files back in the volume and start the container.
+
+## Upgrades
+
+Pull the new image and recreate the container. Database migrations run automatically at boot:
+
+```bash
+docker pull ghcr.io/steiner-co/pingboard:latest
+docker stop pingboard && docker rm pingboard
+docker run -d --restart=always \
+  -p 3000:3000 \
+  -v pingboard:/data \
+  --name pingboard \
+  ghcr.io/steiner-co/pingboard:latest
+```
+
+With Compose: `docker compose pull && docker compose up -d`. Releases are tagged on GHCR as `x.y.z`, `x.y`, `x`, and `latest` — pin to a minor (`ghcr.io/steiner-co/pingboard:1.2`) if you'd rather upgrade deliberately.
+
+## Data retention
+
+Raw heartbeats don't accumulate forever. A background job (runs daily, plus a sweep shortly after boot) aggregates heartbeats older than the retention window into per-day statistics — uptime percentage and average response time — and then deletes the raw rows. Uptime history effectively lives forever as daily rollups; only the per-check granularity expires.
+
+The window is configurable in **Settings**: 7, 30 (default), 60, 90, 180, or 365 days. The settings screen also reports the database size, the oldest raw heartbeat on file, and row counts, so you can see retention doing its job.

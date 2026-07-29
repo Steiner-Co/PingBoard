@@ -2,7 +2,21 @@
 @import "tw-animate-css";
 @import "@fontsource-variable/inter";
 
+@plugin "@tailwindcss/typography";
+
 @custom-variant dark (&:is(.dark *));
+
+/*
+ * rehype-pretty-code emits dual shiki themes as CSS vars per token
+ * (--shiki-light / --shiki-dark) with no default color; pick per theme.
+ * Code block backgrounds come from the `prose-pre` utilities in Prose.tsx.
+ */
+.prose pre code span {
+  color: var(--shiki-light);
+}
+.dark .prose pre code span {
+  color: var(--shiki-dark);
+}
 
 @theme inline {
   --font-sans: 'Inter Variable', sans-serif;
@@ -43,6 +57,7 @@
 }
 
 :root {
+  color-scheme: light;
   /* Page body is a soft grey (#F7F7F7) so white cards/containers read as
      raised surfaces against it — the depth the design relies on. */
   --background: oklch(0.972 0 0);
@@ -75,6 +90,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);

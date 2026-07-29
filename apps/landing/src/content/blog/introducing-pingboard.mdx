@@ -1,0 +1,48 @@
+---
+title: Introducing PingBoard
+description: A self-hosted uptime monitor with built-in status pages — one container, one SQLite file, no per-monitor pricing.
+date: 2026-07-25
+author: Steiner & Co.
+---
+
+Uptime monitoring is a solved problem that's somehow still expensive. The hosted tools charge per monitor, per status page, per seat — the meter runs on things that cost them nearly nothing. The serious self-hosted options ask you to run a small datacenter: an app server, a database, a cache, a queue, four containers before you've checked a single URL. And the lightweight classics work, but their interfaces haven't moved in a decade.
+
+We wanted the boring middle: a monitor you'd actually enjoy opening, running as one container on the box you already have. That's PingBoard, and it's open source (MIT) as of today.
+
+## What it is
+
+```bash
+docker run -d --restart=always \
+  -p 3000:3000 \
+  -v pingboard:/data \
+  --name pingboard \
+  ghcr.io/steiner-co/pingboard:latest
+```
+
+One container, one volume, one port. Inside: a Bun server, an embedded SQLite database, and an in-process scheduler — no Redis, no queue, no external database to babysit. Open `http://localhost:3000`, create the admin account, add your first monitor. Under a minute, honestly.
+
+The dashboard updates live over Server-Sent Events instead of polling, and public status pages are built in — as many as you want, each with its own slug, optional password protection, monitor grouping, and a 90-day uptime strip. Your status page is the same app as your monitoring, so it can never disagree with what you see.
+
+## The feature tour
+
+**Seven monitor types.** HTTP(S) with keyword and JSON-path assertions on the response body (a 200 that says `"database":"down"` is not up), TCP connects, ICMP ping, DNS lookups with record-value matching, SSL certificate expiry with warning/critical thresholds, domain expiry via RDAP with a WHOIS fallback for the ccTLDs that haven't caught up, and push/heartbeat monitors for cron jobs and backups that ping you — with a grace period before silence counts as down.
+
+**Five notification channels.** Email over SMTP, generic webhooks with a documented JSON payload, Discord, Slack, and ntfy. Channels are linked per monitor, so the database alerts can page the on-call topic while the marketing site just posts to a channel. Alerts fire on incident open and again on recovery with the downtime duration.
+
+**Maintenance windows.** Schedule planned downtime per monitor. Checks keep running and history stays honest, but incidents — and therefore notifications — stay quiet, and the status page shows the window as the reason. Strictly better than the pause button for deploys.
+
+**API tokens.** Everything the dashboard does is a REST call, and tokens (Bearer auth, shown once, revocable instantly) give scripts the same access as the admin account.
+
+**An MCP server.** Point Claude Code, Cursor, or Zed at your instance and ask "which monitors are down?", "why did the API check fail this morning?", or "schedule maintenance on the database for tonight 2–4am." Thirteen tools, read-only ones annotated as such, deletes marked destructive.
+
+## Principles
+
+Two rules shaped the build.
+
+**Self-hosted means unlimited.** No monitor caps, no page caps, no seat counts, no feature flags waiting on a plan. Your instance, your hardware, your call.
+
+**Simple is a feature.** One binary-feeling container means backups are "copy one SQLite file," upgrades are "pull and recreate," and the failure modes fit in your head. We picked boring technology — SQLite, SSE, setTimeout — on purpose.
+
+## Try it
+
+The quickstart, monitor-type reference, and self-hosting guide are in the [docs](/docs/getting-started). Source, issues, and the release workflow live on [GitHub](https://github.com/steiner-co/pingboard) — MIT licensed, contributions welcome. If you've been paying a per-monitor invoice for a cron job with a dashboard, this one's for you.

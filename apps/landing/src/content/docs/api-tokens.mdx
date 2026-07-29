@@ -1,0 +1,65 @@
+---
+title: API tokens
+description: Create tokens, authenticate with Bearer auth, and drive the full admin API from scripts.
+group: Reference
+order: 1
+---
+
+Everything the dashboard does goes through the same REST API, and API tokens let scripts use it too.
+
+## Creating a token
+
+Under **Settings → API tokens**, create a token with a name (up to 64 characters — something that identifies the script or integration using it).
+
+The full token is shown **once**, at creation. Only its SHA-256 hash is stored, so there is no way to read it back later — a lost token has to be replaced, not recovered. Tokens look like `pb_` followed by 43 base64url characters; the list shows each token's first few characters so you can tell them apart afterward, plus when it was last used.
+
+## Authenticating
+
+Send the token as a Bearer credential:
+
+```bash
+curl -H "Authorization: Bearer pb_..." http://localhost:3000/api/admin/monitors
+```
+
+A token has the same access as the admin account — there are no scopes. Keep tokens out of version control; the `pb_` prefix is deliberately recognizable so secret scanners can catch leaks.
+
+## Revoking
+
+Revoke a token from the same Settings screen (or `DELETE /api/admin/tokens/<id>`). It stops working immediately.
+
+## Endpoints
+
+All admin endpoints live under `/api/admin` and accept token auth. The main resources:
+
+| Resource | Paths |
+|---|---|
+| Monitors | `GET` / `POST /api/admin/monitors` · `GET` / `PATCH` / `DELETE /api/admin/monitors/<id>` · `GET /api/admin/monitors/<id>/timeline` · `POST /api/admin/monitors/run` (one-shot check) |
+| Domains | `GET /api/admin/domains` (domain monitors with registration facts) |
+| Dashboard | `GET /api/admin/heartbeats/summary` (fleet-wide response times, last 24h) |
+| Notification channels | `GET` / `POST /api/admin/channels` · `PATCH` / `DELETE /api/admin/channels/<id>` · `POST /api/admin/channels/<id>/test` |
+| Incidents | `GET /api/admin/incidents` · `PATCH /api/admin/incidents/<id>` (add a note) · `POST /api/admin/incidents/<id>/resolve` |
+| Status pages | `GET` / `POST /api/admin/pages` · `GET` / `PATCH` / `DELETE /api/admin/pages/<id>` |
+| Maintenance windows | `GET` / `POST /api/admin/maintenance-windows` · `PATCH` / `DELETE /api/admin/maintenance-windows/<id>` |
+| API tokens | `GET` / `POST /api/admin/tokens` · `DELETE /api/admin/tokens/<id>` |
+| Settings | `GET` / `PATCH /api/admin/settings` (retention, SMTP defaults) · `GET /api/admin/instance` (version, DB size, counts) |
+| Account | `GET /api/admin/me` · `POST /api/admin/account/password` |
+
+Monitor creation accepts the fields documented in [Monitors](/docs/monitors) — for example:
+
+```bash
+curl -X POST http://localhost:3000/api/admin/monitors \
+  -H "Authorization: Bearer pb_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "API health",
+    "type": "http",
+    "target": "https://api.example.com/health",
+    "intervalSeconds": 60,
+    "timeoutSeconds": 10,
+    "retryCount": 1,
+    "config": { "expectedKeyword": "\"status\":\"ok\"" },
+    "channelIds": ["<channel-id>"]
+  }'
+```
+
+Public status-page data needs no token: `GET /api/public/<slug>` returns a page's monitors, timeline, incidents, and maintenance windows (rate-limited to 60 requests/minute per IP). Push heartbeats use their own per-monitor secret, not an API token — see [Push monitors](/docs/monitor-types#push-heartbeat).

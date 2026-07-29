@@ -1,8 +1,9 @@
+import { Link } from 'react-router-dom'
+
 const LINKS = [
   { label: 'Community', href: 'https://github.com/steiner-co/pingboard/discussions' },
   { label: 'Changelog', href: 'https://github.com/steiner-co/pingboard/releases' },
   { label: 'License', href: 'https://github.com/steiner-co/pingboard/blob/main/LICENSE' },
-  { label: 'Docs', href: '#faq' },
 ]
 
 export function SiteFooter() {
@@ -30,6 +31,12 @@ export function SiteFooter() {
             {l.label}
           </a>
         ))}
+        <Link
+          to="/docs"
+          className="outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
+        >
+          Docs
+        </Link>
       </nav>
     </footer>
   )

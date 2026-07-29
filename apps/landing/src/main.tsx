@@ -1,13 +1,7 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import { ThemeProvider } from 'next-themes'
-import { LandingPage } from './LandingPage'
+import { ViteReactSSG } from 'vite-react-ssg'
+import { routes } from './routes'
 import './globals.css'
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-      <LandingPage />
-    </ThemeProvider>
-  </React.StrictMode>,
-)
+// vite-react-ssg entry: prerenders every route in `includedRoutes`
+// (see vite.config.ts) to static HTML at build time, hydrates on the client.
+export const createRoot = ViteReactSSG({ routes })

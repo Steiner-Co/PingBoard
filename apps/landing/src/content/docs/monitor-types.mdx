@@ -1,0 +1,105 @@
+---
+title: Monitor types
+description: What each of the seven check types verifies and every per-type config option.
+group: Guides
+order: 2
+---
+
+PingBoard has seven monitor types. All share the scheduling options in [Monitors](/docs/monitors); this page covers what each type checks and its type-specific configuration.
+
+### HTTP(S)
+
+Checks a URL with a real HTTP request. PingBoard sends a descriptive `User-Agent` (`PingBoard/1.0 (uptime monitor; +https://github.com/steiner-co/pingboard)`) because UA-less requests get 403'd by many WAFs and read as false downs.
+
+| Option | Default | Notes |
+|---|---|---|
+| `method` | `GET` | `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD` |
+| `headers` | — | Extra request headers, merged over the defaults |
+| `body` | — | Raw request body string |
+| `expectedStatusCodes` | `200`–`208`, `226` | Any status outside the list is a failure |
+| `expectedKeyword` | — | Body must contain this substring |
+| `expectedJsonPath` | — | `{ "path": "a.b.c", "equals": <value> }` — the dot-separated path in the parsed JSON body must deep-equal `equals` |
+| `followRedirects` | `true` | When `false`, a redirect response is evaluated against your expected codes instead of being followed |
+| `verifyTls` | `true` | When `false`, certificate errors are ignored (expired/self-signed certs still connect) |
+
+Keyword and JSON-path assertions turn a plain ping into a semantic check: `expectedKeyword: "\"status\":\"ok\""` on a health endpoint, or `expectedJsonPath` with `path: "database"` and `equals: "up"` to fail when a dependency goes sideways even though the page returns 200. A body that isn't valid JSON when `expectedJsonPath` is set counts as down.
+
+### TCP
+
+Opens a TCP connection and closes it — up if the handshake completes. Use it for databases, mail servers, SSH, anything that speaks TCP.
+
+Target is `host:port` (e.g. `db.internal:5432`), or a bare host with the port set in the type config (`port`).
+
+### Ping
+
+ICMP echo via the system `ping` binary (`ping -c 1 -W <timeout> <target>` — the Docker image ships `iputils` for this). The reported response time is the real round-trip time parsed from ping's output. Target is a hostname or IP.
+
+Note this checks ICMP reachability, which many networks rate-limit or filter — a failed ping doesn't always mean the service is down.
+
+### DNS
+
+Resolves a record and optionally matches its content — useful for catching DNS hijacks, bad failover, or a missing SPF record.
+
+| Option | Default | Notes |
+|---|---|---|
+| `recordType` | `A` | `A`, `AAAA`, `CNAME`, `MX`, `TXT`, `NS` |
+| `expectedValue` | — | At least one returned record must contain this substring |
+| `resolver` | system resolver | DNS server IP to query instead, e.g. `1.1.1.1` |
+
+No records of the requested type at all counts as down. TXT records are joined before matching, so multi-string TXT values match as one string.
+
+### SSL certificate expiry
+
+Connects over TLS, reads the peer certificate's expiry date, and compares days remaining against two thresholds:
+
+| Option | Default | Effect |
+|---|---|---|
+| `warningDays` | `14` | Days remaining ≤ this → **degraded** (amber, no alert) |
+| `criticalDays` | `3` | Days remaining ≤ this → **down** (incident + alerts) |
+| `port` | `443` | TLS port |
+
+Target can be a bare hostname, `host:port`, or a full URL (the host and port are extracted). The check intentionally doesn't reject invalid certificates — it needs to read the dates even from an already-expired cert, and expiry comparison is the actual check. Every result records the days remaining, so you can see the runway on the monitor page.
+
+### Domain expiry
+
+Looks up domain registration data and tracks the expiry date — a domain lapsing takes down everything on it, and registrars' reminder emails are easy to miss.
+
+- **RDAP first** — the structured, ICANN-mandated successor to WHOIS. PingBoard maps the TLD to its authoritative RDAP server via the IANA bootstrap list (cached in-process, refreshed daily).
+- **WHOIS fallback** — for ccTLDs without RDAP, it asks `whois.iana.org` for the registry's WHOIS server and parses the free-text response.
+
+| Option | Default | Notes |
+|---|---|---|
+| `warningDays` | `30` | Days remaining ≤ this → **degraded** |
+| `criticalDays` | `7` | Days remaining ≤ this → **down** |
+| `manualExpiryAt` | — | Renewal date, entered by hand |
+| `manualRegisteredAt` | — | Registration date, entered by hand |
+| `manualRegistrar` | — | Registrar name, entered by hand |
+
+Manual fields exist for domains RDAP/WHOIS can't resolve (some ccTLDs, private registrations). Auto-detected values always win — the manual date is only used when detection came up empty. If neither source yields an expiry date, the monitor goes **degraded** ("couldn't verify expiry") rather than firing a false expiry incident.
+
+Alongside the expiry check, each run enriches the domain with live DNS records (A/MX/NS), registry nameservers and statuses, and the SSL certificate issuer and expiry on port 443 — all best-effort and never failing the check. These facts feed the **Domains** portfolio view in the dashboard.
+
+### Push (heartbeat)
+
+Inverts the direction: instead of PingBoard polling a target, your job pings PingBoard. Ideal for cron jobs, backups, and batch pipelines that run inside networks you can't reach.
+
+1. Create a push monitor. PingBoard generates a secret token for it.
+2. Have your job `POST` to the push URL when it finishes:
+
+```bash
+curl -X POST https://status.example.com/api/push/<token>
+```
+
+An empty body means "up". To report richer results, send JSON:
+
+```json
+{
+  "status": "up",
+  "message": "nightly backup completed",
+  "responseTimeMs": 4200
+}
+```
+
+`status` may be `up`, `down`, or `degraded`; `message` is capped at 500 characters; `responseTimeMs` is any non-negative number. Reporting `down` yourself opens an incident immediately.
+
+**Grace period.** PingBoard expects a heartbeat every `intervalSeconds`. If none arrives within `intervalSeconds + graceSeconds` (grace defaults to 30 seconds), an overdue scan that runs every 10 seconds marks the monitor down and opens an incident with a "No heartbeat received" message. For a nightly backup, set the interval to 1 hour (`3600`) and schedule the job well inside it; for a 5-minute cron, use the 5-minute interval (`300`). Paused push monitors acknowledge heartbeats but ignore them.

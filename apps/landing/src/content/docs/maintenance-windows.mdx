@@ -1,0 +1,34 @@
+---
+title: Maintenance windows
+description: Schedule planned downtime so alerts stay quiet while history stays honest.
+group: Guides
+order: 5
+---
+
+A maintenance window says "this monitor is expected to misbehave between time A and time B." During the window, checks keep running and every failure is still recorded — but no incident opens and no notification fires.
+
+## Scheduling a window
+
+Each window is attached to exactly one monitor and has:
+
+| Field | Notes |
+|---|---|
+| `monitorId` | The monitor under maintenance |
+| `title` | Required, max 200 characters — e.g. "Database upgrade" |
+| `description` | Optional detail, shown on the status page |
+| `startsAt` | ISO 8601 timestamp |
+| `endsAt` | ISO 8601 timestamp; must be after `startsAt` |
+
+Windows are one-shot. For recurring maintenance, schedule the next window when you plan the work (the [API](/docs/api-tokens) and [MCP server](/docs/mcp) both make this scriptable).
+
+## What happens during a window
+
+- Checks run on schedule as usual, and heartbeats are recorded with their real results — the uptime history doesn't pretend the deploy didn't happen.
+- If a check comes back `down`, incident creation is suppressed while `startsAt <= now <= endsAt`. No incident means no notifications on any channel.
+- When the window ends, normal behavior resumes: a still-failing monitor opens an incident on its next failed check.
+
+Because suppression happens at incident creation rather than by pausing checks, a window is strictly better than [pausing the monitor](/docs/monitors#pause-and-resume) for planned work: you keep a complete record of how the deploy actually went.
+
+## On the status page
+
+If the monitor is published on a [status page](/docs/status-pages), the page lists current and upcoming windows (anything that hasn't ended yet) with their title, description, and times. Visitors see "Database upgrade, 02:00–04:00" instead of an unexplained red bar.

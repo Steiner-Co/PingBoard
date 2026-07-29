@@ -1,0 +1,70 @@
+---
+title: Status pages
+description: Public status pages — slugs, grouping, themes, password protection, and custom hostnames.
+group: Guides
+order: 4
+---
+
+A status page publishes a selection of your monitors at a public URL — no account required to view it. An instance can host as many pages as you like.
+
+## Creating a page
+
+From the Status pages screen, create a page with:
+
+| Field | Notes |
+|---|---|
+| `slug` | URL path — lowercase letters, digits, hyphens. Must be unique per instance |
+| `title` | Defaults to the slug |
+| `description` | Shown on the page and in link previews |
+| `theme` | `light`, `dark`, or `auto` (follows the visitor's system preference — the default) |
+| `password` | Optional — see below |
+
+The page is live immediately at `https://<your-pingboard-host>/<slug>`. A handful of slugs are reserved for the app itself: `admin`, `api`, `auth`, `login`, `setup`, `_health`, `static`, `assets`, `favicon.ico`.
+
+## What visitors see
+
+Each monitor on the page shows its current status, 30-day uptime percentage, average response time, and a 90-day per-day uptime strip. Below the monitors: incident history for the last 30 days (including any notes you've added to incidents), and upcoming or active [maintenance windows](/docs/maintenance-windows) so planned downtime doesn't look like an outage.
+
+The page updates in real time over Server-Sent Events — when a monitor flaps, open browsers see it without refreshing.
+
+## Grouping monitors
+
+When you add monitors to a page, each entry can carry a `groupName` and a `sortOrder`. Monitors sharing a group name render together under that heading ("APIs", "Regions", "Customer-facing"), and sort order controls the sequence within the page. The same monitor can appear on multiple pages.
+
+## Password protection
+
+Set a password on a page and visitors hit a password gate instead of the data. A correct password sets an `HttpOnly` cookie valid for 30 days. Rotating or removing the password invalidates every outstanding cookie, forcing visitors back through the gate.
+
+A protected page also withholds its description from link unfurlers — shared links preview only the title, so nothing sensitive leaks into Slack or Twitter previews.
+
+## Serving a page on its own hostname
+
+PingBoard does not terminate TLS and pages live under paths, but a reverse proxy can give a page its own clean hostname by rewriting just the root request — assets and the public API pass through untouched:
+
+```caddyfile
+status.example.com {
+  @root path /
+  rewrite @root /my-page
+  reverse_proxy pingboard:3000
+}
+```
+
+nginx equivalent:
+
+```nginx
+server {
+  listen 443 ssl;
+  server_name status.example.com;
+
+  location = / {
+    proxy_pass http://pingboard:3000/my-page;
+  }
+
+  location / {
+    proxy_pass http://pingboard:3000;
+    proxy_set_header Host $host;
+  }
+}
+```
+
+Set `PINGBOARD_BASE_URL` to the public origin so alert links and share previews point at the right host. General proxy setup is in [Self-hosting](/docs/self-hosting#reverse-proxy).

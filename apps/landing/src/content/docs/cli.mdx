@@ -1,0 +1,42 @@
+---
+title: CLI
+description: The pingboard command line — reset a forgotten admin password, check the version.
+group: Reference
+order: 3
+---
+
+The PingBoard container includes a small CLI, reachable via `docker exec`. It's intentionally minimal — the day-to-day interface is the dashboard and the [API](/docs/api-tokens).
+
+## reset-password
+
+If you've forgotten the admin password, reset it from the host:
+
+```bash
+docker exec pingboard pingboard reset-password admin@example.com
+```
+
+The command generates a new random 20-character password and prints it once:
+
+```
+Password reset for admin@example.com.
+
+  New password: Xk9…
+
+Sign in with this password, then change it from Settings.
+```
+
+Sign in with the printed password, then set a new one from Settings. If no account exists with that email, the command says so and exits non-zero.
+
+This requires shell access to the container host — that's the security model. Anyone who can `docker exec` into the container already owns the data volume.
+
+## Other commands
+
+```bash
+# Print the running version
+docker exec pingboard pingboard --version
+
+# Show usage
+docker exec pingboard pingboard --help
+```
+
+With no arguments, `pingboard` starts the server — which is what the container itself runs.

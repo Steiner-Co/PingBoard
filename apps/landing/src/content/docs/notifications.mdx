@@ -1,0 +1,98 @@
+---
+title: Notifications
+description: Alert channels — email, webhook, Discord, Slack, and ntfy — plus how alerts fire and recover.
+group: Guides
+order: 3
+---
+
+A notification channel is one destination for alerts. You link channels to individual monitors — see [per-monitor routing](/docs/monitors#per-monitor-notification-routing) — and a channel can be disabled without deleting it.
+
+## How alerts fire
+
+Notifications are tied to incidents, not to individual failed checks:
+
+- **Monitor goes down** → an incident opens → every linked, enabled channel gets **"`<monitor>` is DOWN"** with the time it was first detected.
+- **Monitor recovers** → the incident resolves → the same channels get **"`<monitor>` is UP"** with the total downtime.
+
+Retries happen before an incident opens, so flapping within one check cycle never pages you. `degraded` results (e.g. an SSL cert approaching its warning threshold) don't open incidents and don't alert. If `PINGBOARD_BASE_URL` is set, alerts include a link straight to the monitor in your dashboard.
+
+A failing channel never blocks the others: deliveries go out in parallel, and a failure is logged (`Notification via "<name>" failed: <reason>`) without affecting the rest.
+
+Every channel has a **Send test** button that pushes a real test message through the driver, so you can verify credentials before an actual outage depends on them.
+
+## Email (SMTP)
+
+Sends a plain HTML/text email per incident transition.
+
+| Field | Required | Notes |
+|---|---|---|
+| `to` | yes | Recipient address |
+| `smtpHost` | via defaults | SMTP server |
+| `smtpPort` | via defaults | Port; `secure` defaults to `true` on 465 |
+| `smtpUser` | no | Auth username |
+| `smtpPass` | no | Auth password |
+| `smtpFrom` | effectively | Sender address — sending fails without it |
+| `smtpSecure` | no | Force TLS on/off |
+
+Any SMTP field left empty on the channel falls back to the **instance-wide SMTP defaults** configured in Settings, so the common setup is: fill in the defaults once, then each email channel is just a recipient address. The test button performs an SMTP handshake verification.
+
+## Webhook
+
+POSTs (or PUTs) a JSON body to any URL — the escape hatch for PagerDuty-style integrations, chat bots, or your own automation.
+
+| Field | Required | Notes |
+|---|---|---|
+| `url` | yes | Endpoint to call |
+| `method` | no | `POST` (default) or `PUT` |
+| `headers` | no | Extra headers, e.g. an authorization token |
+
+The payload:
+
+```json
+{
+  "status": "opened",
+  "monitor": {
+    "id": "…",
+    "name": "API",
+    "type": "http",
+    "target": "https://api.example.com/health"
+  },
+  "incident": {
+    "id": "…",
+    "startedAt": "2026-07-25T02:14:03.000Z",
+    "resolvedAt": null
+  },
+  "baseUrl": "https://status.example.com"
+}
+```
+
+`status` is `opened` or `resolved`. The test button sends `{"test": true, "source": "pingboard"}` and requires a 2xx response to pass.
+
+## Discord
+
+Posts to a [Discord channel webhook](https://support.discord.com/hc/en-us/articles/228383668) as a rich embed — red for down, green for up, with a link back to the monitor.
+
+| Field | Required | Notes |
+|---|---|---|
+| `webhookUrl` | yes | Discord channel webhook URL |
+
+## Slack
+
+Posts to a [Slack incoming webhook](https://api.slack.com/messaging/webhooks) as a formatted message with a "View monitor" link.
+
+| Field | Required | Notes |
+|---|---|---|
+| `webhookUrl` | yes | Slack incoming webhook URL |
+
+## ntfy
+
+Publishes to an [ntfy](https://ntfy.sh) topic — self-hostable push notifications to your phone or desktop.
+
+| Field | Required | Notes |
+|---|---|---|
+| `serverUrl` | yes | e.g. `https://ntfy.sh` or your own server |
+| `topic` | yes | Topic to publish to |
+| `authToken` | no | Bearer token for protected topics |
+| `priority` | no | 1–5, default `3` |
+
+Alerts arrive as ntfy notifications titled with the monitor state; tapping one opens the monitor in your dashboard when `PINGBOARD_BASE_URL` is set.

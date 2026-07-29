@@ -1,0 +1,45 @@
+---
+title: Getting started
+description: Run PingBoard in one container and have your first monitor live in under a minute.
+group: Getting started
+order: 1
+---
+
+PingBoard ships as a single Docker image with an embedded SQLite database. One container, one volume, one port — no Redis, no queue, no external database.
+
+## Run it
+
+With `docker run`:
+
+```bash
+docker run -d --restart=always \
+  -p 3000:3000 \
+  -v pingboard:/data \
+  --name pingboard \
+  ghcr.io/steiner-co/pingboard:latest
+```
+
+Or with Docker Compose (clone the repo, then):
+
+```bash
+docker compose up -d
+```
+
+All configuration is optional — no environment variables are required to boot. See [Self-hosting](/docs/self-hosting) when you're ready to set a public URL, change the port, or put PingBoard behind a reverse proxy.
+
+## First run
+
+1. Open `http://localhost:3000`.
+2. You're prompted to **create the admin account** — email and a password of at least 8 characters. Setup is one-shot: once the first account exists, the setup screen is gone.
+3. Click **Add monitor**, pick a type (HTTP(S) is the common one), paste a target URL, and save. The first check runs immediately.
+
+That's it — you're monitoring. From here the dashboard updates live over Server-Sent Events, with no polling and no page refreshes.
+
+## Where next
+
+- [Monitors](/docs/monitors) — intervals, timeouts, retries, tags, pausing, and per-monitor alert routing.
+- [Monitor types](/docs/monitor-types) — what each of the 7 check types actually verifies and how to configure it.
+- [Notifications](/docs/notifications) — wire up email, webhooks, Discord, Slack, or ntfy so downs reach you.
+- [Status pages](/docs/status-pages) — publish a public page at `/your-slug`.
+- [API tokens](/docs/api-tokens) and the [CLI](/docs/cli) — script PingBoard instead of clicking it.
+- [MCP server](/docs/mcp) — query and control your monitors from Claude, Cursor, or any MCP client.
