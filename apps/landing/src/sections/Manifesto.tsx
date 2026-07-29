@@ -2,7 +2,7 @@ import { Wordmark } from '@/components/logo'
 
 export function Manifesto() {
   return (
-    <section id="about" className="rounded-[16px] border border-border bg-muted p-8 sm:p-10">
+    <section id="about" className="scroll-mt-8 rounded-[16px] border border-border bg-muted p-8 sm:p-10">
       <h2 className="max-w-[440px] text-[26px] font-medium leading-[1.12] tracking-[-0.6px] text-balance text-foreground">
         Monitoring shouldn’t cost more than your servers.
       </h2>

@@ -29,7 +29,7 @@ const FAQS = [
 export function FAQ() {
   const [open, setOpen] = useState<number | null>(0)
   return (
-    <section id="faq" className="flex flex-col items-center gap-9">
+    <section id="faq" className="flex scroll-mt-8 flex-col items-center gap-9">
       <SectionHeading
         lines={['Frequently asked', 'questions']}
         subtitle="Quick answers on pricing, licensing, privacy and setup."
@@ -42,21 +42,26 @@ export function FAQ() {
               <div key={f.q}>
                 <button
                   type="button"
+                  id={`faq-button-${i}`}
                   onClick={() => setOpen(isOpen ? null : i)}
                   aria-expanded={isOpen}
+                  aria-controls={`faq-panel-${i}`}
                   className="flex w-full items-center gap-3 px-4 py-3.5 text-left outline-none transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/30"
                 >
                   <PlusIcon
                     className={cn(
-                      'size-4 shrink-0 text-foreground/50 transition-transform duration-200',
+                      'size-4 shrink-0 text-foreground/50 motion-safe:transition-transform duration-200 ease-out',
                       isOpen && 'rotate-45',
                     )}
                   />
                   <span className="text-[14px] font-medium text-foreground">{f.q}</span>
                 </button>
                 <div
+                  id={`faq-panel-${i}`}
+                  role="region"
+                  aria-labelledby={`faq-button-${i}`}
                   className={cn(
-                    'grid transition-[grid-template-rows] duration-200 ease-out',
+                    'grid motion-safe:transition-[grid-template-rows] duration-200 ease-out',
                     isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
                   )}
                 >

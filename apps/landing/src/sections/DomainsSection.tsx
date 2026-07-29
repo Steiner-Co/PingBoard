@@ -18,7 +18,7 @@ function dayTone(days: number) {
 
 function DomainsMock() {
   return (
-    <div className="w-[300px] max-w-full space-y-2 rounded-[14px] border border-border bg-card p-3">
+    <div aria-hidden="true" className="w-[300px] max-w-full space-y-2 rounded-[14px] border border-border bg-card p-3">
       {DOMAINS.map((d) => (
         <div
           key={d.name}
@@ -42,8 +42,9 @@ function DomainsMock() {
 
 export function DomainsSection() {
   return (
-    <section className="flex flex-col items-center gap-10 md:flex-row md:items-center md:justify-between md:gap-6">
+    <section aria-labelledby="domains-heading" className="flex flex-col items-center gap-10 md:flex-row md:items-center md:justify-between md:gap-6">
       <SectionHeading
+        id="domains-heading"
         align="left"
         className="md:max-w-[240px]"
         lines={['Every domain and', 'cert in one place']}

@@ -43,7 +43,7 @@ const FEATURES = [
 
 export function FeatureGrid() {
   return (
-    <section id="features" className="flex flex-col items-center gap-10">
+    <section id="features" className="flex scroll-mt-8 flex-col items-center gap-10">
       <SectionHeading
         lines={['Everything you need', 'to know it’s up']}
         subtitle="A complete monitoring stack — not a checkbox on someone else’s roadmap."
@@ -54,7 +54,7 @@ export function FeatureGrid() {
             <div key={title} className="flex flex-col gap-[18px] bg-card p-[18px]">
               <Icon className="size-5 text-foreground" />
               <div className="flex flex-col gap-2">
-                <p className="text-[15px] font-medium leading-tight text-foreground">{title}</p>
+                <h3 className="text-[15px] font-medium leading-tight text-foreground">{title}</h3>
                 <p className="text-[12px] leading-[1.45] text-foreground/50">{body}</p>
               </div>
             </div>

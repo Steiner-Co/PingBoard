@@ -11,12 +11,12 @@ function GitHubIcon() {
 
 export function Hero() {
   return (
-    <section id="top" className="flex flex-col items-center gap-16">
+    <section id="top" className="flex scroll-mt-8 flex-col items-center gap-16">
       <TopNav />
 
       <div className="flex flex-col items-center gap-9">
         <div className="flex flex-col items-center gap-[18px] text-center">
-          <h1 className="text-[28px] font-medium leading-[0.96] tracking-[-0.7px] text-balance text-foreground">
+          <h1 id="hero-heading" className="text-[28px] font-medium leading-[0.96] tracking-[-0.7px] text-balance text-foreground">
             <span className="block">Open-source uptime monitoring,</span>
             <span className="block">built for developers</span>
           </h1>
@@ -28,7 +28,7 @@ export function Hero() {
 
         <a
           href="https://github.com/steiner-co/pingboard"
-          className="group inline-flex items-center gap-3 rounded-full bg-foreground py-2 pl-2 pr-4 text-[14px] text-background shadow-[inset_0_2px_4px_rgba(255,255,255,0.28),inset_0_-2px_4px_rgba(0,0,0,0.2)] outline-none transition-transform duration-150 ease-out hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-[0.98]"
+          className="group inline-flex items-center gap-3 rounded-full bg-foreground py-2 pl-2 pr-4 text-[14px] text-background shadow-[inset_0_2px_4px_rgba(255,255,255,0.28),inset_0_-2px_4px_rgba(0,0,0,0.2)] outline-none transition-[transform,opacity] duration-150 ease-out hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-[0.98]"
         >
           <span className="flex size-6 items-center justify-center">
             <GitHubIcon />

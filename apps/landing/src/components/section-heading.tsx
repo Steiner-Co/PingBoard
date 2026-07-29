@@ -9,11 +9,13 @@ export function SectionHeading({
   subtitle,
   align = 'center',
   className,
+  id,
 }: {
   lines: string[]
   subtitle?: string
   align?: 'center' | 'left'
   className?: string
+  id?: string
 }) {
   return (
     <div
@@ -23,7 +25,7 @@ export function SectionHeading({
         className,
       )}
     >
-      <h2 className="text-[28px] font-medium leading-[0.96] tracking-[-0.7px] text-foreground">
+      <h2 id={id} className="text-[28px] font-medium leading-[0.96] tracking-[-0.7px] text-foreground">
         {lines.map((line) => (
           <span key={line} className="block text-balance">
             {line}

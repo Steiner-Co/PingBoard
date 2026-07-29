@@ -10,7 +10,7 @@ const CHANNELS = [
 
 function ChannelsMock() {
   return (
-    <div className="w-[300px] max-w-full space-y-2 rounded-[14px] border border-border bg-card p-3">
+    <div aria-hidden="true" className="w-[300px] max-w-full space-y-2 rounded-[14px] border border-border bg-card p-3">
       {CHANNELS.map(({ Icon, name }) => (
         <div
           key={name}
@@ -30,8 +30,9 @@ function ChannelsMock() {
 
 export function ChannelsSection() {
   return (
-    <section className="flex flex-col items-center gap-10 md:flex-row-reverse md:items-center md:justify-between md:gap-6">
+    <section aria-labelledby="channels-heading" className="flex flex-col items-center gap-10 md:flex-row-reverse md:items-center md:justify-between md:gap-6">
       <SectionHeading
+        id="channels-heading"
         align="left"
         className="md:max-w-[240px]"
         lines={['Alerts where your', 'team already is']}

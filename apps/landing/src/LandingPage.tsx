@@ -15,7 +15,7 @@ export function LandingPage() {
       <div className="px-4 py-6 sm:py-10">
         {/* The white content panel floats on the grey, dotted page; product
             mocks break out past its edges onto the grey. */}
-        <main className="mx-auto max-w-[596px] rounded-[28px] border border-border/70 bg-card p-6">
+        <main aria-labelledby="hero-heading" className="mx-auto max-w-[596px] rounded-[28px] border border-border/70 bg-card p-6">
           <div className="flex flex-col gap-[92px] md:gap-[120px]">
             <Hero />
             <FeatureGrid />

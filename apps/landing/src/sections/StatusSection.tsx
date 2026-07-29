@@ -26,7 +26,7 @@ function UptimeBars({ variant }: { variant: 'up' | 'blip' }) {
 
 function StatusPageMock() {
   return (
-    <div className="w-[320px] max-w-full overflow-hidden rounded-[14px] border border-border bg-card">
+    <div aria-hidden="true" className="w-[320px] max-w-full overflow-hidden rounded-[14px] border border-border bg-card">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <span className="text-[13px] font-semibold tracking-tight">Acme Status</span>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">
@@ -51,8 +51,9 @@ function StatusPageMock() {
 
 export function StatusSection() {
   return (
-    <section className="flex flex-col items-center gap-10 md:flex-row md:items-center md:justify-between md:gap-6">
+    <section aria-labelledby="status-heading" className="flex flex-col items-center gap-10 md:flex-row md:items-center md:justify-between md:gap-6">
       <SectionHeading
+        id="status-heading"
         align="left"
         className="md:max-w-[240px]"
         lines={['Status pages', 'your users trust']}

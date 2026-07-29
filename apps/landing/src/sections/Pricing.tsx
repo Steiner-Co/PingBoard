@@ -2,7 +2,7 @@ import { CloudIcon, ServerIcon } from '@/components/icons'
 
 export function Pricing() {
   return (
-    <section id="pricing" className="flex flex-col items-center gap-10">
+    <section id="pricing" className="flex scroll-mt-8 flex-col items-center gap-10">
       <h2 className="text-[28px] font-medium leading-[0.96] tracking-[-0.7px] text-foreground">
         Pricing
       </h2>
@@ -20,7 +20,7 @@ export function Pricing() {
           </div>
           <a
             href="https://github.com/steiner-co/pingboard"
-            className="inline-flex w-fit items-center justify-center rounded-[12px] bg-[#003cff] px-5 py-3 text-[15px] font-medium text-white outline-none transition-transform duration-150 ease-out hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-[#003cff]/40 active:scale-[0.98]"
+            className="inline-flex w-fit items-center justify-center rounded-[12px] bg-primary px-5 py-3 text-[15px] font-medium text-primary-foreground outline-none transition-[opacity,transform] duration-150 ease-out hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.98]"
           >
             Free
           </a>
@@ -37,7 +37,7 @@ export function Pricing() {
               PingBoard — we run it for you.
             </p>
           </div>
-          <span className="inline-flex w-fit items-center justify-center rounded-[12px] border border-border bg-card px-5 py-3 text-[15px] font-medium text-foreground/50">
+          <span className="inline-flex w-fit items-center rounded-full border border-dashed border-border px-3 py-1 text-[12px] font-medium text-foreground/45">
             Coming soon
           </span>
         </div>
