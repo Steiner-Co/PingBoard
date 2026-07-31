@@ -700,6 +700,7 @@ function ChannelDialog({
   editing?: NotificationChannel | null
 }) {
   const queryClient = useQueryClient()
+  const confirm = useConfirm()
   const [name, setName] = useState('')
   const [type, setType] = useState<ChannelType>('webhook')
   const [config, setConfig] = useState<Record<string, string>>({})
@@ -767,15 +768,35 @@ function ChannelDialog({
     save.mutate({ name: name.trim(), type, config: cfg.value, enabled })
   }
 
-  // Every exit — Esc, overlay, X, and the footer Cancel — clears the draft, so
+  // Anything past the hydration baseline is a draft worth guarding against an
+  // accidental Esc/overlay/X close.
+  const baselineConfig = editing ? configToFormState(editing.config) : {}
+  const isDirty =
+    name !== (editing?.name ?? '') ||
+    type !== (editing?.type ?? 'webhook') ||
+    enabled !== (editing?.enabled ?? true) ||
+    JSON.stringify(Object.entries(config).sort()) !==
+      JSON.stringify(Object.entries(baselineConfig).sort())
+
+  // Every exit — Esc, overlay, X, and the footer Cancel — goes through here. A
+  // dirty form asks first; a confirmed (or pristine) exit clears the draft, so
   // a cancelled create doesn't reappear the next time the dialog opens.
-  const cancel = () => {
+  const cancel = async () => {
+    if (isDirty) {
+      const ok = await confirm({
+        title: 'Discard this channel draft?',
+        description: 'The form has unsaved changes that will be lost.',
+        confirmLabel: 'Discard',
+        destructive: true,
+      })
+      if (!ok) return
+    }
     reset()
     onClose()
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && cancel()}>
+    <Dialog open={open} onOpenChange={(v) => !v && void cancel()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
@@ -855,7 +876,7 @@ function ChannelDialog({
             </p>
           )}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={cancel}>
+            <Button type="button" variant="outline" onClick={() => void cancel()}>
               Cancel
             </Button>
             {/* Stays enabled with an empty name — submitting names the missing
