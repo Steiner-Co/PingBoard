@@ -907,6 +907,7 @@ function EditPageDialog({
   })
 
   const handleSubmit = () => {
+    if (!detail.data) return // never submit a form that never hydrated
     setError(null)
     save.mutate({
       title: title.trim() || page!.slug,
@@ -964,6 +965,13 @@ function EditPageDialog({
         </DialogHeader>
         {detail.isLoading ? (
           <p className="text-sm text-muted-foreground py-8 text-center">Loading…</p>
+        ) : detail.isError ? (
+          // Without this branch the form renders blank and a submit would
+          // PATCH an empty monitor list over the real page.
+          <QueryError
+            subject="page details"
+            onRetry={() => void detail.refetch()}
+          />
         ) : (
           <form
             onSubmit={(e) => {

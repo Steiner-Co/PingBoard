@@ -137,7 +137,30 @@ export function PublicStatusPage({ slug }: { slug: string }) {
     )
   }
   if (query.isError) {
-    return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Status page not found.</div>
+    // Only a real 404 is "not found" — a network blip or 500 must not
+    // masquerade as one. Everything else gets an honest failure + retry.
+    if (query.error instanceof GateError && query.error.kind === 'not-found') {
+      return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Status page not found.</div>
+    }
+    return (
+      <div
+        role="alert"
+        className="min-h-screen flex flex-col items-center justify-center gap-3 px-6 text-center"
+      >
+        <p className="text-sm font-medium">Couldn't load this status page</p>
+        <p className="text-sm text-muted-foreground max-w-xs">
+          That's on us, not you — the status data didn't load. It retries
+          automatically every 30 seconds.
+        </p>
+        <button
+          type="button"
+          onClick={() => void query.refetch()}
+          className="mt-1 rounded-md border border-border px-3 py-1.5 text-sm transition-colors duration-150 ease-out hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
+          Try again
+        </button>
+      </div>
+    )
   }
   if (!query.data) return null
 

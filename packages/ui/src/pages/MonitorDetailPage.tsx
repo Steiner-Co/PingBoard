@@ -16,6 +16,7 @@ import { curveMonotoneX } from '@visx/curve'
 import { Area, AreaChart, ChartTooltip, Grid, XAxis } from '@/components/charts'
 import { Badge } from '@/components/ui/badge'
 import { Panel } from '@/components/panel'
+import { QueryError } from '@/components/QueryError'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -666,7 +667,19 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
         </Button>
       </header>
       <div className="space-y-4 px-4 py-4">
-        {windows.length === 0 ? (
+        {list.isLoading ? (
+          <div className="space-y-2" aria-hidden>
+            {[0, 1].map((i) => (
+              <Skeleton key={i} className="h-9 w-full" />
+            ))}
+          </div>
+        ) : list.isError ? (
+          <QueryError
+            subject="maintenance windows"
+            onRetry={() => void list.refetch()}
+            className="min-h-[120px]"
+          />
+        ) : windows.length === 0 ? (
           <div className="text-sm text-muted-foreground">
             No maintenance windows scheduled.
           </div>

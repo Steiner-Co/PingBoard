@@ -14,6 +14,7 @@ import { EmptyState } from '@/components/EmptyState'
 import { Panel } from '@/components/panel'
 import { QueryError } from '@/components/QueryError'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
   SelectContent,
@@ -460,7 +461,13 @@ export function IncidentsPage() {
             </SelectContent>
           </Select>
         </header>
-        {filtered.length === 0 ? (
+        {query.isLoading ? (
+          <div className="space-y-2 p-4" aria-hidden>
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-9 w-full" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="py-10 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
             <Icon icon={Magnifier} className="h-5 w-5 opacity-50" />
             No incidents match this filter.
