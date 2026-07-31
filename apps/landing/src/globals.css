@@ -156,34 +156,9 @@
   --motion-overlay-out: 120ms;
 }
 
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-::view-transition-old(root) {
-  z-index: 1;
-}
-::view-transition-new(root) {
-  z-index: 2;
-}
-
-/* The clip-path wipe is the largest motion in the product — a full-screen
-   circle sweep. Reduced-motion users get the default instant swap instead. */
 @media (prefers-reduced-motion: no-preference) {
   /* Anchor jumps from the section nav glide; reduced motion gets the hard cut. */
   html {
     scroll-behavior: smooth;
-  }
-  ::view-transition-new(root) {
-    animation: theme-reveal 0.45s ease-out;
-  }
-  @keyframes theme-reveal {
-    from {
-      clip-path: circle(0 at var(--vt-x, 50%) var(--vt-y, 50%));
-    }
-    to {
-      clip-path: circle(var(--vt-r, 150vmax) at var(--vt-x, 50%) var(--vt-y, 50%));
-    }
   }
 }

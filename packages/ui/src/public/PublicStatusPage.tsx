@@ -189,7 +189,7 @@ export function PublicStatusPage({ slug }: { slug: string }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-3xl mx-auto px-5 py-10 sm:px-6 sm:py-14 space-y-8 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-500">
+      <div className="max-w-3xl mx-auto px-5 py-10 sm:px-6 sm:py-14 space-y-8">
         <header className="flex items-start justify-between gap-3 sm:gap-4">
           <div className="space-y-2 min-w-0">
             <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">

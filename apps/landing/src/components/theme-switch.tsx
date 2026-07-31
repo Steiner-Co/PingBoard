@@ -1,5 +1,5 @@
 import { useTheme } from 'next-themes'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { cn } from '@/lib/utils'
 
@@ -47,25 +47,6 @@ function MoonIcon({ size = 16 }: { size?: number }) {
   )
 }
 
-function applyWithTransition(
-  origin: { x: number; y: number },
-  apply: () => void,
-) {
-  if (!document.startViewTransition || window.innerWidth > 1800) {
-    apply()
-    return
-  }
-  const { x, y } = origin
-  const endRadius = Math.hypot(
-    Math.max(x, window.innerWidth - x),
-    Math.max(y, window.innerHeight - y),
-  )
-  document.documentElement.style.setProperty('--vt-x', `${x}px`)
-  document.documentElement.style.setProperty('--vt-y', `${y}px`)
-  document.documentElement.style.setProperty('--vt-r', `${endRadius}px`)
-  document.startViewTransition(apply).ready.catch(() => {})
-}
-
 interface ThemeSwitchProps {
   iconSize?: number
   className?: string
@@ -74,14 +55,12 @@ interface ThemeSwitchProps {
 export function ThemeSwitch({ iconSize = 16, className }: ThemeSwitchProps) {
   const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
-  const originRef = useRef({ x: 0, y: 0 })
 
   useEffect(() => setMounted(true), [])
 
-  const toggle = (e: React.MouseEvent<HTMLButtonElement>) => {
-    originRef.current = { x: e.clientX, y: e.clientY }
-    const next = resolvedTheme === 'dark' ? 'light' : 'dark'
-    applyWithTransition(originRef.current, () => setTheme(next))
+  const toggle = () => {
+    // Theme switching is high-frequency and utilitarian — the swap is instant.
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
   }
 
   const isDark = resolvedTheme === 'dark'
