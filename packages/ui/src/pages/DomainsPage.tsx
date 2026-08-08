@@ -12,6 +12,7 @@ import VerifiedCheck from '@solar-icons/react/csr/money/VerifiedCheck'
 import Global from '@solar-icons/react/csr/map/Global'
 import AddSquare from '@solar-icons/react/csr/ui/AddSquare'
 import Magnifier from '@solar-icons/react/csr/search/Magnifier'
+import Refresh from '@solar-icons/react/csr/arrows/Refresh'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -223,7 +224,14 @@ export function DomainsPage() {
 
   return (
     <>
-      <div className="px-4 lg:px-6">
+      <div className="flex flex-col gap-6 px-4 lg:px-6">
+        <header className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Domains</h1>
+          <p className="text-sm text-muted-foreground">
+            Track expiry, registrar, nameservers and SSL certificates across the
+            whole portfolio
+          </p>
+        </header>
         <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
           <Stat label="Domains" value={summary.total} sub="Tracked in this instance" />
           <Stat
@@ -245,28 +253,41 @@ export function DomainsPage() {
             tone={summary.notAlerting > 0 ? 'warn' : 'muted'}
           />
         </Panel>
-      </div>
 
-      <div className="flex flex-col gap-4 px-4 lg:px-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full sm:max-w-xs">
-            <Icon
-              icon={Magnifier}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
-            />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by domain, registrar, or tag…"
-              className="pl-7"
-              aria-label="Search domains"
-            />
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:max-w-xs">
+              <Icon
+                icon={Magnifier}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
+              />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by domain, registrar, or tag…"
+                className="pl-7"
+                aria-label="Search domains"
+              />
+            </div>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <Button
+                variant="outline"
+                onClick={() => void query.refetch()}
+                disabled={query.isFetching}
+                className="gap-2"
+              >
+                <Icon
+                  icon={Refresh}
+                  className={cn('h-4 w-4', query.isFetching && 'animate-spin')}
+                />
+                Refresh
+              </Button>
+              <Button onClick={() => setAddOpen(true)} className="gap-2">
+                <Icon icon={AddSquare} className="h-4 w-4" />
+                Add domain
+              </Button>
+            </div>
           </div>
-          <Button onClick={() => setAddOpen(true)} className="gap-2 self-start sm:self-auto">
-            <Icon icon={AddSquare} className="h-4 w-4" />
-            Add domain
-          </Button>
-        </div>
 
         {attention.length > 0 && (
           <Panel className="border-warning/40">
@@ -334,6 +355,7 @@ export function DomainsPage() {
 
       <AddDomainDialog open={addOpen} onClose={() => setAddOpen(false)} />
       <EditDetailsDialog domain={editing} onClose={() => setEditing(null)} />
+      </div>
     </>
   )
 }
@@ -973,7 +995,11 @@ function EmptyDomains({ onAdd }: { onAdd: () => void }) {
 function DomainsSkeleton() {
   return (
     <>
-      <div className="px-4 lg:px-6">
+      <div className="flex flex-col gap-6 px-4 lg:px-6">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-36" />
+          <Skeleton className="h-4 w-96 max-w-full" />
+        </div>
         <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="flex flex-col gap-2.5 p-4 sm:p-5">
@@ -983,8 +1009,6 @@ function DomainsSkeleton() {
             </div>
           ))}
         </Panel>
-      </div>
-      <div className="px-4 lg:px-6">
         <Panel className="divide-y divide-border/60">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="flex items-center gap-3 p-4">
