@@ -1,8 +1,11 @@
 services:
   pingboard:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
+    image: ghcr.io/steiner-co/pingboard:latest
+    # Building from source instead (repo checkout): comment the image line
+    # above and uncomment below.
+    # build:
+    #   context: .
+    #   dockerfile: docker/Dockerfile
     container_name: pingboard
     restart: unless-stopped
     ports:

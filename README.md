@@ -4,9 +4,10 @@
 
 ## Quickstart
 
-With Docker Compose (clone the repo, then):
+With Docker Compose — no clone needed, just grab the compose file:
 
 ```bash
+curl -O https://raw.githubusercontent.com/Steiner-Co/PingBoard/main/compose.yaml
 docker compose up -d
 ```
 
@@ -17,7 +18,7 @@ docker run -d --restart=always \
   -p 3000:3000 \
   -v pingboard:/data \
   --name pingboard \
-  ghcr.io/<your-org>/pingboard:latest
+  ghcr.io/steiner-co/pingboard:latest
 ```
 
 Open `http://localhost:3000`, create your admin account, add your first monitor. Done in under a minute.
