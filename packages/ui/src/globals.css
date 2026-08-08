@@ -143,19 +143,21 @@
 }
 
 .dark {
-  --background: oklch(0.1822 0 0);
+  /* Pangolin-style near-black planes: deep canvas, cards a half-step up,
+     sidebar a half-step down. Borders stay hairline-quiet. */
+  --background: oklch(0.16 0 0);
   --foreground: oklch(0.9288 0.0126 255.5078);
-  --card: oklch(0.2046 0 0);
+  --card: oklch(0.185 0 0);
   --card-foreground: oklch(0.9288 0.0126 255.5078);
-  --popover: oklch(0.2603 0 0);
+  --popover: oklch(0.22 0 0);
   --popover-foreground: oklch(0.7348 0 0);
   --primary: oklch(0.4365 0.1044 156.7556);
   --primary-foreground: oklch(0.9213 0.0135 167.1556);
-  --secondary: oklch(0.2603 0 0);
+  --secondary: oklch(0.22 0 0);
   --secondary-foreground: oklch(0.9851 0 0);
-  --muted: oklch(0.2393 0 0);
+  --muted: oklch(0.22 0 0);
   --muted-foreground: oklch(0.7122 0 0);
-  --accent: oklch(0.3132 0 0);
+  --accent: oklch(0.25 0 0);
   --accent-foreground: oklch(0.9851 0 0);
   --destructive: oklch(0.65 0.19 25);
   --destructive-foreground: oklch(0.21 0.02 25);
@@ -166,24 +168,23 @@
   /* Text-grade tones for dark surfaces — see light :root. */
   --success-text: oklch(0.723 0.219 149.579);
   --primary-text: oklch(0.8 0.14 160.9080);
-  /* 0.2809 sat 0.021 from --popover, so inputs and separators inside dark
-     dialogs/popovers vanished. 0.32 keeps the boundary on every surface. */
-  --border: oklch(0.32 0 0);
+  /* Hairlines stay visible on the deeper planes without reading as strokes. */
+  --border: oklch(0.27 0 0);
   /* Tracks --border: border-input is the control boundary — see light :root. */
-  --input: oklch(0.32 0 0);
+  --input: oklch(0.27 0 0);
   --ring: oklch(0.8003 0.1821 151.7110);
   --chart-1: oklch(0.8003 0.1821 151.7110);
   --chart-2: oklch(0.7137 0.1434 254.6240);
   --chart-3: oklch(0.7090 0.1592 293.5412);
   --chart-4: oklch(0.8369 0.1644 84.4286);
   --chart-5: oklch(0.7845 0.1325 181.9120);
-  --sidebar: oklch(0.1822 0 0);
+  --sidebar: oklch(0.145 0 0);
   --sidebar-foreground: oklch(0.6301 0 0);
   --sidebar-primary: oklch(0.4365 0.1044 156.7556);
   --sidebar-primary-foreground: oklch(0.9213 0.0135 167.1556);
-  --sidebar-accent: oklch(0.3132 0 0);
+  --sidebar-accent: oklch(0.22 0 0);
   --sidebar-accent-foreground: oklch(0.9851 0 0);
-  --sidebar-border: oklch(0.2809 0 0);
+  --sidebar-border: oklch(0.24 0 0);
   --sidebar-ring: oklch(0.8003 0.1821 151.7110);
 }
 

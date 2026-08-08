@@ -28,7 +28,7 @@ export function SiteHeader({ title = "Dashboard" }: { title?: string }) {
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
         />
-        <h1 className="text-base font-medium">{title}</h1>
+        <h1 className="text-sm font-medium">{title}</h1>
         <div className="ml-auto flex items-center gap-1.5">
           <a
             href="https://github.com/steiner-co/pingboard"

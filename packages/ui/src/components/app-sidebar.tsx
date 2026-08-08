@@ -53,11 +53,18 @@ export function AppSidebar({ user, onLogout, ...props }: AppSidebarProps) {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:p-1.5!"
+              className="data-[slot=sidebar-menu-button]:h-auto data-[slot=sidebar-menu-button]:p-1.5!"
             >
               <GuardedLink to="/admin">
-                <img src="/logomark.png" alt="" className="size-5 rounded-md" />
-                <span translate="no" className="text-base font-semibold">PingBoard</span>
+                <img src="/logomark.png" alt="" className="size-6 rounded-md" />
+                <span className="flex min-w-0 flex-col leading-tight">
+                  <span translate="no" className="truncate text-sm font-semibold text-sidebar-accent-foreground">
+                    PingBoard
+                  </span>
+                  <span className="truncate text-[11px] text-sidebar-foreground">
+                    Uptime monitoring
+                  </span>
+                </span>
               </GuardedLink>
             </SidebarMenuButton>
           </SidebarMenuItem>

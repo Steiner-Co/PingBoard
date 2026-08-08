@@ -6,20 +6,21 @@ import { Icon } from '@/components/ui/icon'
 import Pulse from '@solar-icons/react/csr/medicine/Pulse'
 import AddSquare from '@solar-icons/react/csr/ui/AddSquare'
 import Magnifier from '@solar-icons/react/csr/search/Magnifier'
+import Refresh from '@solar-icons/react/csr/arrows/Refresh'
+import InfoCircle from '@solar-icons/react/csr/ui/InfoCircle'
+import CloseSquare from '@solar-icons/react/csr/ui/CloseSquare'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DataTable, schema as monitorRowSchema } from '@/components/data-table'
-import { FleetChart } from '@/components/fleet-chart'
 import { QueryError } from '@/components/QueryError'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Panel } from '@/components/panel'
-import { StatusHero } from '@/components/status-hero'
 import { cn, formatDuration, formatInterval, formatRelative } from '@/lib/utils'
 import { api } from '@/lib/api'
 import { useSSE, type HeartbeatPayload } from '@/lib/sse'
 import { useNow } from '@/hooks/use-now'
-import type { MonitorWithLatest } from '@/types'
+import type { MonitorUptime, MonitorWithLatest } from '@/types'
 
 type MonitorRow = z.infer<typeof monitorRowSchema>
 
@@ -77,6 +78,19 @@ export function DashboardPage() {
     queryKey: ['monitors'],
     queryFn: () => api.get<{ monitors: MonitorWithLatest[] }>('/api/admin/monitors'),
   })
+  // 30-day uptime per monitor — one aggregate call, joined into the table by id.
+  const uptimeQuery = useQuery({
+    queryKey: ['monitors-uptime'],
+    queryFn: () =>
+      api.get<{ uptime: Record<string, MonitorUptime> }>(
+        '/api/admin/monitors/uptime',
+      ),
+    staleTime: 60_000,
+  })
+  const uptimeById = useMemo(
+    () => new Map(Object.entries(uptimeQuery.data?.uptime ?? {})),
+    [uptimeQuery.data],
+  )
 
   const [feed, setFeed] = useState<FeedItem[]>([])
 
@@ -97,6 +111,7 @@ export function DashboardPage() {
         ].slice(0, 8),
       )
       void queryClient.invalidateQueries({ queryKey: ['monitors'] })
+      void queryClient.invalidateQueries({ queryKey: ['monitors-uptime'] })
     },
     'incident.opened': () => {
       void queryClient.invalidateQueries({ queryKey: ['monitors'] })
@@ -150,23 +165,56 @@ export function DashboardPage() {
     return <EmptyDashboard />
   }
 
+  const refreshing = query.isFetching || uptimeQuery.isFetching
+  const refresh = () => {
+    void query.refetch()
+    void uptimeQuery.refetch()
+  }
+
   return (
     <div className="flex flex-col gap-6 px-4 lg:px-6">
-      <StatusHero monitors={monitors} />
-      <FleetChart />
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-xs">
-          <Icon
-            icon={Magnifier}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
-          />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, target, or tag…"
-            className="pl-7"
-            aria-label="Search monitors"
-          />
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Monitors</h1>
+        <p className="text-sm text-muted-foreground">
+          Create and manage checks that are continuously monitored for uptime
+        </p>
+      </header>
+      <LiveBanner />
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:max-w-xs">
+            <Icon
+              icon={Magnifier}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
+            />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search monitors…"
+              className="pl-7"
+              aria-label="Search monitors"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={refresh}
+              disabled={refreshing}
+              className="gap-2"
+            >
+              <Icon
+                icon={Refresh}
+                className={cn('h-4 w-4', refreshing && 'animate-spin')}
+              />
+              Refresh
+            </Button>
+            <Button asChild className="gap-2">
+              <Link to="/admin/monitors/new">
+                <Icon icon={AddSquare} className="h-4 w-4" />
+                Add monitor
+              </Link>
+            </Button>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           {STATUS_FILTERS.map((f) => (
@@ -189,12 +237,47 @@ export function DashboardPage() {
           ))}
         </div>
       </div>
-      <DataTable data={rows} />
+      <DataTable data={rows} uptimeById={uptimeById} />
       <div className="grid gap-6 xl:grid-cols-2">
         <LiveActivity feed={feed} nameById={nameById} />
         <RecentIncidents nameById={nameById} />
       </div>
     </div>
+  )
+}
+
+const BANNER_KEY = 'pb-dash-banner-dismissed'
+
+function LiveBanner() {
+  const [dismissed, setDismissed] = useState(
+    () => localStorage.getItem(BANNER_KEY) === '1',
+  )
+  if (dismissed) return null
+  return (
+    <Panel className="flex items-start gap-3 px-4 py-3">
+      <Icon
+        icon={InfoCircle}
+        className="mt-0.5 size-4 shrink-0 text-primary-text"
+      />
+      <div className="min-w-0 flex-1 space-y-0.5">
+        <p className="text-sm font-medium">Live by default</p>
+        <p className="text-xs text-muted-foreground">
+          Checks stream in over SSE — the table and activity feed update the
+          moment a heartbeat lands, no refresh needed.
+        </p>
+      </div>
+      <button
+        type="button"
+        aria-label="Dismiss"
+        onClick={() => {
+          localStorage.setItem(BANNER_KEY, '1')
+          setDismissed(true)
+        }}
+        className="shrink-0 rounded-md p-0.5 text-muted-foreground transition-[color,background-color] duration-150 ease-out hover:bg-accent hover:text-foreground"
+      >
+        <Icon icon={CloseSquare} className="size-4" />
+      </button>
+    </Panel>
   )
 }
 
@@ -340,31 +423,23 @@ function RecentIncidents({ nameById }: { nameById: Map<string, string> }) {
 function DashboardSkeleton() {
   return (
     <div className="flex flex-col gap-6 px-4 lg:px-6">
-      <Panel className="flex flex-col gap-6 px-5 py-6 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-3.5">
-          <Skeleton className="size-3 rounded-full" />
-          <div className="space-y-2">
-            <Skeleton className="h-7 w-56" />
-            <Skeleton className="h-4 w-40" />
-          </div>
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-40" />
+        <Skeleton className="h-4 w-96 max-w-full" />
+      </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Skeleton className="h-9 w-full sm:max-w-xs" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-9 w-24" />
+          <Skeleton className="h-9 w-32" />
         </div>
-        <div className="flex items-center gap-8 pl-7 sm:gap-10 lg:pl-0">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="flex flex-col gap-1.5">
-              <Skeleton className="h-3 w-16" />
-              <Skeleton className="h-7 w-12" />
-            </div>
-          ))}
-        </div>
-      </Panel>
-      <Panel className="p-4">
-        <Skeleton className="h-[150px] w-full" />
-      </Panel>
+      </div>
       <Panel className="divide-y divide-border/60">
         {[0, 1, 2, 3, 4].map((i) => (
           <div key={i} className="flex items-center gap-4 p-3">
             <Skeleton className="h-4 w-40" />
             <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-32" />
             <Skeleton className="ml-auto h-4 w-24" />
           </div>
         ))}

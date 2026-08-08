@@ -72,7 +72,7 @@ export function AdminLayout() {
       style={{
         // Block ships these as scoped CSS vars; declare them on the provider.
         ['--sidebar-width' as string]: 'calc(var(--spacing) * 72)',
-        ['--header-height' as string]: 'calc(var(--spacing) * 12)',
+        ['--header-height' as string]: 'calc(var(--spacing) * 11)',
       }}
     >
       {/* Screen-reader / keyboard-only: jump past the sidebar+header to the

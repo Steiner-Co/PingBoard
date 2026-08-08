@@ -10,9 +10,17 @@ import {
   useReactTable,
   type ColumnDef,
   type ColumnFiltersState,
+  type RowData,
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table"
+
+declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface TableMeta<TData extends RowData> {
+    uptimeById?: Map<string, MonitorUptime>
+  }
+}
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { z } from "zod"
@@ -46,6 +54,9 @@ import Play from "@solar-icons/react/csr/video/Play"
 import TrashBinTrash from "@solar-icons/react/csr/ui/TrashBinTrash"
 import ArrowLeft from "@solar-icons/react/csr/arrows/ArrowLeft"
 import ArrowRight from "@solar-icons/react/csr/arrows/ArrowRight"
+import Copy from "@solar-icons/react/csr/ui/Copy"
+import { UptimeBars } from "@/components/uptime-bars"
+import type { MonitorUptime } from "@/types"
 
 export const schema = z.object({
   id: z.string(),
@@ -102,13 +113,17 @@ const columns: ColumnDef<MonitorRow>[] = [
     cell: ({ row }) => <StatusCell status={row.original.status} />,
   },
   {
+    id: "uptime",
+    header: "Uptime (30d)",
+    enableSorting: false,
+    cell: ({ row, table }) => (
+      <UptimeBars uptime={table.options.meta?.uptimeById?.get(row.original.id)} />
+    ),
+  },
+  {
     accessorKey: "target",
     header: "Target",
-    cell: ({ row }) => (
-      <span className="font-mono text-xs text-muted-foreground truncate max-w-[260px] inline-block align-middle">
-        {row.original.target}
-      </span>
-    ),
+    cell: ({ row }) => <TargetCell target={row.original.target} />,
   },
   {
     accessorKey: "type",
@@ -151,6 +166,33 @@ const columns: ColumnDef<MonitorRow>[] = [
     cell: ({ row }) => <RowActions row={row.original} />,
   },
 ]
+
+function TargetCell({ target }: { target: string }) {
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(target)
+      toast.success("Target copied")
+    } catch {
+      toast.error("Couldn't copy to the clipboard")
+    }
+  }
+  return (
+    <div className="flex items-center gap-1">
+      <span className="font-mono text-xs text-muted-foreground truncate max-w-[240px] inline-block align-middle">
+        {target}
+      </span>
+      {/* relative z-10 lifts the button above the row's stretched name link. */}
+      <button
+        type="button"
+        onClick={copy}
+        aria-label="Copy target"
+        className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-[color,background-color] duration-150 ease-out hover:bg-accent hover:text-foreground"
+      >
+        <Icon icon={Copy} className="size-3" />
+      </button>
+    </div>
+  )
+}
 
 function RowActions({ row }: { row: MonitorRow }) {
   const navigate = useNavigate()
@@ -229,8 +271,10 @@ function RowActions({ row }: { row: MonitorRow }) {
 
 export function DataTable({
   data,
+  uptimeById,
 }: {
   data: z.infer<typeof schema>[]
+  uptimeById?: Map<string, MonitorUptime>
 }) {
   const [rowSelection, setRowSelection] = React.useState({})
   const [columnVisibility, setColumnVisibility] =
@@ -255,6 +299,7 @@ export function DataTable({
       pagination,
     },
     getRowId: (row) => row.id.toString(),
+    meta: { uptimeById },
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,

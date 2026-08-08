@@ -93,3 +93,14 @@ export interface User {
   userId: string
   email: string
 }
+
+// GET /api/admin/monitors/uptime — 30-day per-day uptime keyed by monitor id.
+export interface UptimeDay {
+  date: string
+  uptimePct: number | null
+}
+
+export interface MonitorUptime {
+  pct: number | null
+  days: UptimeDay[]
+}
