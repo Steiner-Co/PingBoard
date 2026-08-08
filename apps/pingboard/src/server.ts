@@ -44,6 +44,7 @@ import {
   listMaintenanceWindows,
   heartbeatSummary,
   listMonitors,
+  listMonitorsUptime,
   listDomains,
   listStatusPages,
   resolveIncident,
@@ -173,6 +174,9 @@ async function main() {
             return createMonitor(req, adminDeps)
           if (path === '/api/admin/monitors/run' && method === 'POST')
             return runMonitorCheck(req, adminDeps)
+          // Registered before the /monitors/:id regex — 'uptime' would match it.
+          if (path === '/api/admin/monitors/uptime' && method === 'GET')
+            return listMonitorsUptime(adminDeps)
           const monitorTimelineMatch = path.match(
             /^\/api\/admin\/monitors\/([\w-]+)\/timeline$/,
           )

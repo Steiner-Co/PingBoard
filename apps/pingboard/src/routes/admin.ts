@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, ne, sql } from 'drizzle-orm'
 import type { DB } from '@pingboard/db'
 import {
   dailyStats,
@@ -205,6 +205,68 @@ export async function getMonitorTimeline(id: string, deps: AdminDeps): Promise<R
     timeline.push({ date: key, uptimePct: pctByDate.get(key) ?? null })
   }
   return json({ timeline })
+}
+
+/**
+ * 30-day per-day uptime for every non-domain monitor in one shot. The
+ * dashboard table renders a segmented uptime bar per row; fanning out to the
+ * per-monitor /timeline endpoint would be N requests. Same daily_stats +
+ * live-today blend as getMonitorTimeline.
+ */
+export async function listMonitorsUptime(deps: AdminDeps): Promise<Response> {
+  const now = new Date()
+  const days = 30
+  const isoDay = (d: Date) => d.toISOString().slice(0, 10)
+  const today = isoDay(now)
+  const since = isoDay(new Date(now.getTime() - (days - 1) * 24 * 60 * 60 * 1000))
+  const dayStart = new Date(now)
+  dayStart.setUTCHours(0, 0, 0, 0)
+
+  const rows = await deps.db
+    .select({ id: monitors.id })
+    .from(monitors)
+    .where(ne(monitors.type, 'domain'))
+
+  const uptime: Record<
+    string,
+    { pct: number | null; days: { date: string; uptimePct: number | null }[] }
+  > = {}
+
+  await Promise.all(
+    rows.map(async ({ id }) => {
+      const stats = await deps.db
+        .select({ date: dailyStats.date, uptimePct: dailyStats.uptimePct })
+        .from(dailyStats)
+        .where(and(eq(dailyStats.monitorId, id), gte(dailyStats.date, since)))
+      const pctByDate = new Map(stats.map((s) => [s.date, s.uptimePct]))
+
+      // The current day may not have an aggregated row yet — compute it live.
+      const todayHeartbeats = await deps.db
+        .select({ status: heartbeats.status })
+        .from(heartbeats)
+        .where(and(eq(heartbeats.monitorId, id), gte(heartbeats.checkedAt, dayStart)))
+      if (todayHeartbeats.length > 0) {
+        const ups = todayHeartbeats.filter((h) => h.status === 'up').length
+        pctByDate.set(today, (ups / todayHeartbeats.length) * 100)
+      }
+
+      const timeline: { date: string; uptimePct: number | null }[] = []
+      for (let i = days - 1; i >= 0; i--) {
+        const key = isoDay(new Date(now.getTime() - i * 24 * 60 * 60 * 1000))
+        timeline.push({ date: key, uptimePct: pctByDate.get(key) ?? null })
+      }
+      const known = timeline.filter((d) => d.uptimePct != null)
+      uptime[id] = {
+        pct:
+          known.length === 0
+            ? null
+            : known.reduce((a, b) => a + (b.uptimePct ?? 0), 0) / known.length,
+        days: timeline,
+      }
+    }),
+  )
+
+  return json({ uptime })
 }
 
 export async function createMonitor(req: Request, deps: AdminDeps): Promise<Response> {
