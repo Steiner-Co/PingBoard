@@ -298,9 +298,12 @@ export function IncidentsPage() {
   if (query.isError) {
     return (
       <div className="px-4 lg:px-6 flex flex-col gap-6">
-        <p className="text-muted-foreground">
-          Every down → up transition across all monitors.
-        </p>
+        <header className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Incidents</h1>
+          <p className="text-sm text-muted-foreground">
+            Every down → up transition across all monitors
+          </p>
+        </header>
         <QueryError subject="incidents" onRetry={() => void query.refetch()} />
       </div>
     )
@@ -309,9 +312,12 @@ export function IncidentsPage() {
   if (!query.isLoading && all.length === 0) {
     return (
       <div className="px-4 lg:px-6 flex flex-col gap-6">
-        <p className="text-muted-foreground">
-          Every down → up transition across all monitors.
-        </p>
+        <header className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Incidents</h1>
+          <p className="text-sm text-muted-foreground">
+            Every down → up transition across all monitors
+          </p>
+        </header>
         <EmptyState
           icon={CheckCircle}
           title="No incidents on record"
@@ -326,9 +332,12 @@ export function IncidentsPage() {
 
   return (
     <div className="px-4 lg:px-6 flex flex-col gap-6">
-      <p className="text-muted-foreground">
-        Every down → up transition across all monitors.
-      </p>
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Incidents</h1>
+        <p className="text-sm text-muted-foreground">
+          Every down → up transition across all monitors
+        </p>
+      </header>
 
       {all.length > 0 && (
         <>

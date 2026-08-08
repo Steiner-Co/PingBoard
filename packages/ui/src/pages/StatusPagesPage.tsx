@@ -187,9 +187,14 @@ export function StatusPagesPage() {
 
   return (
     <div className="px-4 lg:px-6 flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-muted-foreground">Public dashboards you can share with users.</p>
-        <Button onClick={() => setOpen(true)}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Status pages</h1>
+          <p className="text-sm text-muted-foreground">
+            Public dashboards you can share with users
+          </p>
+        </div>
+        <Button onClick={() => setOpen(true)} className="gap-2 self-start sm:self-auto">
           <Icon icon={AddSquare} className="h-4 w-4" />
           Create page
         </Button>

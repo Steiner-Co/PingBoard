@@ -44,17 +44,24 @@ export function SettingsPage() {
   const { user } = useAuth()
 
   return (
-    <div className="px-4 lg:px-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
-      <div className="flex min-w-0 flex-col gap-6">
-        <p className="text-muted-foreground">Instance-wide preferences.</p>
-        <AccountCard email={user?.email ?? ''} />
-        <RetentionCard />
-        <ApiTokensCard />
-        <SmtpCard />
+    <div className="px-4 lg:px-6 flex flex-col gap-6">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+        <p className="text-sm text-muted-foreground">
+          Instance-wide preferences
+        </p>
+      </header>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="flex min-w-0 flex-col gap-6">
+          <AccountCard email={user?.email ?? ''} />
+          <RetentionCard />
+          <ApiTokensCard />
+          <SmtpCard />
+        </div>
+        <aside className="flex min-w-0 flex-col gap-4">
+          <InstanceCard />
+        </aside>
       </div>
-      <aside className="flex min-w-0 flex-col gap-4">
-        <InstanceCard />
-      </aside>
     </div>
   )
 }

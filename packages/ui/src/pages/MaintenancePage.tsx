@@ -75,7 +75,10 @@ export function MaintenancePage() {
   if (query.isError) {
     return (
       <div className="px-4 lg:px-6 flex flex-col gap-6">
-        <p className="text-muted-foreground">{INTRO}</p>
+        <header className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Maintenance</h1>
+          <p className="text-sm text-muted-foreground">{INTRO}</p>
+        </header>
         <QueryError
           subject="maintenance windows"
           onRetry={() => void query.refetch()}
@@ -87,7 +90,10 @@ export function MaintenancePage() {
   if (query.isLoading) {
     return (
       <div className="px-4 lg:px-6 flex flex-col gap-6">
-        <p className="text-muted-foreground">{INTRO}</p>
+        <header className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Maintenance</h1>
+          <p className="text-sm text-muted-foreground">{INTRO}</p>
+        </header>
         <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="flex flex-col gap-2.5 p-4 sm:p-5">
@@ -109,7 +115,10 @@ export function MaintenancePage() {
   if (windows.length === 0) {
     return (
       <div className="px-4 lg:px-6 flex flex-col gap-6">
-        <p className="text-muted-foreground">{INTRO}</p>
+        <header className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Maintenance</h1>
+          <p className="text-sm text-muted-foreground">{INTRO}</p>
+        </header>
         <EmptyState
           icon={Calendar}
           title="No maintenance windows scheduled"
@@ -138,7 +147,10 @@ export function MaintenancePage() {
 
   return (
     <div className="px-4 lg:px-6 flex flex-col gap-6">
-      <p className="text-muted-foreground">{INTRO}</p>
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Maintenance</h1>
+        <p className="text-sm text-muted-foreground">{INTRO}</p>
+      </header>
 
       <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
         <StatCell

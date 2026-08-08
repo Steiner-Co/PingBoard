@@ -141,10 +141,15 @@ export function ChannelsPage() {
   )
 
   const header = (
-    <div className="flex items-center justify-between gap-4">
-      <p className="text-muted-foreground">Where alerts go when monitors change state.</p>
-      <Button onClick={() => setOpen(true)}>
-              <Icon icon={AddSquare} className="h-4 w-4" />
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Channels</h1>
+        <p className="text-sm text-muted-foreground">
+          Where alerts go when monitors change state
+        </p>
+      </div>
+      <Button onClick={() => setOpen(true)} className="gap-2 self-start sm:self-auto">
+        <Icon icon={AddSquare} className="h-4 w-4" />
         Add channel
       </Button>
     </div>
