@@ -40,6 +40,7 @@ import {
   getMonitor,
   getMonitorTimeline,
   getStatusPage,
+  getStatusPagePreview,
   listChannels,
   listIncidents,
   listMaintenanceWindows,
@@ -286,6 +287,9 @@ async function main() {
             if (method === 'DELETE')
               return deleteStatusPageLogo(pageLogoMatch[1], adminDeps)
           }
+          const pagePreviewMatch = path.match(/^\/api\/admin\/pages\/([\w-]+)\/preview$/)
+          if (pagePreviewMatch?.[1] && method === 'GET')
+            return getStatusPagePreview(pagePreviewMatch[1], adminDeps)
           const pageMatch = path.match(/^\/api\/admin\/pages\/([\w-]+)$/)
           if (pageMatch?.[1]) {
             const id = pageMatch[1]

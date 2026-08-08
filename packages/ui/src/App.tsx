@@ -13,6 +13,7 @@ import { MonitorEditPage } from '@/pages/MonitorEditPage'
 import { MonitorWizardPage } from '@/pages/MonitorWizardPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { SetupPage } from '@/pages/SetupPage'
+import { StatusPageEditorPage } from '@/pages/StatusPageEditorPage'
 import { StatusPagesPage } from '@/pages/StatusPagesPage'
 import { queryClient } from '@/lib/query-client'
 
@@ -72,6 +73,7 @@ function Router() {
         <Route path="incidents" element={<IncidentsPage />} />
         <Route path="maintenance" element={<MaintenancePage />} />
         <Route path="pages" element={<StatusPagesPage />} />
+        <Route path="pages/:id/edit" element={<StatusPageEditorPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="/" element={<Navigate to={user ? '/admin' : '/login'} replace />} />

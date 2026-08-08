@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
 import { Checkbox } from '@/components/ui/checkbox'
-import ArrowDown from '@solar-icons/react/csr/arrows/ArrowDown'
-import ArrowUp from '@solar-icons/react/csr/arrows/ArrowUp'
 import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
 import Copy from '@solar-icons/react/csr/ui/Copy'
 import Pen from '@solar-icons/react/csr/messages/Pen'
@@ -16,7 +14,6 @@ import AddSquare from '@solar-icons/react/csr/ui/AddSquare'
 import DangerTriangle from '@solar-icons/react/csr/ui/DangerTriangle'
 import TrashBinTrash from '@solar-icons/react/csr/ui/TrashBinTrash'
 import Global from '@solar-icons/react/csr/map/Global'
-import Upload from '@solar-icons/react/csr/arrows-action/Upload'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/EmptyState'
@@ -42,8 +39,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { ACCENT_PRESETS } from '@/public/accent-presets'
 import {
   Select,
   SelectContent,
@@ -54,24 +49,6 @@ import {
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import type { Monitor, MonitorWithLatest, StatusPage, Theme } from '@/types'
-
-// Sort: selected monitors in their explicit `order` first, then unselected
-// monitors after. Lets the user see the live ordering while still being able
-// to pick from the full pool.
-function orderedMonitorList(
-  monitors: Monitor[],
-  order: string[],
-): Monitor[] {
-  const ordered: Monitor[] = []
-  for (const id of order) {
-    const m = monitors.find((x) => x.id === id)
-    if (m) ordered.push(m)
-  }
-  for (const m of monitors) {
-    if (!order.includes(m.id)) ordered.push(m)
-  }
-  return ordered
-}
 
 interface LinkedMonitor {
   statusPageId: string
@@ -95,12 +72,9 @@ interface PageHealth {
 export function StatusPagesPage() {
   const queryClient = useQueryClient()
   const confirm = useConfirm()
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [passwordTarget, setPasswordTarget] = useState<StatusPage | null>(null)
-  const [editTarget, setEditTarget] = useState<StatusPage | null>(null)
-  // When the user fixes a coverage gap we open the edit dialog with that
-  // monitor already ticked, so "Add to page" is one click instead of a hunt.
-  const [presetMonitorId, setPresetMonitorId] = useState<string | null>(null)
 
   const pages = useQuery({
     queryKey: ['pages'],
@@ -183,11 +157,6 @@ export function StatusPagesPage() {
       toast.error(err instanceof Error ? err.message : 'Failed to update password'),
   })
 
-  const closeEdit = () => {
-    setEditTarget(null)
-    setPresetMonitorId(null)
-  }
-
   return (
     <div className="px-4 lg:px-6 flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -244,10 +213,9 @@ export function StatusPagesPage() {
             <CoverageBanner
               unpublished={unpublished}
               pages={pageList}
-              onAddToPage={(page, monitorId) => {
-                setPresetMonitorId(monitorId)
-                setEditTarget(page)
-              }}
+              onAddToPage={(page, monitorId) =>
+                navigate(`/admin/pages/${page.id}/edit?add=${monitorId}`)
+              }
             />
           )}
 
@@ -264,10 +232,6 @@ export function StatusPagesPage() {
                   key={p.id}
                   page={p}
                   health={healthByPageId.get(p.id) ?? null}
-                  onEdit={() => {
-                    setPresetMonitorId(null)
-                    setEditTarget(p)
-                  }}
                   onSetPassword={() => setPasswordTarget(p)}
                   onRemovePassword={async () => {
                     const ok = await confirm({
@@ -298,11 +262,6 @@ export function StatusPagesPage() {
       )}
 
       <PageDialog open={open} onClose={() => setOpen(false)} />
-      <EditPageDialog
-        page={editTarget}
-        presetMonitorId={presetMonitorId}
-        onClose={closeEdit}
-      />
       <PasswordDialog
         page={passwordTarget}
         onClose={() => setPasswordTarget(null)}
@@ -397,14 +356,12 @@ function PagesSkeleton() {
 function PageRow({
   page,
   health,
-  onEdit,
   onSetPassword,
   onRemovePassword,
   onDelete,
 }: {
   page: StatusPage
   health: PageHealth | null
-  onEdit: () => void
   onSetPassword: () => void
   onRemovePassword: () => void
   onDelete: () => void
@@ -471,9 +428,11 @@ function PageRow({
             View
           </a>
         </Button>
-        <Button size="sm" variant="outline" onClick={onEdit}>
-          <Icon icon={Pen} className="h-3.5 w-3.5" />
-          Edit
+        <Button size="sm" variant="outline" asChild>
+          <Link to={`/admin/pages/${page.id}/edit`}>
+            <Icon icon={Pen} className="h-3.5 w-3.5" />
+            Edit
+          </Link>
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -846,513 +805,5 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
         </form>
       </DialogContent>
     </Dialog>
-  )
-}
-
-function EditPageDialog({
-  page,
-  presetMonitorId,
-  onClose,
-}: {
-  page: StatusPage | null
-  presetMonitorId?: string | null
-  onClose: () => void
-}) {
-  const queryClient = useQueryClient()
-  const open = !!page
-
-  const detail = useQuery({
-    queryKey: ['page', page?.id],
-    queryFn: () => api.get<PageDetail>(`/api/admin/pages/${page!.id}`),
-    enabled: open,
-  })
-
-  const monitors = useQuery({
-    queryKey: ['monitors'],
-    queryFn: () => api.get<{ monitors: Monitor[] }>('/api/admin/monitors'),
-    enabled: open,
-  })
-
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [theme, setTheme] = useState<Theme>('auto')
-  const [accent, setAccent] = useState<string | null>(null)
-  const [websiteUrl, setWebsiteUrl] = useState('')
-  const [hideBranding, setHideBranding] = useState(false)
-  const [customCss, setCustomCss] = useState('')
-  // monitorId → groupName ('' = no group)
-  const [selected, setSelected] = useState<Map<string, string>>(new Map())
-  const [order, setOrder] = useState<string[]>([])
-  const [error, setError] = useState<string | null>(null)
-
-  // Hydrate when the detail query lands. `presetMonitorId` is in the deps so
-  // that opening via "Add to page" re-hydrates from cache with that monitor
-  // already ticked; once open, unticking it sticks because neither dep changes.
-  // Guarded by dataUpdatedAt: a logo upload mid-edit refetches the detail, and
-  // without this guard the refetch would wipe the user's unsaved drafts.
-  const lastHydrated = useRef<{ at: number; preset: string | null | undefined }>({
-    at: 0,
-    preset: undefined,
-  })
-  useEffect(() => {
-    if (!detail.data) return
-    if (
-      lastHydrated.current.at === detail.dataUpdatedAt &&
-      lastHydrated.current.preset === presetMonitorId
-    )
-      return
-    lastHydrated.current = { at: detail.dataUpdatedAt, preset: presetMonitorId }
-    setTitle(detail.data.page.title)
-    setDescription(detail.data.page.description ?? '')
-    setTheme(detail.data.page.theme)
-    setAccent(detail.data.page.accent)
-    setWebsiteUrl(detail.data.page.websiteUrl ?? '')
-    setHideBranding(detail.data.page.hideBranding)
-    setCustomCss(detail.data.page.customCss ?? '')
-    const sorted = [...detail.data.monitors].sort(
-      (a, b) => a.sortOrder - b.sortOrder,
-    )
-    const nextOrder = sorted.map((m) => m.monitorId)
-    const nextSelected = new Map(
-      sorted.map((m) => [m.monitorId, m.groupName ?? '']),
-    )
-    if (presetMonitorId && !nextSelected.has(presetMonitorId)) {
-      nextOrder.push(presetMonitorId)
-      nextSelected.set(presetMonitorId, '')
-    }
-    setOrder(nextOrder)
-    setSelected(nextSelected)
-    setError(null)
-  }, [detail.data, presetMonitorId])
-
-  const save = useMutation({
-    mutationFn: (payload: object) =>
-      api.patch(`/api/admin/pages/${page!.id}`, payload),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['pages'] })
-      void queryClient.invalidateQueries({ queryKey: ['page', page!.id] })
-      toast.success('Status page updated')
-      onClose()
-    },
-    onError: (err) => setError(err instanceof Error ? err.message : 'Failed'),
-  })
-
-  const handleSubmit = () => {
-    if (!detail.data) return // never submit a form that never hydrated
-    if (customCss.length > 10 * 1024) {
-      setError('Custom CSS is limited to 10 KB')
-      return
-    }
-    setError(null)
-    save.mutate({
-      title: title.trim() || page!.slug,
-      description: description.trim() || null,
-      theme,
-      accent,
-      websiteUrl: websiteUrl.trim() || null,
-      hideBranding,
-      customCss: customCss.trim() || null,
-      monitors: order.map((monitorId, i) => ({
-        monitorId,
-        groupName: selected.get(monitorId)?.trim() || null,
-        sortOrder: i,
-      })),
-    })
-  }
-
-  const toggle = (id: string) => {
-    setSelected((prev) => {
-      const next = new Map(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.set(id, '')
-      }
-      return next
-    })
-    setOrder((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
-  }
-
-  const setGroup = (id: string, value: string) => {
-    setSelected((prev) => {
-      const next = new Map(prev)
-      next.set(id, value)
-      return next
-    })
-  }
-
-  const moveOrder = (id: string, delta: -1 | 1) => {
-    setOrder((prev) => {
-      const idx = prev.indexOf(id)
-      const target = idx + delta
-      if (idx === -1 || target < 0 || target >= prev.length) return prev
-      const next = [...prev]
-      ;[next[idx], next[target]] = [next[target]!, next[idx]!]
-      return next
-    })
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Edit status page</DialogTitle>
-          <DialogDescription>
-            The slug (<span className="font-mono">/{page?.slug}</span>) cannot
-            be changed without breaking incoming links.
-          </DialogDescription>
-        </DialogHeader>
-        {detail.isLoading ? (
-          <p className="text-sm text-muted-foreground py-8 text-center">Loading…</p>
-        ) : detail.isError ? (
-          // Without this branch the form renders blank and a submit would
-          // PATCH an empty monitor list over the real page.
-          <QueryError
-            subject="page details"
-            onRetry={() => void detail.refetch()}
-          />
-        ) : (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              handleSubmit()
-            }}
-            className="space-y-4"
-          >
-            <div className="space-y-2">
-              <Label htmlFor="edit-title">Title</Label>
-              <Input
-                id="edit-title"
-                name="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-desc">Description</Label>
-              <Input
-                id="edit-desc"
-                name="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optional"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-theme">Theme</Label>
-              <Select value={theme} onValueChange={(v) => setTheme(v as Theme)}>
-                <SelectTrigger id="edit-theme">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">Auto (follow visitor)</SelectItem>
-                  <SelectItem value="light">Light</SelectItem>
-                  <SelectItem value="dark">Dark</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-4 rounded-md border border-border/60 p-3.5">
-              <p className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-                Appearance
-              </p>
-
-              <LogoField page={page!} logoPath={detail.data?.page.logoPath ?? null} />
-
-              <div className="space-y-2">
-                <Label>Accent</Label>
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setAccent(null)}
-                    aria-pressed={accent === null}
-                    title="Default (PingBoard green)"
-                    className={cn(
-                      'size-6 rounded-full outline-none transition-[box-shadow,transform] duration-150 ease-out active:scale-95',
-                      'bg-success',
-                      accent === null
-                        ? 'ring-2 ring-foreground/60 ring-offset-2 ring-offset-background'
-                        : 'opacity-60 hover:opacity-100',
-                    )}
-                  />
-                  {Object.entries(ACCENT_PRESETS).map(([key, p]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setAccent(key)}
-                      aria-pressed={accent === key}
-                      title={p.label}
-                      style={{ backgroundColor: p.swatch }}
-                      className={cn(
-                        'size-6 rounded-full outline-none transition-[box-shadow,transform] duration-150 ease-out active:scale-95',
-                        accent === key
-                          ? 'ring-2 ring-foreground/60 ring-offset-2 ring-offset-background'
-                          : 'opacity-60 hover:opacity-100',
-                      )}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="edit-website">Website URL</Label>
-                <Input
-                  id="edit-website"
-                  name="websiteUrl"
-                  value={websiteUrl}
-                  onChange={(e) => setWebsiteUrl(e.target.value)}
-                  placeholder="https://example.com"
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-                <p className="text-xs text-muted-foreground">
-                  The logo and title on the public page link here.
-                </p>
-              </div>
-
-              <label className="flex cursor-pointer items-center gap-2.5 text-sm">
-                <Checkbox
-                  checked={hideBranding}
-                  onCheckedChange={(v) => setHideBranding(v === true)}
-                />
-                Hide the “Powered by PingBoard” footer
-              </label>
-
-              <div className="space-y-2">
-                <Label htmlFor="edit-css">Custom CSS</Label>
-                <Textarea
-                  id="edit-css"
-                  name="customCss"
-                  value={customCss}
-                  onChange={(e) => setCustomCss(e.target.value)}
-                  placeholder={'.my-rule { … }'}
-                  rows={6}
-                  spellCheck={false}
-                  className="font-mono text-xs"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Injected into this status page only, up to 10 KB. It's your
-                  page — unescaped by design.
-                </p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Monitors</Label>
-              <div className="border rounded-md max-h-72 overflow-y-auto divide-y">
-                {/* Selected monitors first, in display order — so the up/down
-                    buttons make visual sense. Unselected appear below. */}
-                {orderedMonitorList(monitors.data?.monitors ?? [], order).map(
-                  (m) => {
-                    const checked = selected.has(m.id)
-                    return (
-                      <div key={m.id} className="p-3 flex items-center gap-3">
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={() => toggle(m.id)}
-                        />
-                        <div className="flex-1 min-w-0 text-sm">
-                          <div className="font-medium truncate">{m.name}</div>
-                          <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-                            {m.type}
-                          </div>
-                        </div>
-                        {checked && (
-                          <>
-                            <div className="flex items-center gap-0.5">
-                              <Button
-                                type="button"
-                                size="icon-sm"
-                                variant="ghost"
-                                aria-label="Move up"
-                                disabled={
-                                  // Disable if this item is the first selected
-                                  order.indexOf(m.id) <= 0
-                                }
-                                onClick={() => moveOrder(m.id, -1)}
-                              >
-                                <Icon
-                                  icon={ArrowUp}
-                                  className="h-3.5 w-3.5"
-                                />
-                              </Button>
-                              <Button
-                                type="button"
-                                size="icon-sm"
-                                variant="ghost"
-                                aria-label="Move down"
-                                disabled={
-                                  order.indexOf(m.id) === order.length - 1 ||
-                                  order.indexOf(m.id) === -1
-                                }
-                                onClick={() => moveOrder(m.id, 1)}
-                              >
-                                <Icon
-                                  icon={ArrowDown}
-                                  className="h-3.5 w-3.5"
-                                />
-                              </Button>
-                            </div>
-                            <Input
-                              value={selected.get(m.id) ?? ''}
-                              onChange={(e) => setGroup(m.id, e.target.value)}
-                              placeholder="Group"
-                              className="w-32 text-xs"
-                            />
-                          </>
-                        )}
-                      </div>
-                    )
-                  },
-                )}
-                {(!monitors.data?.monitors || monitors.data.monitors.length === 0) && (
-                  <div className="p-4 text-sm text-muted-foreground text-center">
-                    No monitors to add.
-                  </div>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Use the arrows to reorder. Group names cluster monitors on the
-                public page (e.g. "API", "Web", "Database").
-              </p>
-            </div>
-            {error && (
-              <p
-                id="page-dialog-error"
-                role="alert"
-                aria-live="polite"
-                className="text-sm text-destructive"
-              >
-                {error}
-              </p>
-            )}
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={save.isPending || detail.isLoading}>
-                {save.isPending ? 'Saving…' : 'Save changes'}
-              </Button>
-            </DialogFooter>
-          </form>
-        )}
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-/**
- * Logo picker for the Appearance section. Uploads take effect immediately
- * (separate from the dialog's Save) because the file endpoint is its own
- * multipart round-trip; everything else on the form stays draft-until-save.
- */
-function LogoField({
-  page,
-  logoPath,
-}: {
-  page: StatusPage
-  logoPath: string | null
-}) {
-  const queryClient = useQueryClient()
-  const fileRef = useRef<HTMLInputElement>(null)
-
-  const invalidate = () => {
-    void queryClient.invalidateQueries({ queryKey: ['pages'] })
-    void queryClient.invalidateQueries({ queryKey: ['page', page.id] })
-  }
-
-  const upload = useMutation({
-    mutationFn: async (file: File) => {
-      const form = new FormData()
-      form.append('logo', file)
-      const res = await fetch(`/api/admin/pages/${page.id}/logo`, {
-        method: 'POST',
-        credentials: 'include',
-        body: form,
-      })
-      if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as {
-          error?: string
-        } | null
-        throw new Error(data?.error ?? `Upload failed (${res.status})`)
-      }
-    },
-    onSuccess: () => {
-      invalidate()
-      toast.success('Logo updated')
-    },
-    onError: (err) =>
-      toast.error(err instanceof Error ? err.message : 'Upload failed'),
-  })
-
-  const remove = useMutation({
-    mutationFn: () => api.delete(`/api/admin/pages/${page.id}/logo`),
-    onSuccess: () => {
-      invalidate()
-      toast.success('Logo removed')
-    },
-    onError: (err) =>
-      toast.error(err instanceof Error ? err.message : 'Failed to remove'),
-  })
-
-  const busy = upload.isPending || remove.isPending
-
-  return (
-    <div className="space-y-2">
-      <Label>Logo</Label>
-      <div className="flex items-center gap-3">
-        {logoPath ? (
-          <img
-            src={`/api/public/assets/${logoPath}`}
-            alt="Current logo"
-            className="size-9 shrink-0 rounded-md border border-border/60 object-contain"
-          />
-        ) : (
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-dashed border-border text-muted-foreground">
-            <Icon icon={Global} className="size-4" />
-          </div>
-        )}
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={busy}
-            onClick={() => fileRef.current?.click()}
-            className="gap-1.5"
-          >
-            <Icon icon={Upload} className="h-3.5 w-3.5" />
-            {upload.isPending ? 'Uploading…' : logoPath ? 'Replace' : 'Upload'}
-          </Button>
-          {logoPath && (
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              disabled={busy}
-              onClick={() => remove.mutate()}
-              className="gap-1.5 text-muted-foreground"
-            >
-              <Icon icon={TrashBinTrash} className="h-3.5 w-3.5" />
-              Remove
-            </Button>
-          )}
-        </div>
-      </div>
-      <p className="text-xs text-muted-foreground">
-        PNG, JPEG, SVG or WebP, up to 512 KB. Shown next to the page title.
-      </p>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/png,image/jpeg,image/svg+xml,image/webp"
-        className="hidden"
-        aria-label="Choose a logo image"
-        onChange={(e) => {
-          const file = e.target.files?.[0]
-          if (file) upload.mutate(file)
-          e.target.value = ''
-        }}
-      />
-    </div>
   )
 }

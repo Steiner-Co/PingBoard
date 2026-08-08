@@ -27,7 +27,7 @@ import {
 
 type AdminTheme = 'light' | 'dark' | 'auto'
 
-interface PublicData {
+export interface PublicData {
   page: {
     slug: string
     title: string
@@ -44,7 +44,7 @@ interface PublicData {
   maintenance?: MaintenanceWindow[]
 }
 
-interface PublicMonitor {
+export interface PublicMonitor {
   id: string
   name: string
   group: string | null
@@ -88,7 +88,7 @@ async function fetchPublic(slug: string): Promise<PublicData> {
 
 export function PublicStatusPage({ slug }: { slug: string }) {
   const queryClient = useQueryClient()
-  const { setTheme, resolvedTheme } = useTheme()
+  const { setTheme } = useTheme()
   const query = useQuery({
     queryKey: ['public', slug],
     queryFn: () => fetchPublic(slug),
@@ -175,7 +175,36 @@ export function PublicStatusPage({ slug }: { slug: string }) {
   }
   if (!query.data) return null
 
-  const { monitors, incidents, maintenance = [] } = query.data
+  return (
+    <PublicStatusView
+      data={query.data}
+      dataUpdatedAt={query.dataUpdatedAt}
+      stale={query.isRefetchError || query.failureCount > 0}
+    />
+  )
+}
+
+/**
+ * The status page itself, presentation only. PublicStatusPage wraps this with
+ * fetching/SSE/meta side effects; the admin live editor feeds it draft state
+ * directly (`preview` hides the visitor-facing theme toggle, `forcedTheme`
+ * overrides which accent variant applies).
+ */
+export function PublicStatusView({
+  data,
+  dataUpdatedAt,
+  stale = false,
+  forcedTheme,
+  preview = false,
+}: {
+  data: PublicData
+  dataUpdatedAt: number
+  stale?: boolean
+  forcedTheme?: 'light' | 'dark'
+  preview?: boolean
+}) {
+  const { resolvedTheme } = useTheme()
+  const { page, monitors, incidents, maintenance = [] } = data
   const now = Date.now()
   const activeMaintenance = maintenance.filter((w) => {
     const start = new Date(w.startsAt).getTime()
@@ -226,7 +255,10 @@ export function PublicStatusPage({ slug }: { slug: string }) {
   const accentPreset = page?.accent ? ACCENT_PRESETS[page.accent] : undefined
   const accentVars = (() => {
     if (!accentPreset) return undefined
-    const v = resolvedTheme === 'dark' ? accentPreset.dark : accentPreset.light
+    const v =
+      (forcedTheme ?? resolvedTheme) === 'dark'
+        ? accentPreset.dark
+        : accentPreset.light
     return {
       '--primary': v.primary,
       '--primary-foreground': v.primaryForeground,
@@ -246,11 +278,11 @@ export function PublicStatusPage({ slug }: { slug: string }) {
       )}
       <div className="space-y-1.5 min-w-0">
         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-          {query.data.page.title}
+          {page.title}
         </h1>
-        {query.data.page.description && (
+        {page.description && (
           <p className="text-muted-foreground text-sm sm:text-base">
-            {query.data.page.description}
+            {page.description}
           </p>
         )}
       </div>
@@ -258,7 +290,10 @@ export function PublicStatusPage({ slug }: { slug: string }) {
   )
 
   return (
-    <div className="min-h-screen bg-background" style={accentVars}>
+    <div
+      className={cn('bg-background text-foreground', preview ? 'min-h-full' : 'min-h-screen')}
+      style={accentVars}
+    >
       {page?.customCss && (
         <style data-pb-custom>{page.customCss}</style>
       )}
@@ -276,15 +311,15 @@ export function PublicStatusPage({ slug }: { slug: string }) {
           ) : (
             headerTitle
           )}
-          <ThemeToggle />
+          {!preview && <ThemeToggle />}
         </header>
 
         <OverallStatusBanner
           tone={overallTone}
           text={overallText}
           detail={overallDetail}
-          updatedAt={query.dataUpdatedAt}
-          stale={query.isRefetchError || query.failureCount > 0}
+          updatedAt={dataUpdatedAt}
+          stale={stale}
         />
 
         {(activeMaintenance.length > 0 || upcomingMaintenance.length > 0) && (

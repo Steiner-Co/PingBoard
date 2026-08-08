@@ -51,6 +51,19 @@ export async function getStatusPagePublic(
     )
   }
 
+  return buildPublicPayload(deps, page)
+}
+
+/**
+ * Assembles the public status-page payload (monitors + timelines, incidents,
+ * maintenance, page branding). Shared by the public route and the admin
+ * preview endpoint, which authenticates via the admin session instead of the
+ * page password gate.
+ */
+export async function buildPublicPayload(
+  deps: { db: DB },
+  page: typeof statusPages.$inferSelect,
+): Promise<Response> {
   const linked = await deps.db
     .select({
       monitorId: statusPageMonitors.monitorId,

@@ -31,6 +31,7 @@ import { Scheduler, sendTest, runCheck } from '@pingboard/core'
 import { error, json, noContent } from '../lib/responses'
 import { revokeTokensForPage } from '../lib/page-auth'
 import { checkLimit, isUnlimited } from '../lib/limits'
+import { buildPublicPayload } from './public'
 import type { Mode } from '../config'
 
 type StatusPageRow = typeof statusPages.$inferSelect
@@ -637,6 +638,20 @@ export async function getStatusPage(id: string, deps: AdminDeps): Promise<Respon
     .from(statusPageMonitors)
     .where(eq(statusPageMonitors.statusPageId, id))
   return json({ page: publicPage(page), monitors: linked })
+}
+
+/**
+ * The public payload for a page, served under the admin session. The live
+ * editor's preview needs exactly what visitors see, but the public route's
+ * password gate would lock the admin out of their own protected pages.
+ */
+export async function getStatusPagePreview(
+  id: string,
+  deps: AdminDeps,
+): Promise<Response> {
+  const [page] = await deps.db.select().from(statusPages).where(eq(statusPages.id, id))
+  if (!page) return error(404, 'Status page not found')
+  return buildPublicPayload(deps, page)
 }
 
 async function resolvePassword(value: unknown): Promise<string | null | undefined> {

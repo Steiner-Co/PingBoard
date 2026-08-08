@@ -188,6 +188,44 @@
   --sidebar-ring: oklch(0.8003 0.1821 151.7110);
 }
 
+/* Forced-light scope. The status-page live preview renders inside the (dark)
+   admin shell, where the root .dark tokens would otherwise cascade in; the
+   preview's light peek needs the light values re-asserted after .dark to win
+   the cascade. Color tokens only — fonts/shadows/radius are theme-independent
+   and inherit fine. Keep in sync with the light :root block above. */
+.light {
+  --background: oklch(0.9911 0 0);
+  --foreground: oklch(0.2046 0 0);
+  --card: oklch(0.9911 0 0);
+  --card-foreground: oklch(0.2046 0 0);
+  --popover: oklch(0.9911 0 0);
+  --popover-foreground: oklch(0.4386 0 0);
+  --primary: oklch(0.8348 0.1302 160.9080);
+  --primary-foreground: oklch(0.2626 0.0147 166.4589);
+  --secondary: oklch(0.92 0 0);
+  --secondary-foreground: oklch(0.2046 0 0);
+  --muted: oklch(0.92 0 0);
+  --muted-foreground: oklch(0.2435 0 0);
+  --accent: oklch(0.92 0 0);
+  --accent-foreground: oklch(0.2435 0 0);
+  --destructive: oklch(0.5523 0.1927 32.7272);
+  --destructive-foreground: oklch(0.9934 0.0032 17.2118);
+  --success: oklch(0.723 0.219 149.579);
+  --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.52 0.15 62);
+  --warning-foreground: oklch(1 0 0);
+  --success-text: oklch(0.55 0.17 149.579);
+  --primary-text: oklch(0.5 0.11 160.9080);
+  --border: oklch(0.9037 0 0);
+  --input: oklch(0.9037 0 0);
+  --ring: oklch(0.8348 0.1302 160.9080);
+  --chart-1: oklch(0.8348 0.1302 160.9080);
+  --chart-2: oklch(0.6231 0.1880 259.8145);
+  --chart-3: oklch(0.6056 0.2189 292.7172);
+  --chart-4: oklch(0.7686 0.1647 70.0804);
+  --chart-5: oklch(0.6959 0.1491 162.4796);
+}
+
 /*
  * Motion tokens — Emil's curves, not Tailwind built-ins.
  * Built-in ease-out plateaus visibly at 150ms; quart-out finishes decisive.

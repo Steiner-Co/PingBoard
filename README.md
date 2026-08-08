@@ -48,7 +48,7 @@ All optional — no env vars are required to boot.
 
 ## Status page branding
 
-Every status page can be branded from **Status pages → Edit → Appearance**:
+Every status page can be branded from **Status pages → Edit** — a live editor that renders the real page next to your changes as you make them:
 
 - **Logo** — PNG/JPEG/SVG/WebP up to 512 KB, stored under `/data/assets`
 - **Accent color** — curated presets that hold contrast in both light and dark
