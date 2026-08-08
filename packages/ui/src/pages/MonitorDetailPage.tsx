@@ -150,6 +150,10 @@ export function MonitorDetailPage() {
   const total = heartbeats.length
   const upCount = heartbeats.filter((h) => h.status === 'up').length
   const uptimePct = total === 0 ? null : ((upCount / total) * 100).toFixed(2)
+  const avgResponseMs =
+    msValues.length === 0
+      ? null
+      : Math.round(msValues.reduce((a, b) => a + b, 0) / msValues.length)
 
   return (
     <div className="px-4 lg:px-6 flex flex-col gap-6">
@@ -224,7 +228,7 @@ export function MonitorDetailPage() {
         </div>
       </header>
 
-      <Panel className="grid grid-cols-1 sm:grid-cols-3 sm:divide-x sm:divide-border/60">
+      <Panel className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 sm:divide-x sm:divide-border/60">
         <div className="flex flex-col gap-2 p-4 sm:p-5">
           <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
             Current status
@@ -242,6 +246,14 @@ export function MonitorDetailPage() {
           </span>
           <span className="text-2xl font-semibold tracking-tight tabular-nums">
             {uptimePct === null ? '—' : `${uptimePct}%`}
+          </span>
+        </div>
+        <div className="flex flex-col gap-2 p-4 sm:p-5">
+          <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            Avg response · 24h
+          </span>
+          <span className="text-2xl font-semibold tracking-tight tabular-nums">
+            {avgResponseMs === null ? '—' : `${avgResponseMs} ms`}
           </span>
         </div>
         <div className="flex flex-col gap-2 p-4 sm:p-5">
@@ -316,22 +328,40 @@ export function MonitorDetailPage() {
             No incidents yet — quiet is good.
           </p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Started</TableHead>
-                <TableHead>Resolved</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Note</TableHead>
-                <TableHead className="text-right" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {incidents.map((i) => (
-                <IncidentRow key={i.id} incident={i} monitorId={monitor.id} />
-              ))}
-            </TableBody>
-          </Table>
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Started</TableHead>
+                  <TableHead>Resolved</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Note</TableHead>
+                  <TableHead className="text-right" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {/* A flapping monitor can rack up hundreds of incidents; the
+                    detail page shows the latest few, the full history lives on
+                    the incidents page. */}
+                {incidents.slice(0, 10).map((i) => (
+                  <IncidentRow key={i.id} incident={i} monitorId={monitor.id} />
+                ))}
+              </TableBody>
+            </Table>
+            {incidents.length > 10 && (
+              <footer className="flex items-center justify-between border-t border-border/60 px-4 py-2.5">
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  Showing latest 10 of {incidents.length}
+                </span>
+                <Link
+                  to="/admin/incidents"
+                  className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  View all incidents →
+                </Link>
+              </footer>
+            )}
+          </>
         )}
       </Panel>
     </div>
@@ -858,8 +888,8 @@ function MonitorDetailSkeleton() {
           <Skeleton className="h-7 w-16" />
         </div>
       </div>
-      <Panel className="grid grid-cols-1 sm:grid-cols-3 sm:divide-x sm:divide-border/60">
-        {[0, 1, 2].map((i) => (
+      <Panel className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 sm:divide-x sm:divide-border/60">
+        {[0, 1, 2, 3].map((i) => (
           <div key={i} className="flex flex-col gap-2 p-4 sm:p-5">
             <Skeleton className="h-3 w-24" />
             <Skeleton className="h-7 w-20" />
