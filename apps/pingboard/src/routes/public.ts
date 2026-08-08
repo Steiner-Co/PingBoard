@@ -1,4 +1,5 @@
 import { and, desc, eq, gte, inArray } from 'drizzle-orm'
+import { join } from 'node:path'
 import type { DB } from '@pingboard/db'
 import {
   dailyStats,
@@ -19,6 +20,8 @@ import { createSseResponse } from '../lib/sse'
 interface PublicDeps {
   db: DB
   secureCookies: boolean
+  /** Instance data directory — status-page logos are served from <dataDir>/assets. */
+  dataDir: string
 }
 
 const TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60
@@ -220,12 +223,46 @@ export async function getStatusPagePublic(
       title: page.title,
       description: page.description,
       theme: page.theme,
+      logoUrl: page.logoPath ? `/api/public/assets/${page.logoPath}` : null,
+      accent: page.accent,
+      websiteUrl: page.websiteUrl,
+      hideBranding: page.hideBranding === 1,
+      customCss: page.customCss,
     },
     monitors: data,
     monitorIds,
     incidents: publicIncidents,
     maintenance,
   })
+}
+
+const ASSET_CONTENT_TYPES: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.webp': 'image/webp',
+}
+
+/**
+ * Serves status-page logos from <dataDir>/assets. Logos are public by nature —
+ * they render on the public status page — so no auth, just strict name
+ * validation (a bare `<pageId>.<ext>` file name, nothing path-like).
+ */
+export async function getPublicAsset(
+  name: string,
+  deps: PublicDeps,
+): Promise<Response> {
+  if (!/^[\w-]+\.(png|jpg|svg|webp)$/.test(name)) return error(404, 'Not found')
+  const file = Bun.file(join(deps.dataDir, 'assets', name))
+  if (!(await file.exists())) return error(404, 'Not found')
+  const ext = name.slice(name.lastIndexOf('.'))
+  const headers: Record<string, string> = {
+    'content-type': ASSET_CONTENT_TYPES[ext] ?? 'application/octet-stream',
+    'cache-control': 'public, max-age=3600',
+  }
+  // SVGs are markup, not just pixels — refuse to execute anything in them.
+  if (ext === '.svg') headers['content-security-policy'] = "script-src 'none'"
+  return new Response(file, { headers })
 }
 
 const META_START = '<!--pingboard:meta-->'

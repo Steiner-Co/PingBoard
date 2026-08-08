@@ -36,6 +36,7 @@ import {
   deleteMaintenanceWindow,
   deleteMonitor,
   deleteStatusPage,
+  deleteStatusPageLogo,
   getMonitor,
   getMonitorTimeline,
   getStatusPage,
@@ -55,9 +56,11 @@ import {
   updateMaintenanceWindow,
   updateMonitor,
   updateStatusPage,
+  uploadStatusPageLogo,
 } from './routes/admin'
 import {
   authStatusPagePublic,
+  getPublicAsset,
   getStatusPagePublic,
   handlePushHeartbeat,
   injectPublicShellMeta,
@@ -124,8 +127,8 @@ async function main() {
 
   const secureCookies = (config.baseUrl ?? '').startsWith('https://')
   const authDeps = { db, secureCookies }
-  const adminDeps = { db, scheduler, mode: config.mode }
-  const publicDeps = { db, secureCookies }
+  const adminDeps = { db, scheduler, mode: config.mode, dataDir: config.dataDir }
+  const publicDeps = { db, secureCookies, dataDir: config.dataDir }
 
   const server = Bun.serve({
     port: config.port,
@@ -276,6 +279,13 @@ async function main() {
             return listStatusPages(adminDeps)
           if (path === '/api/admin/pages' && method === 'POST')
             return createStatusPage(req, adminDeps)
+          const pageLogoMatch = path.match(/^\/api\/admin\/pages\/([\w-]+)\/logo$/)
+          if (pageLogoMatch?.[1]) {
+            if (method === 'POST')
+              return uploadStatusPageLogo(pageLogoMatch[1], req, adminDeps)
+            if (method === 'DELETE')
+              return deleteStatusPageLogo(pageLogoMatch[1], adminDeps)
+          }
           const pageMatch = path.match(/^\/api\/admin\/pages\/([\w-]+)$/)
           if (pageMatch?.[1]) {
             const id = pageMatch[1]
@@ -311,6 +321,10 @@ async function main() {
           const authMatch = path.match(/^\/api\/public\/([\w-]+)\/auth$/)
           if (authMatch?.[1] && method === 'POST')
             return authStatusPagePublic(authMatch[1], req, publicDeps)
+
+          const assetMatch = path.match(/^\/api\/public\/assets\/(.+)$/)
+          if (assetMatch?.[1] && method === 'GET')
+            return getPublicAsset(assetMatch[1], publicDeps)
 
           const pageMatch = path.match(/^\/api\/public\/([\w-]+)$/)
           if (pageMatch?.[1] && method === 'GET')

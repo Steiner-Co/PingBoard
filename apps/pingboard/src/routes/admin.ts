@@ -1,4 +1,6 @@
 import { and, desc, eq, gte, ne, sql } from 'drizzle-orm'
+import { mkdir, rm } from 'node:fs/promises'
+import { join } from 'node:path'
 import type { DB } from '@pingboard/db'
 import {
   dailyStats,
@@ -20,6 +22,9 @@ import {
   ALLOWED_INTERVALS_SECONDS,
   ALLOWED_MONITOR_TYPES,
   RESERVED_SLUGS,
+  STATUS_PAGE_ACCENTS,
+  STATUS_PAGE_MAX_CUSTOM_CSS,
+  STATUS_PAGE_MAX_LOGO_BYTES,
   type MonitorType,
 } from '@pingboard/shared'
 import { Scheduler, sendTest, runCheck } from '@pingboard/core'
@@ -29,17 +34,22 @@ import { checkLimit, isUnlimited } from '../lib/limits'
 import type { Mode } from '../config'
 
 type StatusPageRow = typeof statusPages.$inferSelect
-type PublicStatusPage = Omit<StatusPageRow, 'passwordHash'> & { passwordSet: boolean }
+type PublicStatusPage = Omit<StatusPageRow, 'passwordHash' | 'hideBranding'> & {
+  passwordSet: boolean
+  hideBranding: boolean
+}
 
 function publicPage(p: StatusPageRow): PublicStatusPage {
   const { passwordHash, ...rest } = p
-  return { ...rest, passwordSet: !!passwordHash }
+  return { ...rest, hideBranding: p.hideBranding === 1, passwordSet: !!passwordHash }
 }
 
 interface AdminDeps {
   db: DB
   scheduler: Scheduler
   mode: Mode
+  /** Instance data directory — status-page logos live under <dataDir>/assets. */
+  dataDir: string
 }
 
 // ─────────────────────────── Monitors ───────────────────────────
@@ -638,6 +648,41 @@ async function resolvePassword(value: unknown): Promise<string | null | undefine
   return await Bun.password.hash(trimmed)
 }
 
+/**
+ * Branding fields shared by status-page create/update. Absent keys are left
+ * untouched; explicit null/'' clears. Returns column values or an error message.
+ */
+function parseBranding(
+  body: Record<string, unknown>,
+): Partial<typeof statusPages.$inferInsert> | { error: string } {
+  const out: Partial<typeof statusPages.$inferInsert> = {}
+  if ('accent' in body) {
+    if (body.accent == null || body.accent === '') out.accent = null
+    else if (
+      typeof body.accent === 'string' &&
+      (STATUS_PAGE_ACCENTS as readonly string[]).includes(body.accent)
+    )
+      out.accent = body.accent
+    else return { error: `Accent must be one of: ${STATUS_PAGE_ACCENTS.join(', ')}` }
+  }
+  if ('websiteUrl' in body) {
+    if (body.websiteUrl == null || body.websiteUrl === '') out.websiteUrl = null
+    else if (typeof body.websiteUrl === 'string' && /^https?:\/\/.+/.test(body.websiteUrl))
+      out.websiteUrl = body.websiteUrl
+    else return { error: 'Website URL must start with http:// or https://' }
+  }
+  if ('hideBranding' in body) out.hideBranding = body.hideBranding ? 1 : 0
+  if ('customCss' in body) {
+    if (body.customCss == null || body.customCss === '') out.customCss = null
+    else if (typeof body.customCss !== 'string')
+      return { error: 'Custom CSS must be a string' }
+    else if (body.customCss.length > STATUS_PAGE_MAX_CUSTOM_CSS)
+      return { error: `Custom CSS is limited to ${STATUS_PAGE_MAX_CUSTOM_CSS / 1024} KB` }
+    else out.customCss = body.customCss
+  }
+  return out
+}
+
 export async function createStatusPage(req: Request, deps: AdminDeps): Promise<Response> {
   const body = await safeJson(req)
   if (!body) return error(400, 'Invalid JSON body')
@@ -659,6 +704,8 @@ export async function createStatusPage(req: Request, deps: AdminDeps): Promise<R
   }
   const id = crypto.randomUUID()
   const passwordHash = await resolvePassword(body.password)
+  const branding = parseBranding(body)
+  if ('error' in branding) return error(400, branding.error)
   const page: NewStatusPage = {
     id,
     slug,
@@ -667,6 +714,7 @@ export async function createStatusPage(req: Request, deps: AdminDeps): Promise<R
     theme: (body.theme as 'light' | 'dark' | 'auto') ?? 'auto',
     passwordHash: passwordHash ?? null,
     customDomain: null,
+    ...branding,
   }
   try {
     await deps.db.insert(statusPages).values(page)
@@ -720,6 +768,10 @@ export async function updateStatusPage(
     }
   }
 
+  const branding = parseBranding(body)
+  if ('error' in branding) return error(400, branding.error)
+  Object.assign(set, branding)
+
   if (Object.keys(set).length > 0) {
     await deps.db.update(statusPages).set(set).where(eq(statusPages.id, id))
   }
@@ -751,6 +803,68 @@ export async function updateStatusPage(
 export async function deleteStatusPage(id: string, deps: AdminDeps): Promise<Response> {
   await deps.db.delete(statusPages).where(eq(statusPages.id, id))
   revokeTokensForPage(id)
+  await removeLogoFiles(join(deps.dataDir, 'assets'), id)
+  return noContent()
+}
+
+// ───────────────────── Status page logos ─────────────────────
+
+const LOGO_EXTENSIONS: Record<string, string> = {
+  'image/png': '.png',
+  'image/jpeg': '.jpg',
+  'image/svg+xml': '.svg',
+  'image/webp': '.webp',
+}
+
+async function removeLogoFiles(assetsDir: string, pageId: string): Promise<void> {
+  for (const ext of Object.values(LOGO_EXTENSIONS)) {
+    await rm(join(assetsDir, pageId + ext), { force: true })
+  }
+}
+
+export async function uploadStatusPageLogo(
+  id: string,
+  req: Request,
+  deps: AdminDeps,
+): Promise<Response> {
+  const [page] = await deps.db
+    .select({ id: statusPages.id })
+    .from(statusPages)
+    .where(eq(statusPages.id, id))
+  if (!page) return error(404, 'Status page not found')
+
+  const form = await req.formData().catch(() => null)
+  const file = form?.get('logo')
+  if (!form || !file || typeof file === 'string') {
+    return error(400, 'Attach the image as a "logo" file field')
+  }
+  const ext = LOGO_EXTENSIONS[file.type]
+  if (!ext) return error(400, 'Logo must be a PNG, JPEG, SVG, or WebP image')
+  if (file.size > STATUS_PAGE_MAX_LOGO_BYTES) {
+    return error(400, `Logo must be ${STATUS_PAGE_MAX_LOGO_BYTES / 1024} KB or smaller`)
+  }
+
+  const assetsDir = join(deps.dataDir, 'assets')
+  await mkdir(assetsDir, { recursive: true })
+  // One logo per page: clear any previous file regardless of extension.
+  await removeLogoFiles(assetsDir, id)
+  const name = id + ext
+  await Bun.write(join(assetsDir, name), file)
+  await deps.db.update(statusPages).set({ logoPath: name }).where(eq(statusPages.id, id))
+  return json({ logoUrl: `/api/public/assets/${name}` })
+}
+
+export async function deleteStatusPageLogo(
+  id: string,
+  deps: AdminDeps,
+): Promise<Response> {
+  const [page] = await deps.db
+    .select({ id: statusPages.id })
+    .from(statusPages)
+    .where(eq(statusPages.id, id))
+  if (!page) return error(404, 'Status page not found')
+  await removeLogoFiles(join(deps.dataDir, 'assets'), id)
+  await deps.db.update(statusPages).set({ logoPath: null }).where(eq(statusPages.id, id))
   return noContent()
 }
 

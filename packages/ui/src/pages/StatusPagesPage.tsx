@@ -16,6 +16,7 @@ import AddSquare from '@solar-icons/react/csr/ui/AddSquare'
 import DangerTriangle from '@solar-icons/react/csr/ui/DangerTriangle'
 import TrashBinTrash from '@solar-icons/react/csr/ui/TrashBinTrash'
 import Global from '@solar-icons/react/csr/map/Global'
+import Upload from '@solar-icons/react/csr/arrows-action/Upload'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/EmptyState'
@@ -41,6 +42,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { ACCENT_PRESETS } from '@/public/accent-presets'
 import {
   Select,
   SelectContent,
@@ -723,7 +726,10 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Create status page</DialogTitle>
-          <DialogDescription>Public, shareable, and updates live.</DialogDescription>
+          <DialogDescription>
+            Public, shareable, and updates live. After creating, open Edit to add
+            a logo, accent color, and custom CSS.
+          </DialogDescription>
         </DialogHeader>
         <form
           onSubmit={(e) => {
@@ -870,6 +876,10 @@ function EditPageDialog({
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [theme, setTheme] = useState<Theme>('auto')
+  const [accent, setAccent] = useState<string | null>(null)
+  const [websiteUrl, setWebsiteUrl] = useState('')
+  const [hideBranding, setHideBranding] = useState(false)
+  const [customCss, setCustomCss] = useState('')
   // monitorId → groupName ('' = no group)
   const [selected, setSelected] = useState<Map<string, string>>(new Map())
   const [order, setOrder] = useState<string[]>([])
@@ -878,11 +888,27 @@ function EditPageDialog({
   // Hydrate when the detail query lands. `presetMonitorId` is in the deps so
   // that opening via "Add to page" re-hydrates from cache with that monitor
   // already ticked; once open, unticking it sticks because neither dep changes.
+  // Guarded by dataUpdatedAt: a logo upload mid-edit refetches the detail, and
+  // without this guard the refetch would wipe the user's unsaved drafts.
+  const lastHydrated = useRef<{ at: number; preset: string | null | undefined }>({
+    at: 0,
+    preset: undefined,
+  })
   useEffect(() => {
     if (!detail.data) return
+    if (
+      lastHydrated.current.at === detail.dataUpdatedAt &&
+      lastHydrated.current.preset === presetMonitorId
+    )
+      return
+    lastHydrated.current = { at: detail.dataUpdatedAt, preset: presetMonitorId }
     setTitle(detail.data.page.title)
     setDescription(detail.data.page.description ?? '')
     setTheme(detail.data.page.theme)
+    setAccent(detail.data.page.accent)
+    setWebsiteUrl(detail.data.page.websiteUrl ?? '')
+    setHideBranding(detail.data.page.hideBranding)
+    setCustomCss(detail.data.page.customCss ?? '')
     const sorted = [...detail.data.monitors].sort(
       (a, b) => a.sortOrder - b.sortOrder,
     )
@@ -913,11 +939,19 @@ function EditPageDialog({
 
   const handleSubmit = () => {
     if (!detail.data) return // never submit a form that never hydrated
+    if (customCss.length > 10 * 1024) {
+      setError('Custom CSS is limited to 10 KB')
+      return
+    }
     setError(null)
     save.mutate({
       title: title.trim() || page!.slug,
       description: description.trim() || null,
       theme,
+      accent,
+      websiteUrl: websiteUrl.trim() || null,
+      hideBranding,
+      customCss: customCss.trim() || null,
       monitors: order.map((monitorId, i) => ({
         monitorId,
         groupName: selected.get(monitorId)?.trim() || null,
@@ -1016,6 +1050,91 @@ function EditPageDialog({
                   <SelectItem value="dark">Dark</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-4 rounded-md border border-border/60 p-3.5">
+              <p className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                Appearance
+              </p>
+
+              <LogoField page={page!} logoPath={detail.data?.page.logoPath ?? null} />
+
+              <div className="space-y-2">
+                <Label>Accent</Label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAccent(null)}
+                    aria-pressed={accent === null}
+                    title="Default (PingBoard green)"
+                    className={cn(
+                      'size-6 rounded-full outline-none transition-[box-shadow,transform] duration-150 ease-out active:scale-95',
+                      'bg-success',
+                      accent === null
+                        ? 'ring-2 ring-foreground/60 ring-offset-2 ring-offset-background'
+                        : 'opacity-60 hover:opacity-100',
+                    )}
+                  />
+                  {Object.entries(ACCENT_PRESETS).map(([key, p]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setAccent(key)}
+                      aria-pressed={accent === key}
+                      title={p.label}
+                      style={{ backgroundColor: p.swatch }}
+                      className={cn(
+                        'size-6 rounded-full outline-none transition-[box-shadow,transform] duration-150 ease-out active:scale-95',
+                        accent === key
+                          ? 'ring-2 ring-foreground/60 ring-offset-2 ring-offset-background'
+                          : 'opacity-60 hover:opacity-100',
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-website">Website URL</Label>
+                <Input
+                  id="edit-website"
+                  name="websiteUrl"
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  placeholder="https://example.com"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <p className="text-xs text-muted-foreground">
+                  The logo and title on the public page link here.
+                </p>
+              </div>
+
+              <label className="flex cursor-pointer items-center gap-2.5 text-sm">
+                <Checkbox
+                  checked={hideBranding}
+                  onCheckedChange={(v) => setHideBranding(v === true)}
+                />
+                Hide the “Powered by PingBoard” footer
+              </label>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-css">Custom CSS</Label>
+                <Textarea
+                  id="edit-css"
+                  name="customCss"
+                  value={customCss}
+                  onChange={(e) => setCustomCss(e.target.value)}
+                  placeholder={'.my-rule { … }'}
+                  rows={6}
+                  spellCheck={false}
+                  className="font-mono text-xs"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Injected into this status page only, up to 10 KB. It's your
+                  page — unescaped by design.
+                </p>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Monitors</Label>
@@ -1118,5 +1237,122 @@ function EditPageDialog({
         )}
       </DialogContent>
     </Dialog>
+  )
+}
+
+/**
+ * Logo picker for the Appearance section. Uploads take effect immediately
+ * (separate from the dialog's Save) because the file endpoint is its own
+ * multipart round-trip; everything else on the form stays draft-until-save.
+ */
+function LogoField({
+  page,
+  logoPath,
+}: {
+  page: StatusPage
+  logoPath: string | null
+}) {
+  const queryClient = useQueryClient()
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: ['pages'] })
+    void queryClient.invalidateQueries({ queryKey: ['page', page.id] })
+  }
+
+  const upload = useMutation({
+    mutationFn: async (file: File) => {
+      const form = new FormData()
+      form.append('logo', file)
+      const res = await fetch(`/api/admin/pages/${page.id}/logo`, {
+        method: 'POST',
+        credentials: 'include',
+        body: form,
+      })
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as {
+          error?: string
+        } | null
+        throw new Error(data?.error ?? `Upload failed (${res.status})`)
+      }
+    },
+    onSuccess: () => {
+      invalidate()
+      toast.success('Logo updated')
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : 'Upload failed'),
+  })
+
+  const remove = useMutation({
+    mutationFn: () => api.delete(`/api/admin/pages/${page.id}/logo`),
+    onSuccess: () => {
+      invalidate()
+      toast.success('Logo removed')
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : 'Failed to remove'),
+  })
+
+  const busy = upload.isPending || remove.isPending
+
+  return (
+    <div className="space-y-2">
+      <Label>Logo</Label>
+      <div className="flex items-center gap-3">
+        {logoPath ? (
+          <img
+            src={`/api/public/assets/${logoPath}`}
+            alt="Current logo"
+            className="size-9 shrink-0 rounded-md border border-border/60 object-contain"
+          />
+        ) : (
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-dashed border-border text-muted-foreground">
+            <Icon icon={Global} className="size-4" />
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={() => fileRef.current?.click()}
+            className="gap-1.5"
+          >
+            <Icon icon={Upload} className="h-3.5 w-3.5" />
+            {upload.isPending ? 'Uploading…' : logoPath ? 'Replace' : 'Upload'}
+          </Button>
+          {logoPath && (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => remove.mutate()}
+              className="gap-1.5 text-muted-foreground"
+            >
+              <Icon icon={TrashBinTrash} className="h-3.5 w-3.5" />
+              Remove
+            </Button>
+          )}
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        PNG, JPEG, SVG or WebP, up to 512 KB. Shown next to the page title.
+      </p>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/png,image/jpeg,image/svg+xml,image/webp"
+        className="hidden"
+        aria-label="Choose a logo image"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) upload.mutate(file)
+          e.target.value = ''
+        }}
+      />
+    </div>
   )
 }

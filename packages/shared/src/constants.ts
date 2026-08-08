@@ -22,6 +22,21 @@ export const RESERVED_SLUGS = [
 
 export const PUBLIC_RATE_LIMIT_PER_MINUTE = 60
 
+// Status-page branding: preset accent keys (NULL/absent = PingBoard green).
+// The UI maps these to per-theme OKLCH values; the server only validates.
+export const STATUS_PAGE_ACCENTS = [
+  'blue',
+  'violet',
+  'orange',
+  'rose',
+  'amber',
+  'cyan',
+  'slate',
+] as const
+
+export const STATUS_PAGE_MAX_CUSTOM_CSS = 10 * 1024
+export const STATUS_PAGE_MAX_LOGO_BYTES = 512 * 1024
+
 export const ALLOWED_MONITOR_TYPES = [
   'http',
   'tcp',

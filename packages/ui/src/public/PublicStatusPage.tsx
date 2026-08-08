@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { humanDate, UptimeTimeline } from '@/components/uptime-timeline'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from 'next-themes'
@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Panel } from '@/components/panel'
+import { ACCENT_PRESETS } from '@/public/accent-presets'
 import { useSSE } from '@/lib/sse'
 import { useNow } from '@/hooks/use-now'
 import {
@@ -27,7 +28,17 @@ import {
 type AdminTheme = 'light' | 'dark' | 'auto'
 
 interface PublicData {
-  page: { slug: string; title: string; description: string | null; theme: AdminTheme }
+  page: {
+    slug: string
+    title: string
+    description: string | null
+    theme: AdminTheme
+    logoUrl: string | null
+    accent: string | null
+    websiteUrl: string | null
+    hideBranding: boolean
+    customCss: string | null
+  }
   monitors: PublicMonitor[]
   incidents: PublicIncident[]
   maintenance?: MaintenanceWindow[]
@@ -77,7 +88,7 @@ async function fetchPublic(slug: string): Promise<PublicData> {
 
 export function PublicStatusPage({ slug }: { slug: string }) {
   const queryClient = useQueryClient()
-  const { setTheme } = useTheme()
+  const { setTheme, resolvedTheme } = useTheme()
   const query = useQuery({
     queryKey: ['public', slug],
     queryFn: () => fetchPublic(slug),
@@ -210,20 +221,61 @@ export function PublicStatusPage({ slug }: { slug: string }) {
     return acc
   }, {})
 
+  // Brand accent: preset values become inline CSS vars on the page root,
+  // scoped to this page. Light/dark values follow the visitor's theme.
+  const accentPreset = page?.accent ? ACCENT_PRESETS[page.accent] : undefined
+  const accentVars = (() => {
+    if (!accentPreset) return undefined
+    const v = resolvedTheme === 'dark' ? accentPreset.dark : accentPreset.light
+    return {
+      '--primary': v.primary,
+      '--primary-foreground': v.primaryForeground,
+      '--primary-text': v.primaryText,
+      '--ring': v.ring,
+    } as CSSProperties
+  })()
+
+  const headerTitle = (
+    <div className="flex items-center gap-3.5 min-w-0">
+      {page?.logoUrl && (
+        <img
+          src={page.logoUrl}
+          alt=""
+          className="size-9 sm:size-10 shrink-0 rounded-md object-contain"
+        />
+      )}
+      <div className="space-y-1.5 min-w-0">
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+          {query.data.page.title}
+        </h1>
+        {query.data.page.description && (
+          <p className="text-muted-foreground text-sm sm:text-base">
+            {query.data.page.description}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={accentVars}>
+      {page?.customCss && (
+        <style data-pb-custom>{page.customCss}</style>
+      )}
       <div className="max-w-3xl mx-auto px-5 py-10 sm:px-6 sm:py-14 space-y-8">
         <header className="flex items-start justify-between gap-3 sm:gap-4">
-          <div className="space-y-2 min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-              {query.data.page.title}
-            </h1>
-            {query.data.page.description && (
-              <p className="text-muted-foreground text-sm sm:text-base">
-                {query.data.page.description}
-              </p>
-            )}
-          </div>
+          {page?.websiteUrl ? (
+            <a
+              href={page.websiteUrl}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="min-w-0 rounded-md outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {headerTitle}
+            </a>
+          ) : (
+            headerTitle
+          )}
           <ThemeToggle />
         </header>
 
@@ -266,20 +318,22 @@ export function PublicStatusPage({ slug }: { slug: string }) {
 
         <IncidentHistory incidents={incidents} />
 
-        <footer className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground pt-8">
-          <img src="/logomark.png" alt="" className="size-3.5 rounded-sm" />
-          <span>
-            Powered by{' '}
-            <a
-              href="https://github.com/steiner-co/pingboard"
-              target="_blank"
-              rel="noreferrer noopener"
-              className="hover:text-foreground hover:underline underline-offset-4"
-            >
-              <span translate="no">PingBoard</span>
-            </a>
-          </span>
-        </footer>
+        {!page?.hideBranding && (
+          <footer className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground pt-8">
+            <img src="/logomark.png" alt="" className="size-3.5 rounded-sm" />
+            <span>
+              Powered by{' '}
+              <a
+                href="https://github.com/steiner-co/pingboard"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="hover:text-foreground hover:underline underline-offset-4"
+              >
+                <span translate="no">PingBoard</span>
+              </a>
+            </span>
+          </footer>
+        )}
       </div>
     </div>
   )
