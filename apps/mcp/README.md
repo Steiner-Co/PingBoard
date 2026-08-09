@@ -24,7 +24,31 @@ It talks to a running PingBoard over its REST API, so it works against
 | `PINGBOARD_URL` | `http://localhost:3000` |
 | `PINGBOARD_TOKEN` | `pb_…` |
 
-### Claude Code
+### From a clone of this repo
+
+The package is not on npm yet, so until it is published, run the compiled
+build straight from the repo:
+
+```bash
+bun install && bun run --filter @pingboard/mcp build
+```
+
+```json
+{
+  "mcpServers": {
+    "pingboard": {
+      "command": "node",
+      "args": ["/absolute/path/to/PingBoard/apps/mcp/dist/index.js"],
+      "env": {
+        "PINGBOARD_URL": "http://localhost:3000",
+        "PINGBOARD_TOKEN": "pb_..."
+      }
+    }
+  }
+}
+```
+
+### Claude Code (once published to npm)
 
 ```bash
 claude mcp add pingboard \
@@ -33,7 +57,7 @@ claude mcp add pingboard \
   -- npx -y @pingboard/mcp
 ```
 
-### Claude Desktop, Cursor, Zed
+### Claude Desktop, Cursor, Zed (once published to npm)
 
 Add to the client's MCP config:
 

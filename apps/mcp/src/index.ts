@@ -1,10 +1,15 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
+import { createRequire } from 'node:module'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { PingBoardClient } from './client.js'
 import { registerTools } from './tools.js'
 
-const VERSION = '0.0.0'
+// Works from both src/ (bun run start) and dist/ (published bin): both sit
+// one level below package.json.
+const { version: VERSION } = createRequire(import.meta.url)('../package.json') as {
+  version: string
+}
 
 function usage(problem: string): never {
   // stderr, never stdout: stdout is the JSON-RPC channel and any stray byte
