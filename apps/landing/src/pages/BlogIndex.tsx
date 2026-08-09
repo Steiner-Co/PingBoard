@@ -36,7 +36,7 @@ function FeaturedPost({ post }: { post: PostEntry }) {
   return (
     <Link
       to={`/blog/${post.slug}`}
-      className="group flex flex-col gap-3 rounded-2xl border border-border bg-background p-6 outline-none transition-colors duration-150 ease-out hover:border-foreground/20 focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.98]"
+      className="group flex flex-col gap-3 rounded-2xl border border-border bg-background p-6 outline-none transition-colors duration-150 ease-out hover:border-foreground/20 focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.97]"
     >
       <PostMeta post={post} />
       <h2 className="text-[22px] font-medium leading-[1.15] tracking-[-0.55px] text-balance text-foreground">
@@ -97,7 +97,7 @@ export function BlogIndex() {
           </div>
           <a
             href="/rss.xml"
-            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3.5 py-2 text-[12px] font-medium text-foreground/60 outline-none transition-colors duration-150 ease-out hover:border-foreground/20 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.98]"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3.5 py-2 text-[12px] font-medium text-foreground/60 outline-none transition-colors duration-150 ease-out hover:border-foreground/20 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.97]"
           >
             <RssIcon className="size-3.5" />
             RSS

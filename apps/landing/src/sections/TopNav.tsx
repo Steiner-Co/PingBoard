@@ -26,7 +26,7 @@ export function TopNav() {
   // first/last labels must never touch the container's rounded edge.
   const linkClass = (active: boolean) =>
     cn(
-      'rounded-full px-[18px] py-3 text-[14px] font-medium leading-[0.96] tracking-[-0.35px] outline-none transition-colors duration-150 ease-out focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.98]',
+      'rounded-full px-[18px] py-3 text-[14px] font-medium leading-[0.96] tracking-[-0.35px] outline-none transition-colors duration-150 ease-out focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.97]',
       active
         ? 'bg-foreground text-background'
         : 'text-foreground/60 hover:text-foreground',
@@ -34,7 +34,7 @@ export function TopNav() {
 
   return (
     <header className="flex w-full items-center justify-between">
-      <Link to="/" aria-label="PingBoard home" className="rounded-[4px] outline-none transition-transform duration-150 ease-out focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.98]">
+      <Link to="/" aria-label="PingBoard home" className="rounded-[4px] outline-none transition-transform duration-150 ease-out focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.97]">
         <Logo className="size-[34px] rounded-[4px]" />
       </Link>
       <div className="flex items-center gap-2">

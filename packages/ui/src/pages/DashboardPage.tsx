@@ -225,7 +225,7 @@ export function DashboardPage() {
               className={cn(
                 'rounded-full border px-2.5 py-0.5 text-xs font-medium outline-none',
                 'transition-[color,background-color,border-color,transform] duration-150 ease-out',
-                'focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.98]',
+                'focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.97]',
                 statusFilter === f.id
                   ? 'border-foreground/20 bg-foreground text-background'
                   : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -306,7 +306,7 @@ function LiveActivity({
           Waiting for the next heartbeat — checks stream in here as they land.
         </p>
       ) : (
-        <ul className="divide-y divide-border/60">
+        <ul aria-live="polite" aria-atomic="false" className="divide-y divide-border/60">
           {feed.map((item) => (
             <li
               key={item.key}

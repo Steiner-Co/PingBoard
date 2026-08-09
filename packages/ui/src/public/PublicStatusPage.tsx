@@ -129,7 +129,7 @@ export function PublicStatusPage({ slug }: { slug: string }) {
         <span aria-hidden className="relative inline-flex h-2.5 w-2.5">
           <span
             className="absolute inset-0 rounded-full bg-success opacity-40 motion-safe:animate-ping"
-            style={{ animationDuration: '1.5s' }}
+            style={{ animationDuration: '1s' }}
           />
           <span className="relative inline-block h-2.5 w-2.5 rounded-full bg-success" />
         </span>
@@ -724,7 +724,7 @@ function PasswordGate({
           type="submit"
           aria-busy={submitting}
           disabled={submitting}
-          className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-[background-color,transform] duration-150 ease-out active:scale-[0.98]"
+          className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-[background-color,transform] duration-150 ease-out active:scale-[0.97]"
         >
           {submitting ? 'Checking…' : 'Continue'}
         </button>

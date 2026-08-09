@@ -16,13 +16,13 @@ export function NotFound() {
         <div className="flex items-center gap-3">
           <Link
             to="/"
-            className="rounded-full bg-foreground px-[18px] py-3 text-[14px] font-medium leading-[0.96] tracking-[-0.35px] text-background outline-none transition-transform duration-150 ease-out focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.98]"
+            className="rounded-full bg-foreground px-[18px] py-3 text-[14px] font-medium leading-[0.96] tracking-[-0.35px] text-background outline-none transition-transform duration-150 ease-out focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.97]"
           >
             Back home
           </Link>
           <Link
             to="/docs"
-            className="rounded-full bg-muted px-[18px] py-3 text-[14px] font-medium leading-[0.96] tracking-[-0.35px] text-foreground outline-none transition-colors duration-150 ease-out hover:text-foreground/70 focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.98]"
+            className="rounded-full bg-muted px-[18px] py-3 text-[14px] font-medium leading-[0.96] tracking-[-0.35px] text-foreground outline-none transition-colors duration-150 ease-out hover:text-foreground/70 focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.97]"
           >
             Read the docs
           </Link>

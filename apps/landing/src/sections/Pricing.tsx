@@ -20,7 +20,7 @@ export function Pricing() {
           </div>
           <a
             href="https://github.com/steiner-co/pingboard"
-            className="inline-flex w-fit items-center justify-center rounded-[12px] bg-primary px-5 py-3 text-[15px] font-medium text-primary-foreground outline-none transition-[opacity,transform] duration-150 ease-out hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.98]"
+            className="inline-flex w-fit items-center justify-center rounded-[12px] bg-primary px-5 py-3 text-[15px] font-medium text-primary-foreground outline-none transition-[opacity,transform] duration-150 ease-out hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.97]"
           >
             Free
           </a>

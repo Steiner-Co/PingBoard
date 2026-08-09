@@ -54,17 +54,24 @@ export function formatDateTimeRange(
   return `${formatDateTime(s)} → ${formatDateTime(e)}`
 }
 
+// Narrow style keeps the compact "3m ago" shape the table column expects;
+// numeric: 'auto' upgrades edge cases ("yesterday" instead of "1d ago").
+const rtf = new Intl.RelativeTimeFormat('en', {
+  numeric: 'auto',
+  style: 'narrow',
+})
+
 export function formatRelative(date: Date | string | number): string {
   const ms = Date.now() - new Date(date).getTime()
   const sec = Math.round(ms / 1000)
   if (sec < 10) return 'just now'
-  if (sec < 60) return `${sec}s ago`
+  if (sec < 60) return rtf.format(-sec, 'second')
   const min = Math.round(sec / 60)
-  if (min < 60) return `${min}m ago`
+  if (min < 60) return rtf.format(-min, 'minute')
   const hr = Math.round(min / 60)
-  if (hr < 24) return `${hr}h ago`
+  if (hr < 24) return rtf.format(-hr, 'hour')
   const days = Math.round(hr / 24)
-  return `${days}d ago`
+  return rtf.format(-days, 'day')
 }
 
 export function formatDuration(ms: number): string {

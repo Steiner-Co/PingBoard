@@ -80,7 +80,7 @@ function XAxisLabel({
         className={cn("whitespace-nowrap text-muted-foreground text-xs")}
         style={{
           opacity,
-          transition: "opacity 0.4s ease-in-out",
+          transition: "opacity 0.15s ease-out",
         }}
       >
         {label}

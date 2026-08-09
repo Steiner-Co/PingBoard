@@ -25,7 +25,7 @@ export function DocsLayout() {
                   to={`/docs/${doc.slug}`}
                   className={({ isActive }) =>
                     cn(
-                      'rounded-[8px] px-3 py-1.5 text-[14px] leading-[1.35] tracking-[-0.35px] outline-none transition-colors duration-150 ease-out focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.98]',
+                      'rounded-[8px] px-3 py-1.5 text-[14px] leading-[1.35] tracking-[-0.35px] outline-none transition-colors duration-150 ease-out focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.97]',
                       isActive
                         ? 'bg-muted font-medium text-foreground'
                         : 'text-foreground/60 hover:text-foreground',

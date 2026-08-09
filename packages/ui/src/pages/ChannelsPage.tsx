@@ -437,7 +437,7 @@ function MonitorChip({ monitor }: { monitor: MonitorWithLatest }) {
   return (
     <Link
       to={`/admin/monitors/${monitor.id}`}
-      className="inline-flex max-w-[12rem] items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-[11px] outline-none transition-[color,background-color,border-color,transform] duration-150 ease-out hover:bg-accent hover:text-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.98]"
+      className="inline-flex max-w-[12rem] items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-[11px] outline-none transition-[color,background-color,border-color,transform] duration-150 ease-out hover:bg-accent hover:text-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.97]"
     >
       <StatusDot monitor={monitor} />
       <span className="truncate">{monitor.name}</span>

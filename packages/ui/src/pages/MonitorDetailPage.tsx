@@ -415,7 +415,7 @@ function TagsRow({ monitor }: { monitor: Monitor }) {
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="rounded-md border border-dashed border-border px-2 py-0.5 text-xs text-muted-foreground transition-[color,border-color,transform] duration-150 ease-out hover:border-foreground/30 hover:text-foreground active:scale-[0.98]"
+          className="rounded-md border border-dashed border-border px-2 py-0.5 text-xs text-muted-foreground transition-[color,border-color,transform] duration-150 ease-out hover:border-foreground/30 hover:text-foreground active:scale-[0.97]"
         >
           + Add tags
         </button>

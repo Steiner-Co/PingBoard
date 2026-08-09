@@ -28,7 +28,7 @@ export function Hero() {
 
         <a
           href="https://github.com/steiner-co/pingboard"
-          className="group inline-flex items-center gap-3 rounded-full bg-foreground py-2 pl-2 pr-4 text-[14px] text-background shadow-[inset_0_2px_4px_rgba(255,255,255,0.28),inset_0_-2px_4px_rgba(0,0,0,0.2)] outline-none transition-[transform,opacity] duration-150 ease-out hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-[0.98]"
+          className="group inline-flex items-center gap-3 rounded-full bg-foreground py-2 pl-2 pr-4 text-[14px] text-background shadow-[inset_0_2px_4px_rgba(255,255,255,0.28),inset_0_-2px_4px_rgba(0,0,0,0.2)] outline-none transition-[transform,opacity] duration-150 ease-out hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-[0.97]"
         >
           <span className="flex size-6 items-center justify-center">
             <GitHubIcon />
