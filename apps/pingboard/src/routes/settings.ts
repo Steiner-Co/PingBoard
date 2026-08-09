@@ -15,6 +15,7 @@ import {
 } from '@pingboard/db'
 import { ALLOWED_RETENTION_DAYS } from '@pingboard/shared'
 import { error, json, noContent } from '../lib/responses'
+import { getUpdateState } from '../update-check'
 
 interface SettingsDeps {
   db: DB
@@ -67,6 +68,7 @@ export async function getInstanceInfo(deps: InstanceDeps): Promise<Response> {
   return json({
     version: deps.version,
     mode: deps.mode,
+    update: getUpdateState(),
     dataDir: deps.dataDir,
     dbBytes,
     startedAt: new Date(deps.startedAt).toISOString(),

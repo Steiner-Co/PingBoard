@@ -77,6 +77,13 @@ interface InstanceInfo {
   monitors: number
   channels: number
   statusPages: number
+  update?: {
+    state: 'up-to-date' | 'update-available' | 'unknown' | 'disabled'
+    current: string
+    latest?: string
+    url?: string
+    checkedAt?: string
+  }
 }
 
 function formatBytes(bytes: number): string {
@@ -103,10 +110,15 @@ function InstanceCard() {
   })
   useNow()
   const info = query.data
+  const update = info?.update
+  const updateLink =
+    update && update.state === 'update-available' && update.latest && update.url
+      ? { latest: update.latest, url: update.url }
+      : null
 
   const rows: [string, string][] = info
     ? [
-        ['Version', info.version],
+        ['Version', `v${info.version}`],
         ['Edition', info.mode === 'selfhost' ? 'Self-hosted · unlimited' : 'Cloud'],
         ['Data dir', info.dataDir],
         ['Database', info.dbBytes == null ? '—' : formatBytes(info.dbBytes)],
@@ -149,6 +161,16 @@ function InstanceCard() {
               </dt>
               <dd className="truncate text-xs tabular-nums" title={value}>
                 {value}
+                {label === 'Version' && updateLink ? (
+                  <a
+                    href={updateLink.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="ml-1.5 text-primary-text hover:underline"
+                  >
+                    v{updateLink.latest} available →
+                  </a>
+                ) : null}
               </dd>
             </div>
           ))}

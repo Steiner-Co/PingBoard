@@ -20,6 +20,7 @@ import {
 import type { CheckResult } from '@pingboard/shared'
 import { RESERVED_SLUGS } from '@pingboard/shared'
 import { loadConfig } from './config'
+import { startUpdateCheck } from './update-check'
 import { VERSION } from './version'
 import {
   handleLogin,
@@ -125,6 +126,7 @@ async function main() {
   const notifier = startNotifier(db, { baseUrl: config.baseUrl })
   const retention = startRetentionJob(db)
   const pushOverdue = startPushOverdueJob(db)
+  startUpdateCheck(VERSION)
 
   const secureCookies = (config.baseUrl ?? '').startsWith('https://')
   const authDeps = { db, secureCookies }

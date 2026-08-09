@@ -3,6 +3,7 @@ import { GuardedLink } from "@/components/guarded-link"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
+import { VersionBadge } from "@/components/version-badge"
 import {
   Sidebar,
   SidebarContent,
@@ -74,6 +75,7 @@ export function AppSidebar({ user, onLogout, ...props }: AppSidebarProps) {
         <NavMain groups={navGroups} />
       </SidebarContent>
       <SidebarFooter>
+        <VersionBadge />
         <NavUser user={user} onLogout={onLogout} />
       </SidebarFooter>
     </Sidebar>

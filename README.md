@@ -44,6 +44,7 @@ All optional — no env vars are required to boot.
 | `PORT` | `3000` | HTTP port |
 | `DATA_DIR` | `/data` | SQLite database location |
 | `PINGBOARD_BASE_URL` | (auto) | Used in alert links — set to your public URL when behind a reverse proxy |
+| `PINGBOARD_UPDATE_CHECK` | (on) | Set to `off` to disable the daily check for new releases |
 | `LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error` |
 
 ## Status page branding
