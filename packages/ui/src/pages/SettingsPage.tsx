@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ALLOWED_RETENTION_DAYS } from '@pingboard/shared'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { FieldInput } from '@/components/ui/field'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import {
@@ -232,7 +232,7 @@ function AccountCard({ email }: { email: string }) {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="current-password">Current password</Label>
-              <Input
+              <FieldInput
                 id="current-password"
                 type="password"
                 autoComplete="current-password"
@@ -242,7 +242,7 @@ function AccountCard({ email }: { email: string }) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="new-password">New password</Label>
-              <Input
+              <FieldInput
                 id="new-password"
                 type="password"
                 autoComplete="new-password"
@@ -252,7 +252,7 @@ function AccountCard({ email }: { email: string }) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm-password">Confirm</Label>
-              <Input
+              <FieldInput
                 id="confirm-password"
                 type="password"
                 autoComplete="new-password"
@@ -491,7 +491,7 @@ function SmtpCard() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="smtp-host">Host</Label>
-              <Input
+              <FieldInput
                 id="smtp-host"
                 value={form.host}
                 onChange={(e) => set('host')(e.target.value)}
@@ -500,7 +500,7 @@ function SmtpCard() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="smtp-port">Port</Label>
-              <Input
+              <FieldInput
                 id="smtp-port"
                 type="number"
                 value={form.port}
@@ -510,7 +510,7 @@ function SmtpCard() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="smtp-user">Username</Label>
-              <Input
+              <FieldInput
                 id="smtp-user"
                 value={form.user}
                 onChange={(e) => set('user')(e.target.value)}
@@ -521,7 +521,7 @@ function SmtpCard() {
               <Label htmlFor="smtp-pass">Password</Label>
               {revealPassword ? (
                 <div className="space-y-1.5">
-                  <Input
+                  <FieldInput
                     id="smtp-pass"
                     type="password"
                     value={form.pass}
@@ -565,7 +565,7 @@ function SmtpCard() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <Input
+                  <FieldInput
                     value="•••••••• (saved)"
                     readOnly
                     className="font-mono text-xs"
@@ -587,8 +587,9 @@ function SmtpCard() {
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="smtp-from">From address</Label>
-              <Input
+              <FieldInput
                 id="smtp-from"
+                type="email"
                 value={form.from}
                 onChange={(e) => set('from')(e.target.value)}
                 placeholder="alerts@your.org"
@@ -726,7 +727,7 @@ function ApiTokensCard() {
         <form onSubmit={submit} className="flex flex-wrap items-end gap-2">
           <div className="min-w-0 flex-1 space-y-2">
             <Label htmlFor="token-name">New token name</Label>
-            <Input
+            <FieldInput
               id="token-name"
               value={name}
               placeholder="deploy bot, uptime script…"

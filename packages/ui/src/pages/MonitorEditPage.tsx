@@ -11,9 +11,8 @@ import { Panel } from '@/components/panel'
 import { QueryError } from '@/components/QueryError'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { FieldInput, FieldTextarea } from '@/components/ui/field'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -339,7 +338,7 @@ export function MonitorEditPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="edit-name">Name</Label>
-            <Input
+            <FieldInput
               ref={nameRef}
               id="edit-name"
               value={name}
@@ -350,7 +349,7 @@ export function MonitorEditPage() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="edit-target">Target</Label>
-            <Input
+            <FieldInput
               ref={targetRef}
               id="edit-target"
               value={target}
@@ -387,7 +386,7 @@ export function MonitorEditPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-timeout">Timeout (seconds)</Label>
-              <Input
+              <FieldInput
                 ref={timeoutRef}
                 id="edit-timeout"
                 type="number"
@@ -405,7 +404,7 @@ export function MonitorEditPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-retry">Retries before down</Label>
-              <Input
+              <FieldInput
                 ref={retryRef}
                 id="edit-retry"
                 type="number"
@@ -547,7 +546,7 @@ function HttpConfig({
           </div>
           <div className="space-y-2">
             <Label htmlFor="http-codes">Expected status codes</Label>
-            <Input
+            <FieldInput
               id="http-codes"
               value={codesText}
               onChange={(e) => {
@@ -566,7 +565,7 @@ function HttpConfig({
         </div>
         <div className="space-y-2">
           <Label htmlFor="http-headers">Request headers (JSON)</Label>
-          <Textarea
+          <FieldTextarea
             ref={headersRef}
             id="http-headers"
             value={headersText}
@@ -590,7 +589,7 @@ function HttpConfig({
         </div>
         <div className="space-y-2">
           <Label htmlFor="http-body">Request body</Label>
-          <Textarea
+          <FieldTextarea
             id="http-body"
             value={c.body ?? ''}
             onChange={(e) => set('body', e.target.value || undefined)}
@@ -601,7 +600,7 @@ function HttpConfig({
         </div>
         <div className="space-y-2">
           <Label htmlFor="http-keyword">Body must contain</Label>
-          <Input
+          <FieldInput
             id="http-keyword"
             value={c.expectedKeyword ?? ''}
             onChange={(e) => set('expectedKeyword', e.target.value || undefined)}
@@ -611,7 +610,7 @@ function HttpConfig({
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="http-json-path">JSON path</Label>
-            <Input
+            <FieldInput
               id="http-json-path"
               value={jsonPath}
               onChange={(e) => {
@@ -631,7 +630,7 @@ function HttpConfig({
           </div>
           <div className="space-y-2">
             <Label htmlFor="http-json-equals">Equals (JSON value)</Label>
-            <Input
+            <FieldInput
               id="http-json-equals"
               value={jsonEquals}
               onChange={(e) => {
@@ -696,7 +695,7 @@ function TcpConfig({
       <CardContent>
         <div className="space-y-2 max-w-xs">
           <Label htmlFor="tcp-port">Port</Label>
-          <Input
+          <FieldInput
             id="tcp-port"
             type="number"
             min={1}
@@ -762,7 +761,7 @@ function DnsConfig({
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="dns-resolver">Custom resolver</Label>
-            <Input
+            <FieldInput
               id="dns-resolver"
               value={c.resolver ?? ''}
               onChange={(e) => set('resolver', e.target.value || undefined)}
@@ -772,7 +771,7 @@ function DnsConfig({
         </div>
         <div className="space-y-2">
           <Label htmlFor="dns-expected">Expected value</Label>
-          <Input
+          <FieldInput
             id="dns-expected"
             value={c.expectedValue ?? ''}
             onChange={(e) => set('expectedValue', e.target.value || undefined)}

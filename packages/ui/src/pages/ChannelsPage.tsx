@@ -27,7 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
+import { FieldInput } from '@/components/ui/field'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -818,7 +818,7 @@ function ChannelDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="ch-name">Name</Label>
-            <Input
+            <FieldInput
               id="ch-name"
               value={name}
               onChange={(e) => {
@@ -935,8 +935,9 @@ function ConfigFields({
     return (
       <div className="space-y-2">
         <Label htmlFor="ch-url">Webhook URL</Label>
-        <Input
+        <FieldInput
           id="ch-url"
+          type="url"
           value={config.url ?? ''}
           onChange={set('url')}
           placeholder="https://…"
@@ -950,7 +951,7 @@ function ConfigFields({
     return (
       <div className="space-y-2">
         <Label htmlFor="ch-webhook">Webhook URL</Label>
-        <Input
+        <FieldInput
           id="ch-webhook"
           value={config.webhookUrl ?? ''}
           onChange={set('webhookUrl')}
@@ -966,7 +967,7 @@ function ConfigFields({
       <>
         <div className="space-y-2">
           <Label htmlFor="ch-server">Server URL</Label>
-          <Input
+          <FieldInput
             id="ch-server"
             value={config.serverUrl ?? ''}
             onChange={set('serverUrl')}
@@ -977,7 +978,7 @@ function ConfigFields({
         </div>
         <div className="space-y-2">
           <Label htmlFor="ch-topic">Topic</Label>
-          <Input
+          <FieldInput
             id="ch-topic"
             value={config.topic ?? ''}
             onChange={set('topic')}
@@ -993,8 +994,9 @@ function ConfigFields({
       <>
         <div className="space-y-2">
           <Label htmlFor="ch-to">Send alerts to</Label>
-          <Input
+          <FieldInput
             id="ch-to"
+            type="email"
             value={config.to ?? ''}
             onChange={set('to')}
             placeholder="you@your.org"
@@ -1009,26 +1011,26 @@ function ConfigFields({
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-2">
             <Label htmlFor="ch-host">SMTP host</Label>
-            <Input id="ch-host" value={config.smtpHost ?? ''} onChange={set('smtpHost')} />
+            <FieldInput id="ch-host" value={config.smtpHost ?? ''} onChange={set('smtpHost')} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="ch-port">Port</Label>
-            <Input id="ch-port" type="number" value={config.smtpPort ?? ''} onChange={set('smtpPort')} placeholder="587" />
+            <FieldInput id="ch-port" type="number" min={1} max={65535} inputMode="numeric" value={config.smtpPort ?? ''} onChange={set('smtpPort')} placeholder="587" />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-2">
             <Label htmlFor="ch-user">User</Label>
-            <Input id="ch-user" value={config.smtpUser ?? ''} onChange={set('smtpUser')} />
+            <FieldInput id="ch-user" value={config.smtpUser ?? ''} onChange={set('smtpUser')} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="ch-pass">Password</Label>
-            <Input id="ch-pass" type="password" value={config.smtpPass ?? ''} onChange={set('smtpPass')} />
+            <FieldInput id="ch-pass" type="password" autoComplete="new-password" value={config.smtpPass ?? ''} onChange={set('smtpPass')} />
           </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="ch-from">From</Label>
-          <Input id="ch-from" value={config.smtpFrom ?? ''} onChange={set('smtpFrom')} placeholder="alerts@your.org" />
+          <FieldInput id="ch-from" value={config.smtpFrom ?? ''} onChange={set('smtpFrom')} placeholder="alerts@your.org" />
         </div>
       </>
     )
@@ -1067,7 +1069,13 @@ function buildConfig(
     // Only persist SMTP fields the user filled in; the rest fall back to
     // instance-wide defaults at send time.
     if (config.smtpHost?.trim()) value.smtpHost = config.smtpHost.trim()
-    if (config.smtpPort?.trim()) value.smtpPort = Number(config.smtpPort)
+    if (config.smtpPort?.trim()) {
+      const port = Number(config.smtpPort)
+      if (!Number.isFinite(port) || port < 1 || port > 65535) {
+        return { error: 'Port must be a number between 1 and 65535.', field: 'ch-port' }
+      }
+      value.smtpPort = port
+    }
     if (config.smtpUser?.trim()) value.smtpUser = config.smtpUser.trim()
     if (config.smtpPass?.trim()) value.smtpPass = config.smtpPass
     if (config.smtpFrom?.trim()) value.smtpFrom = config.smtpFrom.trim()

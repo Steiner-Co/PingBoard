@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { QueryError } from '@/components/QueryError'
-import { Input } from '@/components/ui/input'
+import { FieldInput } from '@/components/ui/field'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -202,8 +202,7 @@ export function MonitorWizardPage() {
     const blocking = validateStep()
     if (blocking) {
       setInvalid(blocking)
-      // `Input` isn't forwardRef-wrapped, so a ref never reaches the DOM node —
-      // focus through the id the Label already points at.
+      // Focus through the id the Label already points at.
       document.getElementById(blocking.field)?.focus()
       return
     }
@@ -268,7 +267,7 @@ export function MonitorWizardPage() {
             <>
               <div className="space-y-2">
                 <Label htmlFor="target">{targetLabel(effectiveType)}</Label>
-                <Input
+                <FieldInput
                   id="target"
                   placeholder={targetPlaceholder(effectiveType)}
                   value={target}
@@ -349,7 +348,7 @@ export function MonitorWizardPage() {
             <>
               <div className="space-y-2">
                 <Label htmlFor="name">Display name</Label>
-                <Input
+                <FieldInput
                   id="name"
                   placeholder={defaultName(effectiveTarget) ?? 'My monitor'}
                   value={name}
@@ -585,7 +584,7 @@ export function TagInput({
             </button>
           </Badge>
         ))}
-        <input
+        <FieldInput
           id={id}
           type="text"
           value={draft}
@@ -607,7 +606,10 @@ export function TagInput({
           aria-invalid={rejected != null}
           aria-describedby={rejected ? `${id}-error` : undefined}
           placeholder={value.length === 0 ? 'api, prod, payments…' : ''}
-          className="flex-1 min-w-[120px] bg-transparent text-sm outline-none"
+          // The container div above carries the box (border, focus ring); the
+          // draft field stays chromeless, so FieldInput's default input styling
+          // is neutralised here.
+          className="flex-1 min-w-[120px] bg-transparent text-sm outline-none h-auto rounded-none border-0 px-0 py-0 dark:bg-transparent focus-visible:ring-0 aria-invalid:ring-0"
         />
       </div>
       {rejected && (
