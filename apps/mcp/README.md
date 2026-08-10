@@ -24,10 +24,37 @@ It talks to a running PingBoard over its REST API, so it works against
 | `PINGBOARD_URL` | `http://localhost:3000` |
 | `PINGBOARD_TOKEN` | `pb_…` |
 
+### Claude Code
+
+```bash
+claude mcp add pingboard \
+  --env PINGBOARD_URL=http://localhost:3000 \
+  --env PINGBOARD_TOKEN=pb_... \
+  -- npx -y @pingboard/mcp
+```
+
+### Claude Desktop, Cursor, Zed
+
+Add to the client's MCP config:
+
+```json
+{
+  "mcpServers": {
+    "pingboard": {
+      "command": "npx",
+      "args": ["-y", "@pingboard/mcp"],
+      "env": {
+        "PINGBOARD_URL": "http://localhost:3000",
+        "PINGBOARD_TOKEN": "pb_..."
+      }
+    }
+  }
+}
+```
+
 ### From a clone of this repo
 
-The package is not on npm yet, so until it is published, run the compiled
-build straight from the repo:
+To run unreleased changes, use the compiled build straight from the repo:
 
 ```bash
 bun install && bun run --filter @pingboard/mcp build
@@ -39,34 +66,6 @@ bun install && bun run --filter @pingboard/mcp build
     "pingboard": {
       "command": "node",
       "args": ["/absolute/path/to/PingBoard/apps/mcp/dist/index.js"],
-      "env": {
-        "PINGBOARD_URL": "http://localhost:3000",
-        "PINGBOARD_TOKEN": "pb_..."
-      }
-    }
-  }
-}
-```
-
-### Claude Code (once published to npm)
-
-```bash
-claude mcp add pingboard \
-  --env PINGBOARD_URL=http://localhost:3000 \
-  --env PINGBOARD_TOKEN=pb_... \
-  -- npx -y @pingboard/mcp
-```
-
-### Claude Desktop, Cursor, Zed (once published to npm)
-
-Add to the client's MCP config:
-
-```json
-{
-  "mcpServers": {
-    "pingboard": {
-      "command": "npx",
-      "args": ["-y", "@pingboard/mcp"],
       "env": {
         "PINGBOARD_URL": "http://localhost:3000",
         "PINGBOARD_TOKEN": "pb_..."
