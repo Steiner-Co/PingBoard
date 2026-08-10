@@ -297,4 +297,11 @@
     font-feature-settings: 'rlig' 1, 'calt' 1;
     letter-spacing: var(--tracking-normal);
   }
+  /* Radix/floating-ui writes viewport-derived px into the popper wrapper's
+     transform; root zoom: 1.1 then scales those px a second time, pushing
+     menus off-screen near the viewport edge. Counter-zooming the wrapper
+     makes computed positions render 1:1 (menu content renders at 100%). */
+  [data-radix-popper-content-wrapper] {
+    zoom: calc(1 / 1.1);
+  }
 }
