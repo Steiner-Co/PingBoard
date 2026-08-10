@@ -8,6 +8,7 @@ without leaving the editor.
 > which monitors are down?
 > why did the API check fail this morning?
 > schedule maintenance on the database for tonight 2–4am
+> back up my config
 ```
 
 It talks to a running PingBoard over its REST API, so it works against
@@ -83,18 +84,21 @@ bun install && bun run --filter @pingboard/mcp build
 |---|---|
 | `list_monitors` | What exists and what state is it in — optionally filtered by status |
 | `get_monitor` | Full config, recent heartbeats and incident history for one check |
-| `list_incidents` | Every down→up transition, open or resolved |
+| `list_incidents` | Every down→up transition — filter by state or monitor |
+| `get_incident` | One incident's full detail (the 200 most recent are queryable) |
 | `list_status_pages` | Public pages, their slugs and how many monitors each publishes |
 | `get_status_page` | One page's full settings plus the monitors it publishes, in order |
 | `list_maintenance_windows` | Scheduled downtime |
 | `list_notification_channels` | Where alerts go, and whether each channel is enabled |
 | `run_check` | Run one check right now without saving it — useful before creating a monitor |
+| `export_config` | Full backup: monitors, status pages and maintenance windows as JSON |
 
 **Writing**
 
 | Tool | Notes |
 |---|---|
 | `create_monitor` | Attach `channelIds`, or failures page nobody |
+| `update_monitor` | Omitted fields are untouched; `config` and `channelIds` replace wholesale |
 | `set_monitor_paused` | Pause or resume checks |
 | `delete_monitor` | Permanent — marked destructive |
 | `resolve_incident` | Manually close an open incident |
@@ -103,6 +107,7 @@ bun install && bun run --filter @pingboard/mcp build
 | `create_status_page` | Slug is permanent; attach `monitors` or the page shows nothing |
 | `update_status_page` | Omitted fields are untouched; passing `monitors` replaces the whole list |
 | `delete_status_page` | Permanent — marked destructive. Monitors themselves are untouched |
+| `import_config` | Restore an `export_config` backup; creates fresh items, never overwrites |
 
 Read-only tools are annotated as such, and both delete tools are annotated
 destructive, so clients can gate or confirm them.

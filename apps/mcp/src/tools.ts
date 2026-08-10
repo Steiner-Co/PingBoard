@@ -93,6 +93,56 @@ interface PageMonitorLink {
   sortOrder: number
 }
 
+/** Full monitor row as the list endpoint returns it (config included). */
+interface MonitorRow extends Monitor {
+  timeoutSeconds?: number
+  retryCount?: number
+  config?: Record<string, unknown>
+}
+
+interface MaintenanceWindow {
+  id: string
+  monitorId: string
+  title: string
+  description: string | null
+  startsAt: string
+  endsAt: string
+}
+
+/** Shapes inside an export_config backup, used by import_config. */
+interface BackupMonitor {
+  id?: string
+  name: string
+  type: string
+  target: string
+  intervalSeconds?: number
+  timeoutSeconds?: number
+  retryCount?: number
+  config?: Record<string, unknown>
+  tags?: string[]
+  paused?: boolean
+}
+
+interface BackupPage {
+  slug: string
+  title?: string
+  description?: string | null
+  theme?: string
+  accent?: string | null
+  websiteUrl?: string | null
+  hideBranding?: boolean
+  customCss?: string | null
+  monitors?: PageMonitorLink[]
+}
+
+interface BackupWindow {
+  monitorId: string
+  title: string
+  startsAt: string
+  endsAt: string
+  description?: string | null
+}
+
 /** MCP content is text; JSON keeps it unambiguous for the model to parse. */
 function ok(data: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
@@ -292,25 +342,63 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
           .enum(['open', 'resolved', 'all'])
           .optional()
           .describe('Filter by state. Default all.'),
+        monitorId: z
+          .string()
+          .optional()
+          .describe('Only incidents for this monitor id from list_monitors.'),
         limit: z.number().int().min(1).max(200).optional().describe('Default 50.'),
       },
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
     guard(
-      async ({ state = 'all', limit = 50 }: { state?: string; limit?: number }) => {
+      async ({
+        state = 'all',
+        monitorId,
+        limit = 50,
+      }: {
+        state?: string
+        monitorId?: string
+        limit?: number
+      }) => {
         const { incidents } = await client.get<{ incidents: Incident[] }>(
           '/api/admin/incidents',
         )
         const filtered = incidents.filter((i) =>
-          state === 'open'
+          (state === 'open'
             ? !i.resolvedAt
             : state === 'resolved'
               ? !!i.resolvedAt
-              : true,
+              : true) && (!monitorId || i.monitorId === monitorId),
         )
         return ok(filtered.slice(0, limit))
       },
     ),
+  )
+
+  server.registerTool(
+    'get_incident',
+    {
+      title: 'Get one incident',
+      description:
+        'Full detail for a single incident: monitor, start and resolution time, cause, and note. Only the 200 most recent incidents are queryable.',
+      inputSchema: {
+        incidentId: z.string().describe('Incident id from list_incidents.'),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    guard(async ({ incidentId }: { incidentId: string }) => {
+      const { incidents } = await client.get<{ incidents: Incident[] }>(
+        '/api/admin/incidents',
+      )
+      const found = incidents.find((i) => i.id === incidentId)
+      if (!found) {
+        throw new PingBoardError(
+          'Incident not found — only the 200 most recent incidents are queryable.',
+          404,
+        )
+      }
+      return ok(found)
+    }),
   )
 
   server.registerTool(
@@ -376,6 +464,73 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
     guard(async () => ok(await client.get('/api/admin/channels'))),
   )
 
+  server.registerTool(
+    'export_config',
+    {
+      title: 'Export the full configuration',
+      description:
+        'Download the whole configuration as one JSON object: monitors with their type-specific config, status pages with their monitor links, and maintenance windows. Store it as a backup; restore with import_config. NOT included: notification channels (they hold secrets), page passwords (hashed) and logos (binary).',
+      inputSchema: {},
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    guard(async () => {
+      const [monitorsRes, pagesRes, windowsRes] = await Promise.all([
+        client.get<{ monitors: MonitorRow[] }>('/api/admin/monitors'),
+        client.get<{ pages: StatusPage[] }>('/api/admin/pages'),
+        client.get<{ windows: MaintenanceWindow[] }>(
+          '/api/admin/maintenance-windows',
+        ),
+      ])
+      const statusPages = await Promise.all(
+        pagesRes.pages.map(async (p) => {
+          const detail = await client.get<{
+            page: StatusPage
+            monitors: PageMonitorLink[]
+          }>(`/api/admin/pages/${p.id}`)
+          return {
+            slug: p.slug,
+            title: p.title,
+            description: p.description,
+            theme: p.theme,
+            accent: p.accent,
+            websiteUrl: p.websiteUrl,
+            hideBranding: p.hideBranding,
+            customCss: p.customCss,
+            monitors: detail.monitors.map((m) => ({
+              monitorId: m.monitorId,
+              groupName: m.groupName,
+              sortOrder: m.sortOrder,
+            })),
+          }
+        }),
+      )
+      return ok({
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        monitors: monitorsRes.monitors.map((m) => ({
+          id: m.id,
+          name: m.name,
+          type: m.type,
+          target: m.target,
+          intervalSeconds: m.intervalSeconds,
+          timeoutSeconds: m.timeoutSeconds ?? 10,
+          retryCount: m.retryCount ?? 1,
+          config: m.config ?? {},
+          tags: m.tags,
+          paused: m.paused,
+        })),
+        statusPages,
+        maintenanceWindows: windowsRes.windows.map((w) => ({
+          monitorId: w.monitorId,
+          title: w.title,
+          description: w.description,
+          startsAt: w.startsAt,
+          endsAt: w.endsAt,
+        })),
+      })
+    }),
+  )
+
   // ─────────────── Write ───────────────
 
   server.registerTool(
@@ -412,6 +567,58 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
         args,
       )
       return ok(summarise(created.monitor))
+    }),
+  )
+
+  server.registerTool(
+    'update_monitor',
+    {
+      title: 'Update a monitor',
+      description:
+        "Edit a monitor's name, target, check interval, timeout, retry count, tags, type-specific config or notification channels. Fields you omit are left as-is. Two fields replace wholesale when passed: config and channelIds — call get_monitor first if you only mean to change part of them.",
+      inputSchema: {
+        monitorId: z.string().describe('Monitor id from list_monitors.'),
+        name: z.string().min(1).optional(),
+        type: z
+          .enum(MONITOR_TYPES)
+          .optional()
+          .describe('Rarely changes — target and config must still fit the type.'),
+        target: z.string().min(1).optional(),
+        intervalSeconds: z
+          .number()
+          .int()
+          .optional()
+          .describe(`One of ${ALLOWED_INTERVALS.join(', ')}.`),
+        timeoutSeconds: z.number().int().min(1).max(60).optional(),
+        retryCount: z
+          .number()
+          .int()
+          .min(0)
+          .max(5)
+          .optional()
+          .describe(
+            'Extra attempts before a failure counts as down — the flap threshold. 0 declares down on the first failure.',
+          ),
+        tags: z.array(z.string()).optional().describe('Full replacement tag list.'),
+        config: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe(
+            'Type-specific options, e.g. { "expectedStatusCodes": [200] } or { "warningDays": 14 } for ssl/domain. Replaces the whole config object.',
+          ),
+        channelIds: z
+          .array(z.string())
+          .optional()
+          .describe('Full replacement list of notification channel ids.'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    guard(async ({ monitorId, ...rest }: { monitorId: string } & Record<string, unknown>) => {
+      const res = await client.patch<{ monitor: Monitor }>(
+        `/api/admin/monitors/${monitorId}`,
+        rest,
+      )
+      return ok(summarise(res.monitor))
     }),
   )
 
@@ -618,5 +825,142 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
       await client.delete(`/api/admin/pages/${pageId}`)
       return ok({ deleted: pageId })
     }),
+  )
+
+  server.registerTool(
+    'import_config',
+    {
+      title: 'Restore a configuration backup',
+      description:
+        'Recreate monitors, status pages and maintenance windows from an export_config backup. Everything is created fresh — existing items are never touched, so importing into a non-empty instance will duplicate monitors and fail on taken slugs (collected per-item in errors). Monitor references in pages and windows are remapped to the new ids. Channels are not in the backup: re-attach them afterwards with update_monitor.',
+      inputSchema: {
+        backup: z
+          .object({
+            monitors: z.array(z.record(z.string(), z.unknown())).optional(),
+            statusPages: z.array(z.record(z.string(), z.unknown())).optional(),
+            maintenanceWindows: z.array(z.record(z.string(), z.unknown())).optional(),
+          })
+          .describe('The object export_config returned, or a subset of it.'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+    },
+    guard(
+      async ({
+        backup,
+      }: {
+        backup: {
+          monitors?: Record<string, unknown>[]
+          statusPages?: Record<string, unknown>[]
+          maintenanceWindows?: Record<string, unknown>[]
+        }
+      }) => {
+        // The export shape is ours, so the casts are safe; anything malformed
+        // fails per-item server-side and lands in errors, not in a crash.
+        const backupMonitors = (backup.monitors ?? []) as unknown as BackupMonitor[]
+        const backupPages = (backup.statusPages ?? []) as unknown as BackupPage[]
+        const backupWindows = (backup.maintenanceWindows ??
+          []) as unknown as BackupWindow[]
+        const idMap = new Map<string, string>()
+        const errors: string[] = []
+        const created = { monitors: 0, statusPages: 0, maintenanceWindows: 0 }
+
+        for (const m of backupMonitors) {
+          try {
+            const res = await client.post<{ monitor: Monitor }>(
+              '/api/admin/monitors',
+              {
+                name: m.name,
+                type: m.type,
+                target: m.target,
+                intervalSeconds: m.intervalSeconds,
+                timeoutSeconds: m.timeoutSeconds,
+                retryCount: m.retryCount,
+                config: m.config,
+                tags: m.tags,
+              },
+            )
+            if (m.paused === true) {
+              await client.patch(`/api/admin/monitors/${res.monitor.id}`, {
+                paused: true,
+              })
+            }
+            if (typeof m.id === 'string') idMap.set(m.id, res.monitor.id)
+            created.monitors++
+          } catch (err) {
+            errors.push(
+              `monitor "${m.name}": ${err instanceof Error ? err.message : String(err)}`,
+            )
+          }
+        }
+
+        for (const p of backupPages) {
+          try {
+            const links = (p.monitors ?? [])
+              .filter((l) => idMap.has(l.monitorId))
+              .map((l) => ({
+                monitorId: idMap.get(l.monitorId)!,
+                groupName: l.groupName ?? undefined,
+                sortOrder: l.sortOrder,
+              }))
+            const dropped = (p.monitors ?? []).length - links.length
+            await client.post('/api/admin/pages', {
+              slug: p.slug,
+              title: p.title,
+              description: p.description ?? undefined,
+              theme: p.theme,
+              accent: p.accent ?? undefined,
+              websiteUrl: p.websiteUrl ?? undefined,
+              hideBranding: p.hideBranding,
+              customCss: p.customCss ?? undefined,
+              monitors: links,
+            })
+            if (dropped > 0) {
+              errors.push(
+                `page "${p.slug}": ${dropped} monitor link(s) dropped — the monitors were not in this import`,
+              )
+            }
+            created.statusPages++
+          } catch (err) {
+            errors.push(
+              `page "${p.slug}": ${err instanceof Error ? err.message : String(err)}`,
+            )
+          }
+        }
+
+        for (const w of backupWindows) {
+          const monitorId = idMap.get(w.monitorId)
+          if (!monitorId) {
+            errors.push(
+              `window "${w.title}": skipped — its monitor was not in this import`,
+            )
+            continue
+          }
+          try {
+            await client.post('/api/admin/maintenance-windows', {
+              monitorId,
+              title: w.title,
+              startsAt: w.startsAt,
+              endsAt: w.endsAt,
+              description: w.description ?? undefined,
+            })
+            created.maintenanceWindows++
+          } catch (err) {
+            errors.push(
+              `window "${w.title}": ${err instanceof Error ? err.message : String(err)}`,
+            )
+          }
+        }
+
+        return ok({
+          created,
+          idMap: Object.fromEntries(idMap),
+          errors,
+          notes: [
+            'Notification channels are not part of a backup — re-attach them with update_monitor channelIds.',
+            'Page passwords and logos do not round-trip — set them again where needed.',
+          ],
+        })
+      },
+    ),
   )
 }
