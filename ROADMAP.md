@@ -1,7 +1,7 @@
 # Roadmap to v1.0.0
 
 > **Status:** Draft — 2026-08-09
-> **Current release:** v0.6.5
+> **Current release:** v0.7.0
 > **Target:** v1.0.0 = public launch (Show HN / Product Hunt / announcement)
 
 ## Where we are
