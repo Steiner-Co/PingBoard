@@ -1,5 +1,10 @@
 # Audit Sweep — Slice 3: Admin list + detail pages — 2026-07-31
 
+> **2026-08-10 update:** the Persists/New tables below are as-written at sweep time.
+> Several entries were closed by later commits (`c6e6028`, `d943daf`, `e4e2514`, `9162b30`,
+> `58d4de7`, and the 08-10 data-router/field-wrapper work) — the commit-to-finding map
+> lives in the root `AUDIT.md` 'Status 2026-08-10' section, which is the current truth.
+
 Re-verification of the Slice 3 section of `AUDIT.md` (2026-07-21 refresh) and the
 Slice-3-relevant `AUDIT-EMIL.md` themes against **current source**, plus a new-issue
 hunt (loading-vs-empty conflation, relative-time ticking, table a11y, chart

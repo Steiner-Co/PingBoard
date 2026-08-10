@@ -1,5 +1,10 @@
 # Slice 5 — Motion sweep (cross-cutting) — 2026-07-31
 
+> **2026-08-10 update:** the Persists/New tables below are as-written at sweep time.
+> Several entries were closed by later commits (`c6e6028`, `d943daf`, `e4e2514`, `9162b30`,
+> `58d4de7`, and the 08-10 data-router/field-wrapper work) — the commit-to-finding map
+> lives in the root `AUDIT.md` 'Status 2026-08-10' section, which is the current truth.
+
 Re-verification of **AUDIT-EMIL.md** (2026-07-21) and the motion rows of **AUDIT.md**'s persists
 table against CURRENT source in `packages/ui/src` and `apps/landing/src`. Commits `c639bec`
 ("Motion: press feedback at 0.97, asymmetric overlay timing, GPU-only chart grow") and `351be41`

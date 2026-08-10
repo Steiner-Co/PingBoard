@@ -1,5 +1,10 @@
 # Audit Sweep — Slice 2: Admin forms + flows (2026-07-31)
 
+> **2026-08-10 update:** the Persists/New tables below are as-written at sweep time.
+> Several entries were closed by later commits (`c6e6028`, `d943daf`, `e4e2514`, `9162b30`,
+> `58d4de7`, and the 08-10 data-router/field-wrapper work) — the commit-to-finding map
+> lives in the root `AUDIT.md` 'Status 2026-08-10' section, which is the current truth.
+
 Re-verification of AUDIT.md (2026-07-21) "Slice 2 — Admin forms + flows" and its Persists-table
 rows against **current source**, plus a hunt for new form issues. Lenses: Vercel Web Interface
 Guidelines + Emil Kowalski design-engineering skill. Paths relative to `packages/ui/src/` unless

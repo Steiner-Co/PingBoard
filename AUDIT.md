@@ -16,6 +16,12 @@ current source. This document is the index — **detail lives in the slice files
 Severities: `high` = real-user impact / blocks launch, `med` = accessible-but-not-great,
 `low` = polish / consistency.
 
+> **Status 2026-08-10 — this index is current; the slice tables are not.** All three
+> remaining highs and most med clusters below are closed by commits that landed after
+> the sweep: `c6e6028`, `d943daf`, `e4e2514`, `9162b30`, `58d4de7`, plus the
+> data-router/field-wrapper work of 08-10. See the rewritten lists below; the slice
+> files' Persists/New tables are kept as-written for line-level detail.
+
 > **Supersedes:** the 2026-07-21 `AUDIT.md` and `AUDIT-EMIL.md` (both kept in git
 > history). The Emil-lens motion audit is now Slice 5; the Emil lens is also applied
 > inside every slice. The 07-21 docs proved largely stale — most of their "persists"
@@ -31,33 +37,54 @@ pages, dirty-guard coverage (incl. `headersText`), SSR-injected OG meta on publi
 status pages, keyboard-instant sidebar, opacity-only theme switch, reduced-motion
 gating repo-wide (zero ungated infinite animations).
 
-What remains is a long tail of med/low polish plus a **small set of highs**, below.
+As of 2026-08-10 the three highs this sweep left open are also closed or
+deliberately reworked (below), and the biggest med clusters (dialog draft loss,
+browser-Back draft loss, form-field attributes, error-masquerading) are fixed.
+What remains is the long tail of med/low polish in the slice tables, plus the two
+landing-side med clusters listed at the bottom.
 
-## Remaining highs (the fix list)
+## Remaining highs — closed
 
-| # | Finding | Where | Slice |
-|---|---|---|---|
-| H1 | Public status page plays a 500ms slide-in entrance on **every** visit — a frequently revisited, utilitarian surface should paint instantly | `packages/ui/src/public/PublicStatusPage.tsx:192` | 4, 5 |
-| H2 | Landing still runs a 450ms full-screen theme wipe — the product's largest motion on a high-frequency control | `apps/landing/src/globals.css:173-186` | 5 |
-| H3 | Sidebar **pointer** toggles still animate width/left/right/margin/padding (keyboard path is already instant) | `packages/ui/src/components/ui/sidebar.tsx:233,245,307,434,499` | 1, 5 |
+| # | Finding | Resolution |
+|---|---|---|
+| H1 | Public status page 500ms entrance on every visit | Fixed `c6e6028` — paints instantly |
+| H2 | Landing 450ms full-screen theme wipe | Fixed `c6e6028` — instant swap, opacity-only icon crossfade |
+| H3 | Sidebar pointer toggles animate layout properties | Reworked (08-09, committed `d794c0b`) — the panel now animates **transform only** (GPU); the gap sibling still transitions `width` (one layout property, synchronized tokens), and keyboard toggles snap via `data-instant` suppression. Left/right/margin/padding animation is gone. |
 
-## Highest-leverage med clusters
+## Med clusters — status
 
-- **Dialog draft loss** — Channels dialog Esc/overlay/X discards a filled form with no
-  confirm (`ChannelsPage.tsx:772-778`); `DialogContent` has no viewport cap/scroll, so
-  the ~10-field email channel form can push submit off-screen (`dialog.tsx:68`).
-- **Browser Back bypasses all dirty guards** (no data router); the wizard's
-  `replace: true` step history makes Back from step 2 silently lose the whole form
-  (`MonitorWizardPage.tsx:57`).
-- **Error masquerading as empty/not-found** — public status page renders "Status page
-  not found" on *any* fetch failure (`PublicStatusPage.tsx:139-141`); EditPageDialog
-  would PATCH blank fields if its detail query failed (`StatusPagesPage.tsx:965-967`);
-  "No incidents match this filter" shows during initial fetch (`IncidentsPage.tsx:463-467`).
-- **Contrast regressions in new prose** — `text-foreground/40` at 12px across
-  blog/docs (~2.3:1) and `text-foreground/50` in FeatureGrid fail 4.5:1.
-- **Form-attribute cluster** — one shared input wrapper would close the recurring
-  missing `name`/`autoComplete`/`type`/`spellCheck` findings (Slice 2: P5/P16/P22/P31/N6/N7).
-- **`transition-all` regression** — crept back into `apps/landing/src/components/blog/BlogIndex.tsx:72`.
+- **Dialog draft loss — FIXED `e4e2514`.** ChannelDialog routes every exit (Esc,
+  overlay, X, Cancel) through a guarded cancel that confirms when the form differs
+  from its hydration baseline; `DialogContent`/`AlertDialogContent` cap at
+  `max-h-[85vh]` with scroll.
+- **Browser Back bypassing dirty guards — FIXED 2026-08-10.** The app now mounts a
+  data router (`createBrowserRouter`), and `useUnsavedGuard` is built on
+  `useBlocker`: sidebar links, imperative `navigate()`, and browser Back/Forward all
+  confirm against a dirty form (wizard, monitor edit, status-page editor).
+  Same-path navigations (wizard `?step=`) pass through; tab close/reload remains on
+  `beforeunload`. The old guarded-link context machinery is deleted.
+- **Form-attribute cluster — FIXED 2026-08-10.** New `FieldInput`/`FieldTextarea`
+  wrappers (`components/ui/field.tsx`) default `autoComplete="off"`,
+  `spellCheck={false}`, and `name` from `id` across the wizard, monitor edit,
+  settings, and channel dialog — closes Slice-2 P5/P16/P22/P31/N6. N7 (SMTP port
+  `NaN`) closed with `min`/`max`/`inputMode` plus a `buildConfig` range check.
+- **Error masquerading as empty/not-found — FIXED `d943daf`.** Public status page
+  only renders "not found" on a real 404; EditPageDialog hard-returns unless the
+  form hydrated; IncidentsPage shows skeletons during initial fetch.
+- **Overlay/popover clipping under root zoom — FIXED `58d4de7`.** Root `zoom: 1.1`
+  double-scaled floating-ui's translate px, pushing dropdowns/selects off-screen
+  near viewport edges; the popper wrapper is counter-zoomed. (Found 08-09 via QA
+  sweep; not in the slice tables.)
+- **Contrast regressions in landing prose — OPEN.** `text-foreground/40` at 12px
+  across blog/docs (~2.3:1) and `text-foreground/50` in FeatureGrid fail 4.5:1.
+- **`transition-all` regression — OPEN.** `apps/landing/src/pages/BlogIndex.tsx:72`.
+
+### Closed by `9162b30` (slice lows/meds)
+
+Tooltip two-stage timing restored (400ms delay), chart axis hover fade 150ms
+ease-out, mobile Sheet close button, `aria-live` on the dashboard activity feed,
+`Intl.RelativeTimeFormat` for relative times, press feedback unified at 0.97,
+public-page loading ping 1s, FooterCTA copy-button aria-label.
 
 ## Method note
 

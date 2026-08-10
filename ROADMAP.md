@@ -29,15 +29,17 @@ story. The plan below reflects that, with one deliberate exception (v0.8.0).
 Theme: a launch wave of new users will find every rough edge in the first hour.
 
 - **Close the remaining audit med clusters** (`audits/2026-07-31/`):
-  - Dialog draft loss — dirty-guard confirm on Esc/overlay/X for the channels dialog;
-    viewport cap + scroll on `DialogContent` so long forms can't push submit off-screen
-  - Browser Back bypassing all dirty guards (wizard `replace: true` history loses forms)
+  - ~~Dialog draft loss — dirty-guard confirm on Esc/overlay/X for the channels dialog;
+    viewport cap + scroll on `DialogContent`~~ — shipped (`e4e2514`)
+  - ~~Browser Back bypassing all dirty guards~~ — shipped 2026-08-10: data router +
+    `useBlocker`-based `useUnsavedGuard` covers Back/Forward on all guarded forms
   - Contrast regressions in landing prose (`text-foreground/40` at 12px, FeatureGrid)
-  - Shared form-input wrapper to close the recurring missing
-    `name`/`autoComplete`/`type`/`spellCheck` findings
+  - ~~Shared form-input wrapper to close the recurring missing
+    `name`/`autoComplete`/`type`/`spellCheck` findings~~ — shipped 2026-08-10
+    (`FieldInput`/`FieldTextarea`, `components/ui/field.tsx`)
   - `transition-all` regression in the landing blog
-- **Refresh the stale audit docs** — AUDIT.md's "remaining highs" (H1–H3) and several meds
-  were fixed after the sweep (`c6e6028`, `d943daf`); the docs should stop claiming otherwise.
+- ~~**Refresh the stale audit docs**~~ — done 2026-08-10: `AUDIT.md` rewritten with the
+  post-sweep commit map; slice files carry a pointer addendum.
 - **Security pass** — security headers story (what the app sets vs what the reverse proxy
   must), verify public-endpoint rate limits and auth rate limiting under load, SSRF
   re-check on webhook channels, session/cookie flags audit against PRD §13.

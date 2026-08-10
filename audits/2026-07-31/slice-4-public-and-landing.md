@@ -1,5 +1,10 @@
 # Slice 4 — Public status page + landing (2026-07-31 sweep)
 
+> **2026-08-10 update:** the Persists/New tables below are as-written at sweep time.
+> Several entries were closed by later commits (`c6e6028`, `d943daf`, `e4e2514`, `9162b30`,
+> `58d4de7`, and the 08-10 data-router/field-wrapper work) — the commit-to-finding map
+> lives in the root `AUDIT.md` 'Status 2026-08-10' section, which is the current truth.
+
 Re-verified every prior AUDIT.md Slice 4 entry and the AUDIT-EMIL.md themes touching
 this slice against current source, then hunted new issues. Line numbers are current.
 

@@ -1,5 +1,10 @@
 # Slice 1 — Admin shell + dashboard — re-audit 2026-07-31
 
+> **2026-08-10 update:** the Persists/New tables below are as-written at sweep time.
+> Several entries were closed by later commits (`c6e6028`, `d943daf`, `e4e2514`, `9162b30`,
+> `58d4de7`, and the 08-10 data-router/field-wrapper work) — the commit-to-finding map
+> lives in the root `AUDIT.md` 'Status 2026-08-10' section, which is the current truth.
+
 Re-verified every 2026-07-21 Slice 1 finding (AUDIT.md), the relevant 'Persists
 from 07-20' rows, and the AUDIT-EMIL.md themes touching this surface against
 CURRENT source. Base path: `packages/ui/src/`. Severities: `high` = real-user
