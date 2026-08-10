@@ -5,15 +5,15 @@ import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
 import { Checkbox } from '@/components/ui/checkbox'
-import ArrowDown from '@solar-icons/react/csr/arrows/ArrowDown'
-import ArrowLeft from '@solar-icons/react/csr/arrows/ArrowLeft'
-import ArrowUp from '@solar-icons/react/csr/arrows/ArrowUp'
-import SquareArrowRightUp from '@solar-icons/react/csr/arrows/SquareArrowRightUp'
-import Global from '@solar-icons/react/csr/map/Global'
-import Upload from '@solar-icons/react/csr/arrows-action/Upload'
-import TrashBinTrash from '@solar-icons/react/csr/ui/TrashBinTrash'
-import Sun from '@solar-icons/react/csr/weather/Sun'
-import Moon from '@solar-icons/react/csr/weather/Moon'
+import { ArrowDown } from "@phosphor-icons/react/dist/icons/ArrowDown"
+import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft"
+import { ArrowUp } from "@phosphor-icons/react/dist/icons/ArrowUp"
+import { ArrowSquareUpRight } from "@phosphor-icons/react/dist/icons/ArrowSquareUpRight"
+import { Globe } from "@phosphor-icons/react/dist/icons/Globe"
+import { UploadSimple } from "@phosphor-icons/react/dist/icons/UploadSimple"
+import { Trash } from "@phosphor-icons/react/dist/icons/Trash"
+import { Sun } from "@phosphor-icons/react/dist/icons/Sun"
+import { Moon } from "@phosphor-icons/react/dist/icons/Moon"
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/panel'
 import { QueryError } from '@/components/QueryError'
@@ -404,7 +404,7 @@ export function StatusPageEditorPage() {
         {page && (
           <Button size="sm" variant="outline" asChild className="gap-1.5">
             <a href={`/${page.slug}`} target="_blank" rel="noreferrer">
-              <Icon icon={SquareArrowRightUp} className="h-3.5 w-3.5" />
+              <Icon icon={ArrowSquareUpRight} className="h-3.5 w-3.5" />
               View
             </a>
           </Button>
@@ -763,7 +763,7 @@ function LogoField({
         const data = (await res.json().catch(() => null)) as {
           error?: string
         } | null
-        throw new Error(data?.error ?? `Upload failed (${res.status})`)
+        throw new Error(data?.error ?? `UploadSimple failed (${res.status})`)
       }
     },
     onSuccess: () => {
@@ -771,7 +771,7 @@ function LogoField({
       toast.success('Logo updated')
     },
     onError: (err) =>
-      toast.error(err instanceof Error ? err.message : 'Upload failed'),
+      toast.error(err instanceof Error ? err.message : 'UploadSimple failed'),
   })
 
   const remove = useMutation({
@@ -798,7 +798,7 @@ function LogoField({
           />
         ) : (
           <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-dashed border-border text-muted-foreground">
-            <Icon icon={Global} className="size-4" />
+            <Icon icon={Globe} className="size-4" />
           </div>
         )}
         <div className="flex items-center gap-2">
@@ -810,8 +810,8 @@ function LogoField({
             onClick={() => fileRef.current?.click()}
             className="gap-1.5"
           >
-            <Icon icon={Upload} className="h-3.5 w-3.5" />
-            {upload.isPending ? 'Uploading…' : logoPath ? 'Replace' : 'Upload'}
+            <Icon icon={UploadSimple} className="h-3.5 w-3.5" />
+            {upload.isPending ? 'Uploading…' : logoPath ? 'Replace' : 'UploadSimple'}
           </Button>
           {logoPath && (
             <Button
@@ -822,7 +822,7 @@ function LogoField({
               onClick={() => remove.mutate()}
               className="gap-1.5 text-muted-foreground"
             >
-              <Icon icon={TrashBinTrash} className="h-3.5 w-3.5" />
+              <Icon icon={Trash} className="h-3.5 w-3.5" />
               Remove
             </Button>
           )}

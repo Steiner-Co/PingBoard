@@ -4,14 +4,14 @@ import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
 import { Checkbox } from '@/components/ui/checkbox'
-import AddSquare from '@solar-icons/react/csr/ui/AddSquare'
-import TestTube from '@solar-icons/react/csr/medicine/TestTube'
-import TrashBinTrash from '@solar-icons/react/csr/ui/TrashBinTrash'
-import Pen from '@solar-icons/react/csr/messages/Pen'
-import Bell from '@solar-icons/react/csr/notifications/Bell'
-import DangerTriangle from '@solar-icons/react/csr/ui/DangerTriangle'
-import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
-import AltArrowRight from '@solar-icons/react/csr/arrows/AltArrowRight'
+import { PlusSquare } from "@phosphor-icons/react/dist/icons/PlusSquare"
+import { TestTube } from "@phosphor-icons/react/dist/icons/TestTube"
+import { Trash } from "@phosphor-icons/react/dist/icons/Trash"
+import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple"
+import { Bell } from "@phosphor-icons/react/dist/icons/Bell"
+import { Warning } from "@phosphor-icons/react/dist/icons/Warning"
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
+import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight"
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/EmptyState'
@@ -149,7 +149,7 @@ export function ChannelsPage() {
         </p>
       </div>
       <Button onClick={() => setOpen(true)} className="gap-2 self-start sm:self-auto">
-        <Icon icon={AddSquare} className="h-4 w-4" />
+        <Icon icon={PlusSquare} className="h-4 w-4" />
         Add channel
       </Button>
     </div>
@@ -200,7 +200,7 @@ export function ChannelsPage() {
           }
           action={
             <Button onClick={() => setOpen(true)}>
-        <Icon icon={AddSquare} className="h-4 w-4" />
+        <Icon icon={PlusSquare} className="h-4 w-4" />
               Add your first channel
             </Button>
           }
@@ -376,7 +376,7 @@ function ChannelRow({
             Test
           </Button>
           <Button size="sm" variant="outline" onClick={onEdit}>
-            <Icon icon={Pen} className="h-3.5 w-3.5" />
+            <Icon icon={PencilSimple} className="h-3.5 w-3.5" />
             Edit
           </Button>
           <Button
@@ -385,7 +385,7 @@ function ChannelRow({
             aria-label={`Delete ${channel.name}`}
             onClick={onDelete}
           >
-            <Icon icon={TrashBinTrash} className="h-3.5 w-3.5" />
+            <Icon icon={Trash} className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
@@ -533,7 +533,7 @@ function RoutingGaps({
     <Panel className="border-warning/40">
       <header className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2.5">
         <h2 className="flex items-center gap-2 text-sm font-medium text-warning">
-          <Icon icon={DangerTriangle} className="size-3.5 shrink-0" />
+          <Icon icon={Warning} className="size-3.5 shrink-0" />
           Unrouted monitors
         </h2>
         <span className="font-mono text-[11px] tabular-nums text-warning">{gaps.length}</span>
@@ -560,7 +560,7 @@ function RoutingGaps({
                 </span>
               )}
               <Icon
-                icon={AltArrowRight}
+                icon={CaretRight}
                 className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
               />
             </Link>

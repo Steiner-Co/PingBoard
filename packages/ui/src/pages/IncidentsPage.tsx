@@ -3,9 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
-import Magnifier from '@solar-icons/react/csr/search/Magnifier'
-import Pen from '@solar-icons/react/csr/messages/Pen'
-import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
+import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass"
+import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple"
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
 import { Bar, BarChart, BarXAxis, ChartTooltip, Grid } from '@/components/charts'
 
 import { Badge } from '@/components/ui/badge'
@@ -478,7 +478,7 @@ export function IncidentsPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-10 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
-            <Icon icon={Magnifier} className="h-5 w-5 opacity-50" />
+            <Icon icon={MagnifyingGlass} className="h-5 w-5 opacity-50" />
             No incidents match this filter.
           </div>
         ) : (
@@ -740,7 +740,7 @@ function Row({ incident }: { incident: IncidentRow }) {
             <span className={incident.note ? '' : 'text-muted-foreground italic'}>
               {incident.note ?? 'Add a note…'}
             </span>
-            <Icon icon={Pen} className="h-3.5 w-3.5 opacity-40" />
+            <Icon icon={PencilSimple} className="h-3.5 w-3.5 opacity-40" />
           </button>
         )}
       </TableCell>

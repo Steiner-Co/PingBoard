@@ -13,22 +13,22 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import ChartSquare from "@solar-icons/react/csr/business/ChartSquare"
-import Global from "@solar-icons/react/csr/map/Global"
-import DangerCircle from "@solar-icons/react/csr/ui/DangerCircle"
-import Calendar from "@solar-icons/react/csr/time/Calendar"
-import Bell from "@solar-icons/react/csr/notifications/Bell"
-import Settings from "@solar-icons/react/csr/settings/Settings"
-import Monitor from "@solar-icons/react/csr/devices/Monitor"
+import { ChartBar } from "@phosphor-icons/react/dist/icons/ChartBar"
+import { Globe } from "@phosphor-icons/react/dist/icons/Globe"
+import { WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle"
+import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank"
+import { Bell } from "@phosphor-icons/react/dist/icons/Bell"
+import { GearSix } from "@phosphor-icons/react/dist/icons/GearSix"
+import { Monitor } from "@phosphor-icons/react/dist/icons/Monitor"
 
 const navGroups = [
   {
     label: "Monitor",
     items: [
-      { title: "Dashboard", url: "/admin", icon: ChartSquare },
-      { title: "Domains", url: "/admin/domains", icon: Global },
-      { title: "Incidents", url: "/admin/incidents", icon: DangerCircle },
-      { title: "Maintenance", url: "/admin/maintenance", icon: Calendar },
+      { title: "Dashboard", url: "/admin", icon: ChartBar },
+      { title: "Domains", url: "/admin/domains", icon: Globe },
+      { title: "Incidents", url: "/admin/incidents", icon: WarningCircle },
+      { title: "Maintenance", url: "/admin/maintenance", icon: CalendarBlank },
     ],
   },
   {
@@ -36,7 +36,7 @@ const navGroups = [
     items: [
       { title: "Channels", url: "/admin/channels", icon: Bell },
       { title: "Status pages", url: "/admin/pages", icon: Monitor },
-      { title: "Settings", url: "/admin/settings", icon: Settings },
+      { title: "Settings", url: "/admin/settings", icon: GearSix },
     ],
   },
 ]

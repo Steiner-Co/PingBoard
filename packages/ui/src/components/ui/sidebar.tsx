@@ -23,7 +23,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Icon } from "@/components/ui/icon"
-import SidebarMinimalistic from "@solar-icons/react/csr/it/SidebarMinimalistic"
+import { SidebarSimple } from "@phosphor-icons/react/dist/icons/SidebarSimple"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -40,6 +40,9 @@ type SidebarContextProps = {
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
   toggleSidebar: () => void
+  // True for one paint after a keyboard-initiated toggle: keyboard actions
+  // never animate, so transitions are suppressed for that state flip only.
+  instant: boolean
 }
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null)
@@ -68,6 +71,7 @@ function SidebarProvider({
 }) {
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
+  const [instant, setInstant] = React.useState(false)
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
@@ -101,7 +105,13 @@ function SidebarProvider({
         (event.metaKey || event.ctrlKey)
       ) {
         event.preventDefault()
+        // Keyboard-initiated toggles snap: suppress transitions for this flip,
+        // then re-enable after the new state has painted (two frames).
+        setInstant(true)
         toggleSidebar()
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => setInstant(false))
+        })
       }
     }
 
@@ -122,8 +132,9 @@ function SidebarProvider({
       openMobile,
       setOpenMobile,
       toggleSidebar,
+      instant,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, instant]
   )
 
   return (
@@ -162,7 +173,7 @@ function Sidebar({
   variant?: "sidebar" | "floating" | "inset"
   collapsible?: "offcanvas" | "icon" | "none"
 }) {
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+  const { isMobile, state, openMobile, setOpenMobile, instant } = useSidebar()
 
   if (collapsible === "none") {
     return (
@@ -213,12 +224,14 @@ function Sidebar({
       data-variant={variant}
       data-side={side}
       data-slot="sidebar"
+      data-instant={instant ? "" : undefined}
     >
       {/* This is what handles the sidebar gap on desktop */}
       <div
         data-slot="sidebar-gap"
         className={cn(
           "relative w-(--sidebar-width) bg-transparent",
+          "motion-safe:transition-[width] motion-safe:duration-[var(--motion-overlay-in)] motion-safe:ease-[var(--ease-out-quart)] group-data-[instant]:transition-none",
           "group-data-[collapsible=offcanvas]:w-0",
           "group-data-[side=right]:rotate-180",
           variant === "floating" || variant === "inset"
@@ -230,7 +243,10 @@ function Sidebar({
         data-slot="sidebar-container"
         data-side={side}
         className={cn(
-          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) data-[side=left]:left-0 data-[side=left]:group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)] data-[side=right]:right-0 data-[side=right]:group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)] md:flex",
+          // The panel itself animates with transform only (GPU); the gap
+          // sibling above owns the layout reflow, synchronized by the shared
+          // duration/easing tokens.
+          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) data-[side=left]:left-0 data-[side=right]:right-0 motion-safe:transition-transform motion-safe:duration-[var(--motion-overlay-in)] motion-safe:ease-[var(--ease-out-quart)] group-data-[instant]:transition-none data-[side=left]:group-data-[collapsible=offcanvas]:-translate-x-full data-[side=right]:group-data-[collapsible=offcanvas]:translate-x-full md:flex",
           // Adjust the padding for floating and inset variants.
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
@@ -271,7 +287,7 @@ function SidebarTrigger({
       }}
       {...props}
     >
-      <Icon icon={SidebarMinimalistic} />
+      <Icon icon={SidebarSimple} />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )

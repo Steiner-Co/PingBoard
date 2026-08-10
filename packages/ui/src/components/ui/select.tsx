@@ -3,10 +3,10 @@ import { Select as SelectPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 import { Icon } from "@/components/ui/icon"
-import ArrowDown from "@solar-icons/react/csr/arrows/ArrowDown"
-import AltArrowDown from "@solar-icons/react/csr/arrows/AltArrowDown"
-import CheckCircle from "@solar-icons/react/csr/ui/CheckCircle"
-import ArrowUp from "@solar-icons/react/csr/arrows/ArrowUp"
+import { ArrowDown } from "@phosphor-icons/react/dist/icons/ArrowDown"
+import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown"
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
+import { ArrowUp } from "@phosphor-icons/react/dist/icons/ArrowUp"
 
 function Select({
   ...props
@@ -53,7 +53,7 @@ function SelectTrigger({
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <Icon icon={AltArrowDown} className="pointer-events-none size-3.5 text-muted-foreground" />
+        <Icon icon={CaretDown} className="pointer-events-none size-3.5 text-muted-foreground" />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   )

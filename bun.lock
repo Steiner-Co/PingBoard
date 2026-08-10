@@ -47,7 +47,7 @@
     },
     "apps/mcp": {
       "name": "@pingboard/mcp",
-      "version": "0.0.0",
+      "version": "0.1.2",
       "bin": {
         "pingboard-mcp": "./src/index.ts",
       },
@@ -110,6 +110,7 @@
         "@fontsource-variable/outfit": "^5.3.0",
         "@hookform/resolvers": "^3.9.0",
         "@number-flow/react": "^0.6.2",
+        "@phosphor-icons/react": "^2.1.10",
         "@pingboard/shared": "workspace:*",
         "@radix-ui/react-dialog": "^1.1.0",
         "@radix-ui/react-dropdown-menu": "^2.1.0",
@@ -119,7 +120,6 @@
         "@radix-ui/react-switch": "^1.1.0",
         "@radix-ui/react-tabs": "^1.1.0",
         "@radix-ui/react-tooltip": "^1.1.0",
-        "@solar-icons/react": "^1.1.1",
         "@tanstack/react-query": "^5.59.0",
         "@tanstack/react-table": "^8.21.3",
         "@visx/curve": "4.0.1-alpha.0",
@@ -369,6 +369,8 @@
 
     "@open-draft/until": ["@open-draft/until@2.1.0", "", {}, "sha512-U69T3ItWHvLwGg5eJ0n3I62nWuE6ilHlmz7zM0npLBRvPRd7e6NYmg54vvRtP5mZG7kZqZCFVdsTWo7BPtBujg=="],
 
+    "@phosphor-icons/react": ["@phosphor-icons/react@2.1.10", "", { "peerDependencies": { "react": ">= 16.8", "react-dom": ">= 16.8" } }, "sha512-vt8Tvq8GLjheAZZYa+YG/pW7HDbov8El/MANW8pOAz4eGxrwhnbfrQZq0Cp4q8zBEu8NIhHdnr+r8thnfRSNYA=="],
+
     "@pingboard/core": ["@pingboard/core@workspace:packages/core"],
 
     "@pingboard/db": ["@pingboard/db@workspace:packages/db"],
@@ -574,8 +576,6 @@
     "@shikijs/vscode-textmate": ["@shikijs/vscode-textmate@10.0.2", "", {}, "sha512-83yeghZ2xxin3Nj8z1NMd/NCuca+gsYXswywDy5bHvwlWL8tpTQmzGeUuHd9FC3E/SBEMvzJRwWEOz5gGes9Qg=="],
 
     "@sindresorhus/merge-streams": ["@sindresorhus/merge-streams@4.0.0", "", {}, "sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ=="],
-
-    "@solar-icons/react": ["@solar-icons/react@1.1.1", "", { "peerDependencies": { "react": ">= 16.8", "react-dom": ">= 16.8" } }, "sha512-7cuzHyfXKk+P4HyoW+EXbauiBm01AZzqcEqTsr/m0f77aDYPU0XayejV9IXscxiyYB+twh+UsSgqwIS/ap/rgA=="],
 
     "@tailwindcss/node": ["@tailwindcss/node@4.2.4", "", { "dependencies": { "@jridgewell/remapping": "^2.3.5", "enhanced-resolve": "^5.19.0", "jiti": "^2.6.1", "lightningcss": "1.32.0", "magic-string": "^0.30.21", "source-map-js": "^1.2.1", "tailwindcss": "4.2.4" } }, "sha512-Ai7+yQPxz3ddrDQzFfBKdHEVBg0w3Zl83jnjuwxnZOsnH9pGn93QHQtpU0p/8rYWxvbFZHneni6p1BSLK4DkGA=="],
 

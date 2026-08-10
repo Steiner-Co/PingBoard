@@ -6,7 +6,7 @@ import { Dialog as DialogPrimitive } from "radix-ui"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Icon } from "@/components/ui/icon"
-import CloseSquare from "@solar-icons/react/csr/ui/CloseSquare"
+import { XSquare } from "@phosphor-icons/react/dist/icons/XSquare"
 
 function Dialog({
   ...props
@@ -78,7 +78,7 @@ function DialogContent({
               className="absolute top-2 right-2"
               size="icon-sm"
             >
-              <Icon icon={CloseSquare} />
+              <Icon icon={XSquare} />
               <span className="sr-only">Close</span>
             </Button>
           </DialogPrimitive.Close>

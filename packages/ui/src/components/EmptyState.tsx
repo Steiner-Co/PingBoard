@@ -1,10 +1,10 @@
 import type { ReactNode, ComponentType } from 'react'
-import type { IconProps as SolarIconProps } from '@solar-icons/react'
+import type { IconProps as PhosphorIconProps } from '@phosphor-icons/react'
 import { Icon } from '@/components/ui/icon'
 import { cn } from '@/lib/utils'
 
 interface EmptyStateProps {
-  icon: ComponentType<SolarIconProps>
+  icon: ComponentType<PhosphorIconProps>
   title: string
   description?: string
   action?: ReactNode

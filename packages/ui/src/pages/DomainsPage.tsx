@@ -3,16 +3,16 @@ import { format } from 'date-fns'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Icon } from '@/components/ui/icon'
-import DangerTriangle from '@solar-icons/react/csr/ui/DangerTriangle'
-import DangerCircle from '@solar-icons/react/csr/ui/DangerCircle'
-import AltArrowDown from '@solar-icons/react/csr/arrows/AltArrowDown'
-import AltArrowRight from '@solar-icons/react/csr/arrows/AltArrowRight'
-import Calendar from '@solar-icons/react/csr/time/Calendar'
-import VerifiedCheck from '@solar-icons/react/csr/money/VerifiedCheck'
-import Global from '@solar-icons/react/csr/map/Global'
-import AddSquare from '@solar-icons/react/csr/ui/AddSquare'
-import Magnifier from '@solar-icons/react/csr/search/Magnifier'
-import Refresh from '@solar-icons/react/csr/arrows/Refresh'
+import { Warning } from "@phosphor-icons/react/dist/icons/Warning"
+import { WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle"
+import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown"
+import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight"
+import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank"
+import { SealCheck } from "@phosphor-icons/react/dist/icons/SealCheck"
+import { Globe } from "@phosphor-icons/react/dist/icons/Globe"
+import { PlusSquare } from "@phosphor-icons/react/dist/icons/PlusSquare"
+import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass"
+import { ArrowClockwise } from "@phosphor-icons/react/dist/icons/ArrowClockwise"
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -258,7 +258,7 @@ export function DomainsPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative w-full sm:max-w-xs">
               <Icon
-                icon={Magnifier}
+                icon={MagnifyingGlass}
                 className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
               />
               <Input
@@ -277,13 +277,13 @@ export function DomainsPage() {
                 className="gap-2"
               >
                 <Icon
-                  icon={Refresh}
+                  icon={ArrowClockwise}
                   className={cn('h-4 w-4', query.isFetching && 'animate-spin')}
                 />
-                Refresh
+                ArrowClockwise
               </Button>
               <Button onClick={() => setAddOpen(true)} className="gap-2">
-                <Icon icon={AddSquare} className="h-4 w-4" />
+                <Icon icon={PlusSquare} className="h-4 w-4" />
                 Add domain
               </Button>
             </div>
@@ -293,7 +293,7 @@ export function DomainsPage() {
           <Panel className="border-warning/40">
             <header className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2.5">
               <h2 className="flex items-center gap-2 text-sm font-medium text-warning">
-                <Icon icon={DangerTriangle} className="size-3.5 shrink-0" />
+                <Icon icon={Warning} className="size-3.5 shrink-0" />
                 Expiring soon
               </h2>
               <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-warning tabular-nums">
@@ -391,7 +391,7 @@ function DomainRow({
         className="flex w-full items-center gap-3 px-4 py-3 text-left outline-none transition-colors hover:bg-accent/40 focus-visible:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring/30"
       >
         <Icon
-          icon={open ? AltArrowDown : AltArrowRight}
+          icon={open ? CaretDown : CaretRight}
           className="h-4 w-4 shrink-0 text-muted-foreground"
         />
         <div className="min-w-0 flex-1">
@@ -399,7 +399,7 @@ function DomainRow({
             <span className="truncate font-medium">{d.name}</span>
             {d.channelIds.length === 0 && (
               <Badge variant="warning" className="gap-1">
-                <Icon icon={DangerCircle} className="h-3.5 w-3.5" />
+                <Icon icon={WarningCircle} className="h-3.5 w-3.5" />
                 Not alerting
               </Badge>
             )}
@@ -460,7 +460,7 @@ function EditableFact({
   if (!value) {
     return (
       <Button size="sm" variant="outline" onClick={onEdit} className="h-7 gap-1.5">
-        <Icon icon={Calendar} className="h-3.5 w-3.5" />
+        <Icon icon={CalendarBlank} className="h-3.5 w-3.5" />
         {setLabel}
       </Button>
     )
@@ -528,7 +528,7 @@ function DomainDetail({
       <Field label="SSL issuer">
         {f.sslIssuer ? (
           <span className="inline-flex items-center gap-1.5">
-            <Icon icon={VerifiedCheck} className="h-3.5 w-3.5 text-muted-foreground" />
+            <Icon icon={SealCheck} className="h-3.5 w-3.5 text-muted-foreground" />
             {f.sslIssuer}
           </span>
         ) : (
@@ -973,7 +973,7 @@ function EmptyDomains({ onAdd }: { onAdd: () => void }) {
     <div className="px-4 lg:px-6">
       <div className="flex min-h-[420px] flex-col items-center justify-center gap-6 rounded-lg border border-dashed bg-card/50 p-10 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
-          <Icon icon={Global} className="h-6 w-6" />
+          <Icon icon={Globe} className="h-6 w-6" />
         </div>
         <div className="max-w-md space-y-2">
           <h2 className="text-2xl font-semibold tracking-tight">No domains tracked yet</h2>
@@ -984,7 +984,7 @@ function EmptyDomains({ onAdd }: { onAdd: () => void }) {
           </p>
         </div>
         <Button onClick={onAdd} className="gap-2">
-          <Icon icon={AddSquare} className="h-4 w-4" />
+          <Icon icon={PlusSquare} className="h-4 w-4" />
           Add your first domain
         </Button>
       </div>

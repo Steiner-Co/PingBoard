@@ -3,7 +3,7 @@ import { Checkbox as CheckboxPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 import { Icon } from "@/components/ui/icon"
-import CheckCircle from "@solar-icons/react/csr/ui/CheckCircle"
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
 
 function Checkbox({
   className,

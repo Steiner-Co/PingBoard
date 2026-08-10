@@ -3,9 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
-import TrashBinTrash from '@solar-icons/react/csr/ui/TrashBinTrash'
-import LinkIcon from '@solar-icons/react/csr/text-formatting/Link'
-import Calendar from '@solar-icons/react/csr/time/Calendar'
+import { Trash } from "@phosphor-icons/react/dist/icons/Trash"
+import { LinkSimple } from "@phosphor-icons/react/dist/icons/LinkSimple"
+import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank"
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/EmptyState'
@@ -120,7 +120,7 @@ export function MaintenancePage() {
           <p className="text-sm text-muted-foreground">{INTRO}</p>
         </header>
         <EmptyState
-          icon={Calendar}
+          icon={CalendarBlank}
           title="No maintenance windows scheduled"
           description="Windows are scheduled from a monitor's detail page — open the monitor you're planning downtime for and add one under Maintenance windows."
           action={
@@ -564,7 +564,7 @@ function WindowRow({
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline underline-offset-4"
         >
           <Icon
-            icon={LinkIcon}
+            icon={LinkSimple}
             className="h-3.5 w-3.5"
           />
           {w.monitorName}
@@ -582,7 +582,7 @@ function WindowRow({
         className="shrink-0 self-start"
         onClick={() => onDelete(w)}
       >
-        <Icon icon={TrashBinTrash} className="h-3.5 w-3.5" />
+        <Icon icon={Trash} className="h-3.5 w-3.5" />
       </Button>
     </div>
   )

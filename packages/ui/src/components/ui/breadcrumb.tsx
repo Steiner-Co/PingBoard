@@ -3,8 +3,8 @@ import { Slot } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 import { Icon } from "@/components/ui/icon"
-import AltArrowRight from "@solar-icons/react/csr/arrows/AltArrowRight"
-import MenuDots from "@solar-icons/react/csr/ui/MenuDots"
+import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight"
+import { DotsThreeOutlineVertical } from "@phosphor-icons/react/dist/icons/DotsThreeOutlineVertical"
 
 function Breadcrumb({ className, ...props }: React.ComponentProps<"nav">) {
   return (
@@ -84,7 +84,7 @@ function BreadcrumbSeparator({
       className={cn("[&>svg]:size-3.5", className)}
       {...props}
     >
-      {children ?? <Icon icon={AltArrowRight} />}
+      {children ?? <Icon icon={CaretRight} />}
     </li>
   )
 }
@@ -104,7 +104,7 @@ function BreadcrumbEllipsis({
       )}
       {...props}
     >
-      <Icon icon={MenuDots} />
+      <Icon icon={DotsThreeOutlineVertical} />
       <span className="sr-only">More</span>
     </span>
   )

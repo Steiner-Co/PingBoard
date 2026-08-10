@@ -1,14 +1,14 @@
 import * as React from 'react'
 import { DayPicker, type DayPickerProps } from 'react-day-picker'
-import AltArrowLeft from '@solar-icons/react/csr/arrows/AltArrowLeft'
-import AltArrowRight from '@solar-icons/react/csr/arrows/AltArrowRight'
+import { CaretLeft } from "@phosphor-icons/react/dist/icons/CaretLeft"
+import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight"
 
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import { Icon } from '@/components/ui/icon'
 
 // shadCN-style Calendar: react-day-picker v10 styled to match the rest of
-// the design system. Calendar chevrons use Solar's AltArrow icons to stay
+// the design system. Calendar chevrons use Phosphor's Caret icons to stay
 // consistent with the rest of the icon system (no lucide-react).
 export type CalendarProps = DayPickerProps
 
@@ -63,9 +63,9 @@ function Calendar({
       components={{
         Chevron: ({ orientation, ..._chevronProps }) =>
           orientation === 'left' ? (
-            <Icon icon={AltArrowLeft} className="size-4" />
+            <Icon icon={CaretLeft} className="size-4" />
           ) : (
-            <Icon icon={AltArrowRight} className="size-4" />
+            <Icon icon={CaretRight} className="size-4" />
           ),
       }}
       {...props}

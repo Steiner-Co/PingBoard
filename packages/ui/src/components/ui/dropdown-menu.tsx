@@ -5,8 +5,8 @@ import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 import { Icon } from "@/components/ui/icon"
-import CheckCircle from "@solar-icons/react/csr/ui/CheckCircle"
-import AltArrowRight from "@solar-icons/react/csr/arrows/AltArrowRight"
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
+import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight"
 
 function DropdownMenu({
   ...props
@@ -232,7 +232,7 @@ function DropdownMenuSubTrigger({
       {...props}
     >
       {children}
-      <Icon icon={AltArrowRight} className="ml-auto" />
+      <Icon icon={CaretRight} className="ml-auto" />
     </DropdownMenuPrimitive.SubTrigger>
   )
 }

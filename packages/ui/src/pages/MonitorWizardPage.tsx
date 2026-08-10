@@ -5,12 +5,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
 import { Checkbox } from '@/components/ui/checkbox'
-import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
-import ArrowLeft from '@solar-icons/react/csr/arrows/ArrowLeft'
-import ArrowRight from '@solar-icons/react/csr/arrows/ArrowRight'
-import CloseSquare from '@solar-icons/react/csr/ui/CloseSquare'
-import TestTube from '@solar-icons/react/csr/medicine/TestTube'
-import DangerCircle from '@solar-icons/react/csr/ui/DangerCircle'
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
+import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft"
+import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight"
+import { XSquare } from "@phosphor-icons/react/dist/icons/XSquare"
+import { TestTube } from "@phosphor-icons/react/dist/icons/TestTube"
+import { WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle"
 import { ALLOWED_INTERVALS_SECONDS } from '@pingboard/shared'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -580,7 +580,7 @@ export function TagInput({
               className="opacity-60 hover:opacity-100"
               aria-label={`Remove ${tag}`}
             >
-              <Icon icon={CloseSquare} className="h-3.5 w-3.5" />
+              <Icon icon={XSquare} className="h-3.5 w-3.5" />
             </button>
           </Badge>
         ))}
@@ -620,7 +620,7 @@ export function TagInput({
 
 function TestResultRow({ result }: { result: TestResult }) {
   const ok = result.status === 'up'
-  const icon = ok ? CheckCircle : DangerCircle
+  const icon = ok ? CheckCircle : WarningCircle
   const tone = ok ? 'text-success-text' : 'text-destructive'
   return (
     <div className="flex items-start gap-2 text-sm">

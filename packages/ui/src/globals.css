@@ -239,6 +239,22 @@
   --motion-overlay-out: 120ms;
 }
 
+/*
+ * Nav icons (nav-main) render as true strokes. Phosphor's React package
+ * draws its non-fill weights as *filled contours* (the svg root only carries
+ * fill="currentColor", no stroke) — for the draw-in animation to have
+ * strokes to animate, the paths are re-styled here as lines, matching the
+ * phosphoricons.com web look (round caps/joins, 16/256 = 6.25% of the grid —
+ * Phosphor's own `regular` weight).
+ */
+.nav-icon-line path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 16;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* Bklit chart variables mapped onto the blueprint tokens, so charts inherit
    the app's palette and theme switching without per-chart color props. These
    reference theme-aware vars, so one definition covers light and dark. */

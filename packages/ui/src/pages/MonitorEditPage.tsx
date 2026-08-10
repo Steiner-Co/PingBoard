@@ -3,8 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
-import ArrowLeft from '@solar-icons/react/csr/arrows/ArrowLeft'
-import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
+import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft"
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
 import { ALLOWED_INTERVALS_SECONDS } from '@pingboard/shared'
 
 import { Panel } from '@/components/panel'

@@ -3,14 +3,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
-import ArrowLeft from '@solar-icons/react/csr/arrows/ArrowLeft'
-import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
+import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft"
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
 import { DateTimePicker } from '@/components/ui/date-time-picker'
-import TrashBinTrash from '@solar-icons/react/csr/ui/TrashBinTrash'
-import Pen from '@solar-icons/react/csr/messages/Pen'
-import MenuDots from '@solar-icons/react/csr/ui/MenuDots'
-import Pause from '@solar-icons/react/csr/video/Pause'
-import Play from '@solar-icons/react/csr/video/Play'
+import { Trash } from "@phosphor-icons/react/dist/icons/Trash"
+import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple"
+import { DotsThreeOutlineVertical } from "@phosphor-icons/react/dist/icons/DotsThreeOutlineVertical"
+import { Pause } from "@phosphor-icons/react/dist/icons/Pause"
+import { Play } from "@phosphor-icons/react/dist/icons/Play"
 import { Input } from '@/components/ui/input'
 import { curveMonotoneX } from '@visx/curve'
 import { Area, AreaChart, ChartTooltip, Grid, XAxis } from '@/components/charts'
@@ -179,7 +179,7 @@ export function MonitorDetailPage() {
         <div className="flex gap-2 shrink-0">
           <Button variant="default" asChild>
             <Link to={`/admin/monitors/${monitor.id}/edit`} className="gap-2">
-              <Icon icon={Pen} className="h-4 w-4" />
+              <Icon icon={PencilSimple} className="h-4 w-4" />
               Edit
             </Link>
           </Button>
@@ -203,7 +203,7 @@ export function MonitorDetailPage() {
                 aria-label="More actions"
                 disabled={deleteMutation.isPending}
               >
-                <Icon icon={MenuDots} className="h-4 w-4" />
+                <Icon icon={DotsThreeOutlineVertical} className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -220,7 +220,7 @@ export function MonitorDetailPage() {
                   if (ok) deleteMutation.mutate()
                 }}
               >
-                <Icon icon={TrashBinTrash} className="h-3.5 w-3.5" />
+                <Icon icon={Trash} className="h-3.5 w-3.5" />
                 Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -545,7 +545,7 @@ function IncidentRow({
             <span className={incident.note ? '' : 'text-muted-foreground italic'}>
               {incident.note ?? 'Add a note…'}
             </span>
-            <Icon icon={Pen} className="h-3.5 w-3.5 opacity-40" />
+            <Icon icon={PencilSimple} className="h-3.5 w-3.5 opacity-40" />
           </button>
         )}
       </TableCell>
@@ -763,7 +763,7 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
                       if (ok) remove.mutate(w.id)
                     }}
                   >
-                    <Icon icon={TrashBinTrash} className="h-3.5 w-3.5" />
+                    <Icon icon={Trash} className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               )

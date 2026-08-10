@@ -4,16 +4,16 @@ import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
 import { Checkbox } from '@/components/ui/checkbox'
-import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
-import Copy from '@solar-icons/react/csr/ui/Copy'
-import Pen from '@solar-icons/react/csr/messages/Pen'
-import SquareArrowRightUp from '@solar-icons/react/csr/arrows/SquareArrowRightUp'
-import LockPassword from '@solar-icons/react/csr/security/LockPassword'
-import MenuDots from '@solar-icons/react/csr/ui/MenuDots'
-import AddSquare from '@solar-icons/react/csr/ui/AddSquare'
-import DangerTriangle from '@solar-icons/react/csr/ui/DangerTriangle'
-import TrashBinTrash from '@solar-icons/react/csr/ui/TrashBinTrash'
-import Global from '@solar-icons/react/csr/map/Global'
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
+import { Copy } from "@phosphor-icons/react/dist/icons/Copy"
+import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple"
+import { ArrowSquareUpRight } from "@phosphor-icons/react/dist/icons/ArrowSquareUpRight"
+import { LockKey } from "@phosphor-icons/react/dist/icons/LockKey"
+import { DotsThreeOutlineVertical } from "@phosphor-icons/react/dist/icons/DotsThreeOutlineVertical"
+import { PlusSquare } from "@phosphor-icons/react/dist/icons/PlusSquare"
+import { Warning } from "@phosphor-icons/react/dist/icons/Warning"
+import { Trash } from "@phosphor-icons/react/dist/icons/Trash"
+import { Globe } from "@phosphor-icons/react/dist/icons/Globe"
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/EmptyState'
@@ -167,7 +167,7 @@ export function StatusPagesPage() {
           </p>
         </div>
         <Button onClick={() => setOpen(true)} className="gap-2 self-start sm:self-auto">
-          <Icon icon={AddSquare} className="h-4 w-4" />
+          <Icon icon={PlusSquare} className="h-4 w-4" />
           Create page
         </Button>
       </div>
@@ -178,12 +178,12 @@ export function StatusPagesPage() {
         <PagesSkeleton />
       ) : pageList.length === 0 ? (
         <EmptyState
-          icon={Global}
+          icon={Globe}
           title="No status pages yet"
           description="Create a public page to share live status with users, customers, or stakeholders. Each page can list a custom subset of your monitors."
           action={
             <Button onClick={() => setOpen(true)}>
-              <Icon icon={AddSquare} className="h-4 w-4" />
+              <Icon icon={PlusSquare} className="h-4 w-4" />
               Create your first page
             </Button>
           }
@@ -376,7 +376,7 @@ function PageRow({
           {page.passwordSet && (
             <Badge variant="warning" className="gap-1">
               <Icon
-                icon={LockPassword}
+                icon={LockKey}
                 className="h-3.5 w-3.5"
               />
               Password
@@ -424,13 +424,13 @@ function PageRow({
       <div className="flex shrink-0 items-center gap-2">
         <Button size="sm" variant="outline" asChild>
           <a href={`/${page.slug}`} target="_blank" rel="noreferrer">
-            <Icon icon={SquareArrowRightUp} className="h-3.5 w-3.5" />
+            <Icon icon={ArrowSquareUpRight} className="h-3.5 w-3.5" />
             View
           </a>
         </Button>
         <Button size="sm" variant="outline" asChild>
           <Link to={`/admin/pages/${page.id}/edit`}>
-            <Icon icon={Pen} className="h-3.5 w-3.5" />
+            <Icon icon={PencilSimple} className="h-3.5 w-3.5" />
             Edit
           </Link>
         </Button>
@@ -442,14 +442,14 @@ function PageRow({
               aria-label={`More actions for ${page.title}`}
             >
               <Icon
-                icon={MenuDots}
+                icon={DotsThreeOutlineVertical}
                 className="h-3.5 w-3.5"
               />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={onSetPassword}>
-              <Icon icon={LockPassword} className="h-3.5 w-3.5" />
+              <Icon icon={LockKey} className="h-3.5 w-3.5" />
               {page.passwordSet ? 'Change password' : 'Set password'}
             </DropdownMenuItem>
             {page.passwordSet && (
@@ -459,7 +459,7 @@ function PageRow({
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onSelect={onDelete}>
-              <Icon icon={TrashBinTrash} className="h-3.5 w-3.5" />
+              <Icon icon={Trash} className="h-3.5 w-3.5" />
               Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -514,7 +514,7 @@ function CoverageBanner({
     <Panel className="border-warning/40">
       <header className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2.5">
         <h2 className="flex items-center gap-2 text-sm font-medium text-warning">
-          <Icon icon={DangerTriangle} className="size-3.5 shrink-0" />
+          <Icon icon={Warning} className="size-3.5 shrink-0" />
           Hidden monitors
         </h2>
         <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-warning tabular-nums">
@@ -541,7 +541,7 @@ function CoverageBanner({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" variant="outline" className="shrink-0">
-                  <Icon icon={AddSquare} className="h-3.5 w-3.5" />
+                  <Icon icon={PlusSquare} className="h-3.5 w-3.5" />
                   Add to page
                 </Button>
               </DropdownMenuTrigger>

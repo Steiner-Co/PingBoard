@@ -48,13 +48,13 @@ import { api } from "@/lib/api"
 import { Panel } from "@/components/panel"
 import { cn } from "@/lib/utils"
 import { Icon } from "@/components/ui/icon"
-import MenuDots from "@solar-icons/react/csr/ui/MenuDots"
-import Pause from "@solar-icons/react/csr/video/Pause"
-import Play from "@solar-icons/react/csr/video/Play"
-import TrashBinTrash from "@solar-icons/react/csr/ui/TrashBinTrash"
-import ArrowLeft from "@solar-icons/react/csr/arrows/ArrowLeft"
-import ArrowRight from "@solar-icons/react/csr/arrows/ArrowRight"
-import Copy from "@solar-icons/react/csr/ui/Copy"
+import { DotsThreeOutlineVertical } from "@phosphor-icons/react/dist/icons/DotsThreeOutlineVertical"
+import { Pause } from "@phosphor-icons/react/dist/icons/Pause"
+import { Play } from "@phosphor-icons/react/dist/icons/Play"
+import { Trash } from "@phosphor-icons/react/dist/icons/Trash"
+import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft"
+import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight"
+import { Copy } from "@phosphor-icons/react/dist/icons/Copy"
 import { UptimeBars } from "@/components/uptime-bars"
 import type { MonitorUptime } from "@/types"
 
@@ -230,7 +230,7 @@ function RowActions({ row }: { row: MonitorRow }) {
           size="icon"
           aria-label={`Actions for ${row.name}`}
         >
-          <Icon icon={MenuDots} />
+          <Icon icon={DotsThreeOutlineVertical} />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
@@ -261,7 +261,7 @@ function RowActions({ row }: { row: MonitorRow }) {
             if (ok) remove.mutate()
           }}
         >
-          <Icon icon={TrashBinTrash} className="h-3.5 w-3.5" />
+          <Icon icon={Trash} className="h-3.5 w-3.5" />
           Delete
         </DropdownMenuItem>
       </DropdownMenuContent>

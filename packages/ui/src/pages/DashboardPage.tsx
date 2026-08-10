@@ -3,12 +3,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { z } from 'zod'
 import { Icon } from '@/components/ui/icon'
-import Pulse from '@solar-icons/react/csr/medicine/Pulse'
-import AddSquare from '@solar-icons/react/csr/ui/AddSquare'
-import Magnifier from '@solar-icons/react/csr/search/Magnifier'
-import Refresh from '@solar-icons/react/csr/arrows/Refresh'
-import InfoCircle from '@solar-icons/react/csr/ui/InfoCircle'
-import CloseSquare from '@solar-icons/react/csr/ui/CloseSquare'
+import { Pulse } from "@phosphor-icons/react/dist/icons/Pulse"
+import { PlusSquare } from "@phosphor-icons/react/dist/icons/PlusSquare"
+import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass"
+import { ArrowClockwise } from "@phosphor-icons/react/dist/icons/ArrowClockwise"
+import { Info } from "@phosphor-icons/react/dist/icons/Info"
+import { XSquare } from "@phosphor-icons/react/dist/icons/XSquare"
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -184,7 +184,7 @@ export function DashboardPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative w-full sm:max-w-xs">
             <Icon
-              icon={Magnifier}
+              icon={MagnifyingGlass}
               className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
             />
             <Input
@@ -203,14 +203,14 @@ export function DashboardPage() {
               className="gap-2"
             >
               <Icon
-                icon={Refresh}
+                icon={ArrowClockwise}
                 className={cn('h-4 w-4', refreshing && 'animate-spin')}
               />
-              Refresh
+              ArrowClockwise
             </Button>
             <Button asChild className="gap-2">
               <Link to="/admin/monitors/new">
-                <Icon icon={AddSquare} className="h-4 w-4" />
+                <Icon icon={PlusSquare} className="h-4 w-4" />
                 Add monitor
               </Link>
             </Button>
@@ -256,7 +256,7 @@ function LiveBanner() {
   return (
     <Panel className="flex items-start gap-3 px-4 py-3">
       <Icon
-        icon={InfoCircle}
+        icon={Info}
         className="mt-0.5 size-4 shrink-0 text-primary-text"
       />
       <div className="min-w-0 flex-1 space-y-0.5">
@@ -275,7 +275,7 @@ function LiveBanner() {
         }}
         className="shrink-0 rounded-md p-0.5 text-muted-foreground transition-[color,background-color] duration-150 ease-out hover:bg-accent hover:text-foreground"
       >
-        <Icon icon={CloseSquare} className="size-4" />
+        <Icon icon={XSquare} className="size-4" />
       </button>
     </Panel>
   )
@@ -473,7 +473,7 @@ function EmptyDashboard() {
         </div>
         <Button asChild>
           <Link to="/admin/monitors/new" className="gap-2">
-            <Icon icon={AddSquare} className="h-4 w-4" />
+            <Icon icon={PlusSquare} className="h-4 w-4" />
             Add your first check
           </Link>
         </Button>

@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { Icon } from "@/components/ui/icon"
-import SquareArrowRightUp from "@solar-icons/react/csr/arrows/SquareArrowRightUp"
+import { ArrowSquareUpRight } from "@phosphor-icons/react/dist/icons/ArrowSquareUpRight"
 
-import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { ThemeSwitch } from "@/components/unlumen-ui/theme-switch"
 import { api } from "@/lib/api"
@@ -24,10 +23,6 @@ export function SiteHeader({ title = "Dashboard" }: { title?: string }) {
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
         <SidebarTrigger className="-ml-1" />
-        <Separator
-          orientation="vertical"
-          className="mx-2 data-[orientation=vertical]:h-4"
-        />
         <h1 className="text-sm font-medium">{title}</h1>
         <div className="ml-auto flex items-center gap-1.5">
           <a
@@ -48,7 +43,7 @@ export function SiteHeader({ title = "Dashboard" }: { title?: string }) {
               rel="noreferrer noopener"
               className={statusLinkClass}
             >
-              <Icon icon={SquareArrowRightUp} className="size-3.5" />
+              <Icon icon={ArrowSquareUpRight} className="size-3.5" />
               Status page
             </a>
           ) : pages.isPending ? (

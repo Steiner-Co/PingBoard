@@ -1,15 +1,16 @@
 import {
-  type IconProps as SolarIconProps,
+  type IconProps as PhosphorIconProps,
   type IconWeight,
-} from '@solar-icons/react'
+} from '@phosphor-icons/react'
 import type { ComponentType } from 'react'
 
 interface IconProps {
-  /** A Solar icon component (e.g. `import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'`). */
-  icon: ComponentType<SolarIconProps>
+  /** A Phosphor icon component (e.g. `import { CheckCircle } from '@phosphor-icons/react/dist/icons/CheckCircle'`). */
+  icon: ComponentType<PhosphorIconProps>
   /**
-   * Solar icon variant. Defaults to **Bold** — the brand choice across the app.
-   * Override only when an explicit visual call-out needs a different weight.
+   * Phosphor icon weight. Defaults to **fill** — the brand choice across the
+   * app (the look the previous set called "Bold"). Override only when an
+   * explicit visual call-out needs a different weight.
    */
   weight?: IconWeight
   /**
@@ -21,23 +22,23 @@ interface IconProps {
   decorative?: boolean
   /** Required for non-decorative icons; exposed via `aria-label`. */
   label?: string
-  size?: SolarIconProps['size']
-  color?: SolarIconProps['color']
+  size?: PhosphorIconProps['size']
+  color?: PhosphorIconProps['color']
   mirrored?: boolean
   className?: string
 }
 
 /**
  * App-wide icon wrapper. Enforces:
- *   - **Bold** weight by default (brand choice; one place to change).
+ *   - **fill** weight by default (brand choice; one place to change).
  *   - **`aria-hidden="true"`** by default (locks in the Vercel audit finding
  *     about decorative icons leaking their names to screen readers).
  *
- * Solar Icons are licensed under CC BY 4.0 by 480 Design — see README.
+ * Phosphor Icons are licensed under MIT — see README.
  */
 export function Icon({
   icon: IconComponent,
-  weight = 'Bold',
+  weight = 'fill',
   decorative = true,
   label,
   size,

@@ -3,10 +3,10 @@ import { humanDate, UptimeTimeline } from '@/components/uptime-timeline'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from 'next-themes'
 import { Icon } from '@/components/ui/icon'
-import Sun from '@solar-icons/react/csr/weather/Sun'
-import Moon from '@solar-icons/react/csr/weather/Moon'
-import Display from '@solar-icons/react/csr/devices/Display'
-import CheckCircle from '@solar-icons/react/csr/ui/CheckCircle'
+import { Sun } from "@phosphor-icons/react/dist/icons/Sun"
+import { Moon } from "@phosphor-icons/react/dist/icons/Moon"
+import { Desktop } from "@phosphor-icons/react/dist/icons/Desktop"
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -773,7 +773,7 @@ function ThemeToggle() {
           )}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => setTheme('system')}>
-          <Icon icon={Display} className="h-3.5 w-3.5" />
+          <Icon icon={Desktop} className="h-3.5 w-3.5" />
           System
           {theme === 'system' && (
             <Icon icon={CheckCircle} className="ml-auto h-3.5 w-3.5" />

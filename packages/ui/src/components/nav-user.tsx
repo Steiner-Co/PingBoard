@@ -17,8 +17,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { Icon } from "@/components/ui/icon"
-import MenuDots from "@solar-icons/react/csr/ui/MenuDots"
-import Logout from "@solar-icons/react/csr/arrows-action/Logout"
+import { DotsThreeOutlineVertical } from "@phosphor-icons/react/dist/icons/DotsThreeOutlineVertical"
+import { SignOut } from "@phosphor-icons/react/dist/icons/SignOut"
 
 export function NavUser({
   user,
@@ -54,7 +54,7 @@ export function NavUser({
                   {user.email}
                 </span>
               </div>
-              <Icon icon={MenuDots} className="ml-auto size-4" />
+              <Icon icon={DotsThreeOutlineVertical} className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -78,7 +78,7 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => void onLogout()}>
-              <Icon icon={Logout} />
+              <Icon icon={SignOut} />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>

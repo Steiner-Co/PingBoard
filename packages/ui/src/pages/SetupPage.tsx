@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Icon } from '@/components/ui/icon'
-import Eye from '@solar-icons/react/csr/security/Eye'
-import EyeClosed from '@solar-icons/react/csr/security/EyeClosed'
+import { Eye } from "@phosphor-icons/react/dist/icons/Eye"
+import { EyeSlash } from "@phosphor-icons/react/dist/icons/EyeSlash"
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/contexts/auth'
 
@@ -88,7 +88,7 @@ export function SetupPage() {
                   className="absolute right-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-[color,background-color,transform] duration-150 ease-out hover:bg-accent hover:text-foreground active:scale-[0.97]"
                 >
                   <Icon
-                    icon={reveal ? EyeClosed : Eye}
+                    icon={reveal ? EyeSlash : Eye}
                     className="size-4"
                   />
                 </button>
