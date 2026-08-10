@@ -5,6 +5,11 @@
     <link rel="icon" type="image/png" href="/logomark.png" />
     <link rel="apple-touch-icon" href="/logomark.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Neutral pre-hydration fallbacks; the client re-tints these to the live
+         status color once JS runs. Outside the pingboard:meta block so the
+         server's tag swap leaves them in place. -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafafa" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#262626" />
     <!--pingboard:meta-->
     <!-- The server swaps this whole block (markers included) for the status
          page's own tags. What's here is the unreplaced fallback — Vite serves

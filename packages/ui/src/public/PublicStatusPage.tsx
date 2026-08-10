@@ -6,13 +6,15 @@ import { Icon } from '@/components/ui/icon'
 import { Sun } from "@phosphor-icons/react/dist/icons/Sun"
 import { Moon } from "@phosphor-icons/react/dist/icons/Moon"
 import { Desktop } from "@phosphor-icons/react/dist/icons/Desktop"
-import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Panel } from '@/components/panel'
 import { ACCENT_PRESETS } from '@/public/accent-presets'
 import { useSSE } from '@/lib/sse'
@@ -151,7 +153,15 @@ export function PublicStatusPage({ slug }: { slug: string }) {
     // Only a real 404 is "not found" — a network blip or 500 must not
     // masquerade as one. Everything else gets an honest failure + retry.
     if (query.error instanceof GateError && query.error.kind === 'not-found') {
-      return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Status page not found.</div>
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-6 text-center">
+          <img src="/logomark.png" alt="" className="size-8 rounded-md" />
+          <p className="text-sm font-medium">Status page not found</p>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            The link may be wrong, or the page was removed.
+          </p>
+        </div>
+      )
     }
     return (
       <div
@@ -163,13 +173,13 @@ export function PublicStatusPage({ slug }: { slug: string }) {
           That's on us, not you — the status data didn't load. It retries
           automatically every 30 seconds.
         </p>
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          className="mt-1 h-9 px-4 text-sm"
           onClick={() => void query.refetch()}
-          className="mt-1 rounded-md border border-border px-3 py-1.5 text-sm transition-colors duration-150 ease-out hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           Try again
-        </button>
+        </Button>
       </div>
     )
   }
@@ -374,6 +384,48 @@ export function PublicStatusView({
   )
 }
 
+/**
+ * Status dot. Down states get a gentle ping — an outage is a rare,
+ * high-attention moment on an otherwise static page, so the motion earns its
+ * place as state indication. Everything else stays still.
+ */
+function StatusDot({
+  color,
+  pulse = false,
+  label,
+}: {
+  color: string
+  pulse?: boolean
+  label?: string
+}) {
+  return (
+    <span
+      role={label ? 'img' : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
+      className="relative inline-flex h-2.5 w-2.5 shrink-0"
+    >
+      {pulse && (
+        <span
+          aria-hidden
+          className={cn(
+            'absolute inset-0 rounded-full opacity-40 motion-safe:animate-ping',
+            color,
+          )}
+          style={{ animationDuration: '1.5s' }}
+        />
+      )}
+      <span
+        aria-hidden
+        className={cn(
+          'relative inline-block h-2.5 w-2.5 rounded-full transition-colors duration-300',
+          color,
+        )}
+      />
+    </span>
+  )
+}
+
 function OverallStatusBanner({
   tone,
   text,
@@ -417,17 +469,18 @@ function OverallStatusBanner({
           : 'Status unknown'
 
   return (
-    <Panel className={cn('p-5 sm:p-6', surface)}>
+    <Panel
+      // SSE updates flip the surface tint in place — crossfade it instead of
+      // snapping, so a status change reads as a transition, not a glitch.
+      className={cn('p-5 sm:p-6 transition-colors duration-300', surface)}
+    >
       <div
         role="status"
         aria-live="polite"
         aria-atomic="true"
         className="flex items-center gap-3"
       >
-        <span
-          aria-hidden
-          className={cn('h-2.5 w-2.5 shrink-0 rounded-full', dot)}
-        />
+        <StatusDot color={dot} pulse={tone === 'down'} />
         <div className="text-xl sm:text-2xl font-semibold tracking-tight">
           <span className="sr-only">{dotLabel}.</span>
           <span aria-hidden>{text}</span>
@@ -483,10 +536,10 @@ function MonitorRow({
               Maintenance
             </span>
           ) : (
-            <span
-              role="img"
-              aria-label={`${monitor.name} status: ${statusLabel}`}
-              className={cn('h-2.5 w-2.5 rounded-full shrink-0', dotColor)}
+            <StatusDot
+              color={dotColor}
+              pulse={monitor.currentStatus === 'down'}
+              label={`${monitor.name} status: ${statusLabel}`}
             />
           )}
           <span className="font-medium truncate">{monitor.name}</span>
@@ -697,7 +750,7 @@ function PasswordGate({
           <label htmlFor="gate-password" className="text-xs font-medium">
             Password
           </label>
-          <input
+          <Input
             ref={inputRef}
             id="gate-password"
             name="password"
@@ -707,7 +760,7 @@ function PasswordGate({
             autoComplete="current-password"
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? 'gate-error' : undefined}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-9 px-3 text-sm"
             autoFocus
           />
         </div>
@@ -720,14 +773,14 @@ function PasswordGate({
             {error}
           </p>
         )}
-        <button
+        <Button
           type="submit"
           aria-busy={submitting}
           disabled={submitting}
-          className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-[background-color,transform] duration-150 ease-out active:scale-[0.97]"
+          className="h-9 w-full text-sm"
         >
           {submitting ? 'Checking…' : 'Continue'}
-        </button>
+        </Button>
       </form>
       </Panel>
     </div>
@@ -758,27 +811,21 @@ function ThemeToggle() {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={() => setTheme('light')}>
-          <Icon icon={Sun} className="h-3.5 w-3.5" />
-          Light
-          {theme === 'light' && (
-            <Icon icon={CheckCircle} className="ml-auto h-3.5 w-3.5" />
-          )}
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => setTheme('dark')}>
-          <Icon icon={Moon} className="h-3.5 w-3.5" />
-          Dark
-          {theme === 'dark' && (
-            <Icon icon={CheckCircle} className="ml-auto h-3.5 w-3.5" />
-          )}
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => setTheme('system')}>
-          <Icon icon={Desktop} className="h-3.5 w-3.5" />
-          System
-          {theme === 'system' && (
-            <Icon icon={CheckCircle} className="ml-auto h-3.5 w-3.5" />
-          )}
-        </DropdownMenuItem>
+        {/* Radio semantics so AT announces which theme is active. */}
+        <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+          <DropdownMenuRadioItem value="light">
+            <Icon icon={Sun} className="h-3.5 w-3.5" />
+            Light
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="dark">
+            <Icon icon={Moon} className="h-3.5 w-3.5" />
+            Dark
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="system">
+            <Icon icon={Desktop} className="h-3.5 w-3.5" />
+            System
+          </DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   )
@@ -815,7 +862,13 @@ function useDocumentMeta(
       const css = getComputedStyle(document.documentElement)
       const token = anyDown ? '--destructive' : allUp ? '--success' : '--muted-foreground'
       const color = css.getPropertyValue(token).trim()
-      if (color) setMeta('theme-color', color)
+      // public.html ships light/dark media-variant fallbacks — update all of
+      // them; the browser applies whichever matches the visitor's scheme.
+      if (color) {
+        document.head
+          .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
+          .forEach((el) => el.setAttribute('content', color))
+      }
     }
   }, [page, monitors])
 }

@@ -128,7 +128,7 @@ export function UptimeTimeline({
               }}
               className={cn(
                 'h-full flex-1 cursor-default rounded-sm transition-[filter] duration-100',
-                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background',
                 // display:none also drops these from tab order and the a11y tree.
                 i < mobileStart && 'max-sm:hidden',
                 d.uptimePct == null && 'bg-muted-foreground/15',

@@ -78,6 +78,13 @@ landing-side med clusters listed at the bottom.
 - **Contrast regressions in landing prose — OPEN.** `text-foreground/40` at 12px
   across blog/docs (~2.3:1) and `text-foreground/50` in FeatureGrid fail 4.5:1.
 - **`transition-all` regression — OPEN.** `apps/landing/src/pages/BlogIndex.tsx:72`.
+- **Public status page polish — FIXED 2026-08-10.** Down/degraded states now pulse
+  gently (rare, high-attention moments earn the motion); banner/dots crossfade on
+  SSE updates instead of snapping; the theme menu is a radio group so AT announces
+  the active theme; timeline bars use the codebase's ring focus style; `public.html`
+  ships neutral light/dark `theme-color` fallbacks which the client re-tints to live
+  status; the password gate and retry/not-found states use the shared
+  Input/Button primitives.
 
 ### Closed by `9162b30` (slice lows/meds)
 

@@ -43,8 +43,9 @@ Theme: a launch wave of new users will find every rough edge in the first hour.
 - **Security pass** — security headers story (what the app sets vs what the reverse proxy
   must), verify public-endpoint rate limits and auth rate limiting under load, SSRF
   re-check on webhook channels, session/cookie flags audit against PRD §13.
-- **Public status page shell polish** — the `src/public` shell was untouched by the
-  08-08 admin redesign; one focused pass (it has its own known list in slice-4).
+- ~~**Public status page shell polish**~~ — done 2026-08-10: pulse on down states,
+  crossfaded SSE status flips, radio-theme menu, timeline focus rings, theme-color
+  fallbacks, shared form primitives on the gate/error states.
 - **Core-flow e2e tests** — setup → add monitor → incident opens → notification fires →
   appears on status page → resolves. Launch regressions must be caught by CI, not users.
 
