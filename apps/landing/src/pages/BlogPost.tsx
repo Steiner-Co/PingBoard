@@ -16,7 +16,7 @@ export function BlogPost() {
   const older = index < posts.length - 1 ? posts[index + 1] : undefined
 
   const backLinkClass =
-    'w-fit rounded-[4px] text-[12px] font-medium text-foreground/40 outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30'
+    'w-fit rounded-[4px] text-[12px] font-medium text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30'
 
   return (
     <>
@@ -30,7 +30,7 @@ export function BlogPost() {
             <h1 className="text-[28px] font-medium leading-[1.08] tracking-[-0.7px] text-balance text-foreground">
               {post.title}
             </h1>
-            <p className="text-[13px] leading-[1.35] text-foreground/40">
+            <p className="text-[13px] leading-[1.35] text-muted-foreground">
               <time dateTime={post.date}>{formatDate(post.date)}</time>
               {' · '}
               {post.author}
@@ -50,7 +50,7 @@ export function BlogPost() {
                   to={`/blog/${older.slug}`}
                   className="group flex max-w-[45%] flex-col gap-1 outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
                 >
-                  <span className="text-[12px] text-foreground/40">← Older</span>
+                  <span className="text-[12px] text-muted-foreground">← Older</span>
                   <span className="text-[14px] font-medium leading-[1.3] tracking-[-0.35px] text-foreground/80 transition-colors duration-150 group-hover:text-foreground">
                     {older.title}
                   </span>
@@ -63,7 +63,7 @@ export function BlogPost() {
                   to={`/blog/${newer.slug}`}
                   className="group flex max-w-[45%] flex-col items-end gap-1 text-right outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
                 >
-                  <span className="text-[12px] text-foreground/40">Newer →</span>
+                  <span className="text-[12px] text-muted-foreground">Newer →</span>
                   <span className="text-[14px] font-medium leading-[1.3] tracking-[-0.35px] text-foreground/80 transition-colors duration-150 group-hover:text-foreground">
                     {newer.title}
                   </span>

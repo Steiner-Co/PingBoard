@@ -23,7 +23,7 @@ function ArrowIcon({ className }: { className?: string }) {
 
 function PostMeta({ post, className }: { post: PostEntry; className?: string }) {
   return (
-    <p className={className ?? 'text-[12px] leading-[1.35] text-foreground/40'}>
+    <p className={className ?? 'text-[12px] leading-[1.35] text-muted-foreground'}>
       <time dateTime={post.date}>{formatDate(post.date)}</time>
       {' · '}
       {post.author}
@@ -61,7 +61,7 @@ function PostRow({ post }: { post: PostEntry }) {
       className="group flex items-baseline justify-between gap-6 border-t border-border py-5 outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
     >
       <span className="flex min-w-0 flex-col gap-1.5">
-        <PostMeta post={post} className="text-[12px] leading-[1.35] text-foreground/40" />
+        <PostMeta post={post} className="text-[12px] leading-[1.35] text-muted-foreground" />
         <span className="text-[16px] font-medium leading-[1.25] tracking-[-0.4px] text-foreground transition-colors duration-150 group-hover:text-primary">
           {post.title}
         </span>
@@ -69,7 +69,7 @@ function PostRow({ post }: { post: PostEntry }) {
           {post.description}
         </span>
       </span>
-      <ArrowIcon className="size-4 shrink-0 self-center text-foreground/30 transition-all duration-150 ease-out group-hover:text-foreground motion-safe:group-hover:translate-x-0.5" />
+      <ArrowIcon className="size-4 shrink-0 self-center text-foreground/30 transition-[color,translate] duration-150 ease-out group-hover:text-foreground motion-safe:group-hover:translate-x-0.5" />
     </Link>
   )
 }

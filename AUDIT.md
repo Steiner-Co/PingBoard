@@ -75,9 +75,11 @@ landing-side med clusters listed at the bottom.
   double-scaled floating-ui's translate px, pushing dropdowns/selects off-screen
   near viewport edges; the popper wrapper is counter-zoomed. (Found 08-09 via QA
   sweep; not in the slice tables.)
-- **Contrast regressions in landing prose — OPEN.** `text-foreground/40` at 12px
-  across blog/docs (~2.3:1) and `text-foreground/50` in FeatureGrid fail 4.5:1.
-- **`transition-all` regression — OPEN.** `apps/landing/src/pages/BlogIndex.tsx:72`.
+- **Contrast regressions in landing prose — FIXED 2026-08-10.** `text-foreground/40`
+  at 12px (blog index/post, docs layout/pager) and `text-foreground/50` in
+  FeatureGrid now use the AA-passing `text-muted-foreground` token.
+- **`transition-all` regression — FIXED 2026-08-10.** `BlogIndex.tsx` row arrow
+  now transitions `[color,translate]` explicitly.
 - **Public status page polish — FIXED 2026-08-10.** Down/degraded states now pulse
   gently (rare, high-attention moments earn the motion); banner/dots crossfade on
   SSE updates instead of snapping; the theme menu is a radio group so AT announces

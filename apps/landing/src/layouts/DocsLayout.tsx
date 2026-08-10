@@ -16,7 +16,7 @@ export function DocsLayout() {
         <div className="flex flex-col gap-6">
           {groups.map(({ group, items }) => (
             <div key={group} className="flex flex-col gap-1">
-              <p className="px-3 pb-1 text-[12px] font-medium tracking-wide text-foreground/40">
+              <p className="px-3 pb-1 text-[12px] font-medium tracking-wide text-muted-foreground">
                 {group}
               </p>
               {items.map((doc) => (
@@ -55,7 +55,7 @@ export function DocsPager({ prev, next }: { prev?: { slug: string; title: string
           to={`/docs/${prev.slug}`}
           className="group flex flex-col gap-1 rounded-[8px] outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
         >
-          <span className="text-[12px] text-foreground/40">Previous</span>
+          <span className="text-[12px] text-muted-foreground">Previous</span>
           <span className="text-[14px] font-medium text-foreground/70 transition-colors duration-150 group-hover:text-foreground">
             ← {prev.title}
           </span>
@@ -68,7 +68,7 @@ export function DocsPager({ prev, next }: { prev?: { slug: string; title: string
           to={`/docs/${next.slug}`}
           className="group flex flex-col items-end gap-1 rounded-[8px] text-right outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
         >
-          <span className="text-[12px] text-foreground/40">Next</span>
+          <span className="text-[12px] text-muted-foreground">Next</span>
           <span className="text-[14px] font-medium text-foreground/70 transition-colors duration-150 group-hover:text-foreground">
             {next.title} →
           </span>

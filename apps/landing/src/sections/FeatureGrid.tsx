@@ -55,7 +55,7 @@ export function FeatureGrid() {
               <Icon className="size-5 text-foreground" />
               <div className="flex flex-col gap-2">
                 <h3 className="text-[15px] font-medium leading-tight text-foreground">{title}</h3>
-                <p className="text-[12px] leading-[1.45] text-foreground/50">{body}</p>
+                <p className="text-[12px] leading-[1.45] text-muted-foreground">{body}</p>
               </div>
             </div>
           ))}
