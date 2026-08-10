@@ -22,6 +22,10 @@ export const RESERVED_SLUGS = [
 
 export const PUBLIC_RATE_LIMIT_PER_MINUTE = 60
 
+// Login/setup attempts per IP. bcrypt/argon2 verify cost already slows guesses;
+// this caps how many a single source can even attempt.
+export const AUTH_RATE_LIMIT_PER_MINUTE = 10
+
 // Status-page branding: preset accent keys (NULL/absent = PingBoard green).
 // The UI maps these to per-theme OKLCH values; the server only validates.
 export const STATUS_PAGE_ACCENTS = [

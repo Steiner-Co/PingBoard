@@ -18,7 +18,7 @@ import {
   startRetentionJob,
 } from '@pingboard/core'
 import type { CheckResult } from '@pingboard/shared'
-import { RESERVED_SLUGS } from '@pingboard/shared'
+import { AUTH_RATE_LIMIT_PER_MINUTE, RESERVED_SLUGS } from '@pingboard/shared'
 import { loadConfig } from './config'
 import { startUpdateCheck } from './update-check'
 import { VERSION } from './version'
@@ -83,6 +83,7 @@ import { requireAuth } from './middleware/auth'
 import { error } from './lib/responses'
 import { createSseResponse } from './lib/sse'
 import { checkRateLimit } from './lib/rate-limit'
+import { withSecurityHeaders } from './lib/security-headers'
 
 // `bun --hot` re-runs this module on every reload without tearing down the
 // previous generation's timers. Without this guard, each reload stacks another
@@ -133,22 +134,33 @@ async function main() {
   const adminDeps = { db, scheduler, mode: config.mode, dataDir: config.dataDir }
   const publicDeps = { db, secureCookies, dataDir: config.dataDir }
 
-  const server = Bun.serve({
-    port: config.port,
-    development: process.env.NODE_ENV !== 'production',
-    async fetch(req, server) {
+  const route = async (req: Request, server: Bun.Server<undefined>): Promise<Response> => {
       const url = new URL(req.url)
       const path = url.pathname
       const method = req.method
+      // Client IP for rate limiting: Bun's socket address, unless we're
+      // explicitly told to trust a proxy's X-Forwarded-For.
+      const clientIp =
+        (config.trustProxy
+          ? req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+          : undefined) ||
+        server.requestIP(req)?.address ||
+        'unknown'
 
       try {
         // ───────── Auth (public) ─────────
         if (path === '/api/auth/setup-status' && method === 'GET')
           return handleSetupStatus(authDeps)
-        if (path === '/api/auth/setup' && method === 'POST')
+        if (path === '/api/auth/setup' && method === 'POST') {
+          if (!checkRateLimit(`auth:${clientIp}`, AUTH_RATE_LIMIT_PER_MINUTE))
+            return error(429, 'Rate limit exceeded')
           return handleSetup(req, authDeps)
-        if (path === '/api/auth/login' && method === 'POST')
+        }
+        if (path === '/api/auth/login' && method === 'POST') {
+          if (!checkRateLimit(`auth:${clientIp}`, AUTH_RATE_LIMIT_PER_MINUTE))
+            return error(429, 'Rate limit exceeded')
           return handleLogin(req, authDeps)
+        }
         if (path === '/api/auth/logout' && method === 'POST')
           return handleLogout(req, authDeps)
 
@@ -315,8 +327,10 @@ async function main() {
 
         // ───────── Public API ─────────
         if (path.startsWith('/api/public/')) {
-          const ip = req.headers.get('x-forwarded-for') ?? 'unknown'
-          if (!checkRateLimit(ip)) return error(429, 'Rate limit exceeded')
+          if (
+            !checkRateLimit(`public:${clientIp}`, config.publicRateLimitPerMinute)
+          )
+            return error(429, 'Rate limit exceeded')
 
           const sseMatch = path.match(/^\/api\/public\/([\w-]+)\/sse$/)
           if (sseMatch?.[1] && method === 'GET') {
@@ -384,6 +398,13 @@ async function main() {
         console.error('Request error:', err)
         return error(500, 'Internal server error')
       }
+  }
+
+  const server = Bun.serve({
+    port: config.port,
+    development: process.env.NODE_ENV !== 'production',
+    async fetch(req, server) {
+      return withSecurityHeaders(await route(req, server))
     },
   })
 

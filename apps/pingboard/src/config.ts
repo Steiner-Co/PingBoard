@@ -1,4 +1,5 @@
 import { join } from 'node:path'
+import { PUBLIC_RATE_LIMIT_PER_MINUTE } from '@pingboard/shared'
 
 /**
  * Open-core boundary. `selfhost` is the default and is unlimited forever — no
@@ -18,6 +19,9 @@ export interface Config {
   logLevel: 'debug' | 'info' | 'warn' | 'error'
   publicStaticDir: string | null
   migrationsDir: string | null
+  /** Trust X-Forwarded-For for client IPs (enable only behind a known proxy). */
+  trustProxy: boolean
+  publicRateLimitPerMinute: number
 }
 
 export function loadConfig(): Config {
@@ -31,5 +35,9 @@ export function loadConfig(): Config {
     logLevel: (process.env.LOG_LEVEL as Config['logLevel']) ?? 'info',
     publicStaticDir: process.env.PINGBOARD_STATIC_DIR ?? null,
     migrationsDir: process.env.PINGBOARD_MIGRATIONS_DIR ?? null,
+    trustProxy: process.env.PINGBOARD_TRUST_PROXY === 'true',
+    publicRateLimitPerMinute: Number(
+      process.env.PINGBOARD_PUBLIC_RATE_LIMIT ?? PUBLIC_RATE_LIMIT_PER_MINUTE,
+    ),
   }
 }

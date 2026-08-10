@@ -16,6 +16,8 @@ All optional — no env vars are required to boot.
 | `PORT` | `3000` | HTTP port |
 | `DATA_DIR` | `/data` | SQLite database location |
 | `PINGBOARD_BASE_URL` | (auto) | Used in alert links — set to your public URL when behind a reverse proxy |
+| `PINGBOARD_TRUST_PROXY` | `off` | Set to `true` behind a reverse proxy so rate limiting keys on `X-Forwarded-For` instead of the proxy's address |
+| `PINGBOARD_PUBLIC_RATE_LIMIT` | `60` | Public API requests per minute per client IP |
 | `LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error` |
 
 Two more variables exist but are managed by the Docker image (`PINGBOARD_STATIC_DIR`, `PINGBOARD_MIGRATIONS_DIR`) — don't set them yourself.
@@ -51,7 +53,11 @@ server {
 }
 ```
 
-Forwarding `X-Forwarded-For` matters: the public API is rate-limited per client IP (60 requests/minute), and without the header every visitor looks like the proxy. To serve a status page on a dedicated hostname, see [Status pages](/docs/status-pages#serving-a-page-on-its-own-hostname).
+When the app sits behind a proxy, set `PINGBOARD_TRUST_PROXY=true` and make sure the proxy forwards `X-Forwarded-For` (the nginx example above does). The public API is rate-limited per client IP, and PingBoard only trusts the header when you tell it to — otherwise every visitor looks like the proxy and shares one rate-limit bucket. To serve a status page on a dedicated hostname, see [Status pages](/docs/status-pages#serving-a-page-on-its-own-hostname).
+
+## Network access
+
+Monitors and webhooks make outbound requests to whatever URLs you configure — including internal addresses like `192.168.x.x` or `169.254.169.254`, and redirects are followed. For a self-hosted monitor that's a feature (watching intranet services is half the point), but treat admin access accordingly: anyone who can create a monitor or alert channel can make the server reach anything on your network.
 
 ## Backups
 

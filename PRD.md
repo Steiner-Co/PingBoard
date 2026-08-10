@@ -341,6 +341,8 @@ docker run -d --restart=always \
 PORT=3000                       Default 3000
 DATA_DIR=/data                  Default /data
 PINGBOARD_BASE_URL=             Used in notification links; auto-detected if unset
+PINGBOARD_TRUST_PROXY=          Set to 'true' behind a reverse proxy (rate limiting keys on X-Forwarded-For)
+PINGBOARD_PUBLIC_RATE_LIMIT=    Public API req/min per client IP; default 60
 LOG_LEVEL=info                  debug|info|warn|error
 ```
 
@@ -356,11 +358,13 @@ Documented examples for Caddy, nginx, Traefik. PingBoard does not handle TLS its
 ## 13. Security Model
 
 - **Single auth boundary** — middleware protects everything under `/admin/*` and `/api/admin/*`. No per-route opt-in.
-- **Public API is allow-list** — only returns data for monitors explicitly attached to the requested status page. Monitor IDs are not enumerable from public endpoints.
-- **Rate-limited public endpoints** — 60 req/min per IP, configurable.
-- **Cookie security** — HTTP-only, SameSite=Lax, Secure when `BASE_URL` is https.
-- **Passwords** — bcrypt (cost 12), never logged.
-- **Status page passwords** — separate cookie scoped to `/:slug`, doesn't elevate to admin.
+- **Public API is allow-list** — only returns data for monitors explicitly attached to the requested status page, projected to a tight field list (name, group, status, uptime, response time, timeline — never targets, config, or secrets). Monitors not attached to a page are not enumerable from public endpoints.
+- **Rate-limited public endpoints** — 60 req/min per client IP, configurable via `PINGBOARD_PUBLIC_RATE_LIMIT`. Client IP is the socket address; `X-Forwarded-For` is only trusted when `PINGBOARD_TRUST_PROXY=true`. Login and setup are separately throttled (10 attempts/min per IP).
+- **Cookie security** — HTTP-only, SameSite=Lax, Secure when `BASE_URL` is https. Session IDs are stored SHA-256-hashed at rest, so a database read doesn't leak live sessions.
+- **Passwords** — argon2id (Bun's `Bun.password` default), never logged.
+- **Status page passwords** — separate cookie, name-scoped to the page (`pb_page_<pageId>`), verified only against that page; never elevates to admin.
+- **Security headers** — `X-Content-Type-Options`, `Referrer-Policy`, and `X-Frame-Options`/`frame-ancestors` on every response, plus a baseline CSP on the HTML shells.
+- **Outbound requests** — monitors and webhooks fetch arbitrary admin-configured URLs, internal addresses included (that's the product working as intended for self-hosting). Documented in the self-hosting guide; a denylist becomes required before any multi-tenant mode.
 - **CSRF** — same-origin policy + SameSite cookies covers the common case for v1. CSRF tokens deferred unless threat model requires.
 
 ---

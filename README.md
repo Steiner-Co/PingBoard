@@ -44,6 +44,8 @@ All optional — no env vars are required to boot.
 | `PORT` | `3000` | HTTP port |
 | `DATA_DIR` | `/data` | SQLite database location |
 | `PINGBOARD_BASE_URL` | (auto) | Used in alert links — set to your public URL when behind a reverse proxy |
+| `PINGBOARD_TRUST_PROXY` | `off` | Set to `true` behind a reverse proxy so rate limiting keys on `X-Forwarded-For` |
+| `PINGBOARD_PUBLIC_RATE_LIMIT` | `60` | Public API requests per minute per client IP |
 | `PINGBOARD_UPDATE_CHECK` | (on) | Set to `off` to disable the daily check for new releases |
 | `LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error` |
 
