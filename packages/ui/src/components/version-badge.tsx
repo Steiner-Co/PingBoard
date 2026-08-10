@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 
-import { GuardedLink } from "@/components/guarded-link"
+import { Link } from "react-router-dom"
 import { api } from "@/lib/api"
 
 interface InstanceUpdate {
@@ -46,12 +46,12 @@ export function VersionBadge() {
 
   return (
     <div className="px-2 pb-1 text-[11px] text-sidebar-foreground/70">
-      <GuardedLink
+      <Link
         to="/admin/settings"
         className="transition-colors duration-150 ease-out hover:text-sidebar-accent-foreground"
       >
         v{info.version}
-      </GuardedLink>
+      </Link>
     </div>
   )
 }

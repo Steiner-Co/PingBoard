@@ -1,65 +1,42 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  type ReactNode,
-} from 'react'
+import { useEffect, useRef } from 'react'
+import { useBlocker } from 'react-router-dom'
 
 /** Resolves true when it's OK to navigate away. */
-type Guard = () => Promise<boolean>
-
-interface UnsavedChangesValue {
-  register: (guard: Guard | null) => void
-  confirmLeave: Guard
-}
-
-const UnsavedChangesContext = createContext<UnsavedChangesValue | null>(null)
+export type Guard = () => Promise<boolean>
 
 /**
- * Lets a form claim the app's navigation links while it holds unsaved edits.
+ * Blocks navigation while `active`; `guard` decides whether to proceed.
  *
- * React Router's `useBlocker` would be the obvious tool, but it requires a
- * data router (`createBrowserRouter`) and this app mounts a plain
- * `<BrowserRouter>` — calling it throws. This context covers the realistic
- * loss path (clicking the sidebar mid-edit); `beforeunload` still covers tab
- * close and reload.
+ * Covers every in-app escape — sidebar links, imperative `navigate()`,
+ * browser Back/Forward — because the app mounts a data router (see
+ * App.tsx). Navigations that stay on the same path pass through so
+ * param-driven state (the wizard's `?step=`) doesn't trip the guard.
+ *
+ * Tab close and reload can't be intercepted here — pair with a
+ * `beforeunload` listener for those.
  */
-export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
-  const guardRef = useRef<Guard | null>(null)
-
-  const register = useCallback((guard: Guard | null) => {
-    guardRef.current = guard
-  }, [])
-
-  const confirmLeave = useCallback<Guard>(async () => {
-    return guardRef.current ? guardRef.current() : true
-  }, [])
-
-  return (
-    <UnsavedChangesContext.Provider value={{ register, confirmLeave }}>
-      {children}
-    </UnsavedChangesContext.Provider>
-  )
-}
-
-export function useUnsavedChanges(): UnsavedChangesValue {
-  const ctx = useContext(UnsavedChangesContext)
-  // Outside the admin shell (login, setup, public page) nothing can be dirty,
-  // so a no-op keeps those trees from needing the provider.
-  return ctx ?? { register: () => {}, confirmLeave: async () => true }
-}
-
-/** Registers `guard` while `active`; clears it on unmount. */
 export function useUnsavedGuard(active: boolean, guard: Guard): void {
-  const { register } = useUnsavedChanges()
   const guardRef = useRef(guard)
   guardRef.current = guard
+  const activeRef = useRef(active)
+  activeRef.current = active
+
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      activeRef.current && currentLocation.pathname !== nextLocation.pathname,
+  )
 
   useEffect(() => {
-    if (!active) return
-    register(() => guardRef.current())
-    return () => register(null)
-  }, [active, register])
+    if (blocker.state !== 'blocked') return
+    let settled = false
+    void guardRef.current().then((ok) => {
+      if (settled) return
+      settled = true
+      if (ok) blocker.proceed?.()
+      else blocker.reset?.()
+    })
+    return () => {
+      settled = true
+    }
+  }, [blocker])
 }

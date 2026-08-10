@@ -114,15 +114,21 @@ export function MonitorWizardPage() {
           ? 'Monitor created — copy your push URL below'
           : 'Monitor created — first check will run within a few seconds',
       )
-      // Push monitors need their generated URL shown to the user immediately.
-      if (res.monitor.type === 'push') {
-        navigate(`/admin/monitors/${res.monitor.id}`)
-      } else {
-        navigate('/admin')
-      }
+      // Navigation happens in the effect below: navigating here would race the
+      // unsaved-changes blocker, which still sees a dirty form until the
+      // success state has rendered (isDirty flips off on isSuccess).
     },
     onError: (err) => setError(err instanceof Error ? err.message : 'Failed to create'),
   })
+
+  // Leave once the create has rendered as successful — the guard reads clean
+  // by then, so the blocker lets this through without a confirm.
+  // Push monitors need their generated URL shown to the user immediately.
+  useEffect(() => {
+    const created = createMutation.data?.monitor
+    if (!created) return
+    navigate(created.type === 'push' ? `/admin/monitors/${created.id}` : '/admin')
+  }, [createMutation.data, navigate])
 
   // Anything the user typed or picked is worth confirming before we throw it
   // away — the wizard has no draft persistence.
@@ -150,8 +156,9 @@ export function MonitorWizardPage() {
     [confirm],
   )
 
-  // Mirrors MonitorEditPage: the guard claims the shell's nav links while
-  // dirty, `beforeunload` covers tab close and reload.
+  // Mirrors MonitorEditPage: the guard intercepts every nav away while dirty
+  // (sidebar links, navigate(), browser Back/Forward); `beforeunload` covers
+  // tab close and reload.
   useUnsavedGuard(isDirty, confirmDiscard)
   useEffect(() => {
     if (!isDirty) return
@@ -224,13 +231,6 @@ export function MonitorWizardPage() {
       tags,
       channelIds: selectedChannels,
     })
-  }
-
-  // Any in-app nav away from the wizard goes through here so a half-filled
-  // form can't vanish on a stray click.
-  const guardedNavigate = async (to: string) => {
-    if (isDirty && !(await confirmDiscard())) return
-    navigate(to)
   }
 
   return (
@@ -462,7 +462,8 @@ export function MonitorWizardPage() {
           variant="ghost"
           onClick={() => {
             setInvalid(null)
-            if (step === 0) void guardedNavigate('/admin')
+            // The unsaved guard intercepts this navigate and asks first.
+            if (step === 0) navigate('/admin')
             else setStep(step - 1)
           }}
           disabled={createMutation.isPending}

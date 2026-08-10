@@ -203,8 +203,9 @@ export function StatusPageEditorPage() {
     [confirm],
   )
 
-  // Same two-guard pattern as the monitor editor: shell nav links via
-  // context, tab close/reload via beforeunload.
+  // Same two-guard pattern as the monitor editor: navigation away (links,
+  // navigate(), browser Back/Forward) via useUnsavedGuard, tab close/reload
+  // via beforeunload.
   useUnsavedGuard(isDirty, confirmDiscard)
   useEffect(() => {
     if (!isDirty) return

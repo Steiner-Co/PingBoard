@@ -121,8 +121,13 @@ export function MonitorEditPage() {
     headersText: string
   } | null>(null)
 
+  // Flips true on a successful save so isDirty reads clean before the
+  // effect below navigates — otherwise the unsaved guard would intercept
+  // the post-save navigation and ask to discard what was just saved.
+  const [saved, setSaved] = useState(false)
+
   const isDirty = useMemo(() => {
-    if (!baseline) return false
+    if (!baseline || saved) return false
     return (
       baseline.name !== name ||
       baseline.target !== target ||
@@ -136,6 +141,7 @@ export function MonitorEditPage() {
     )
   }, [
     baseline,
+    saved,
     name,
     target,
     intervalSeconds,
@@ -160,10 +166,9 @@ export function MonitorEditPage() {
     [confirm],
   )
 
-  // Two guards, two escape routes: `useUnsavedGuard` claims the shell's
-  // nav links (sidebar, wordmark) while dirty, `beforeunload` covers tab
-  // close and reload. Browser Back still isn't interceptable without a data
-  // router — see contexts/unsaved-changes.tsx.
+  // Two guards, two escape routes: `useUnsavedGuard` intercepts every nav
+  // away while dirty (sidebar links, navigate(), browser Back/Forward),
+  // `beforeunload` covers tab close and reload.
   useUnsavedGuard(isDirty, confirmDiscard)
   useEffect(() => {
     if (!isDirty) return
@@ -182,13 +187,19 @@ export function MonitorEditPage() {
       void queryClient.invalidateQueries({ queryKey: ['monitor', id] })
       void queryClient.invalidateQueries({ queryKey: ['monitors'] })
       toast.success('Monitor saved')
-      navigate(`/admin/monitors/${id}`)
+      setSaved(true)
     },
     onError: (err) => {
       setError(err instanceof Error ? err.message : 'Failed')
       setErrorField(null)
     },
   })
+
+  // Navigate only after the saved state has rendered (isDirty now false), so
+  // the unsaved guard lets this through without asking.
+  useEffect(() => {
+    if (saved) navigate(`/admin/monitors/${id}`)
+  }, [saved, id, navigate])
 
   const nameRef = useRef<HTMLInputElement>(null)
   const targetRef = useRef<HTMLInputElement>(null)
@@ -298,20 +309,14 @@ export function MonitorEditPage() {
 
   const monitor = detail.data.monitor
 
-  // Helper for any in-app nav away from this form — confirms before discarding
-  // unsaved changes. Submit is the only path that should bypass the guard.
-  const guardedNavigate = async (target: string) => {
-    if (isDirty && !(await confirmDiscard())) return
-    navigate(target)
-  }
-
   return (
     <form onSubmit={handleSubmit} className="px-4 lg:px-6 max-w-3xl w-full mx-auto flex flex-col gap-6">
       <Button
         variant="ghost"
         size="sm"
         type="button"
-        onClick={() => guardedNavigate(`/admin/monitors/${id}`)}
+        // The unsaved guard intercepts this navigate and asks first.
+        onClick={() => navigate(`/admin/monitors/${id}`)}
         className="self-start -ml-3"
       >
         <Icon icon={ArrowLeft} className="h-4 w-4" />
@@ -458,7 +463,8 @@ export function MonitorEditPage() {
         <Button
           type="button"
           variant="ghost"
-          onClick={() => guardedNavigate(`/admin/monitors/${id}`)}
+          // The unsaved guard intercepts this navigate and asks first.
+          onClick={() => navigate(`/admin/monitors/${id}`)}
         >
           Cancel
         </Button>

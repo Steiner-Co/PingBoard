@@ -1,5 +1,5 @@
 import * as React from "react"
-import { GuardedLink } from "@/components/guarded-link"
+import { Link } from "react-router-dom"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -56,7 +56,7 @@ export function AppSidebar({ user, onLogout, ...props }: AppSidebarProps) {
               asChild
               className="data-[slot=sidebar-menu-button]:h-auto data-[slot=sidebar-menu-button]:p-1.5!"
             >
-              <GuardedLink to="/admin">
+              <Link to="/admin">
                 <img src="/logomark.png" alt="" className="size-6 rounded-md" />
                 <span className="flex min-w-0 flex-col leading-tight">
                   <span translate="no" className="truncate text-sm font-semibold text-sidebar-accent-foreground">
@@ -66,7 +66,7 @@ export function AppSidebar({ user, onLogout, ...props }: AppSidebarProps) {
                     Uptime monitoring
                   </span>
                 </span>
-              </GuardedLink>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

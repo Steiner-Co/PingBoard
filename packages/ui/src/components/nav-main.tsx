@@ -2,7 +2,7 @@ import { useLocation } from "react-router-dom"
 import { useRef, type ComponentType } from "react"
 import type { IconProps as PhosphorIconProps } from "@phosphor-icons/react"
 
-import { GuardedLink } from "@/components/guarded-link"
+import { Link } from "react-router-dom"
 import { Icon } from "@/components/ui/icon"
 import { PlusSquare } from "@phosphor-icons/react/dist/icons/PlusSquare"
 
@@ -109,10 +109,10 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                 tooltip="Add monitor"
                 className="min-w-8 bg-primary text-primary-foreground duration-150 ease-out hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground active:scale-[0.97]"
               >
-                <GuardedLink to="/admin/monitors/new">
+                <Link to="/admin/monitors/new">
                   <Icon icon={PlusSquare} />
                   <span>Add monitor</span>
-                </GuardedLink>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -140,10 +140,10 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                       isActive={isActive}
                       className="data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:font-medium"
                     >
-                      <GuardedLink to={item.url}>
+                      <Link to={item.url}>
                         <NavIcon icon={item.icon} active={isActive} />
                         <span>{item.title}</span>
-                      </GuardedLink>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )
