@@ -14,6 +14,32 @@ const MONITOR_TYPES = [
 
 const ALLOWED_INTERVALS = [10, 30, 60, 300, 900, 3600] as const
 
+const PAGE_THEMES = ['light', 'dark', 'auto'] as const
+
+// Status-page presets, duplicated from @pingboard/shared so the published
+// package has no repo-local imports (same pattern as MONITOR_TYPES above).
+const PAGE_ACCENTS = [
+  'blue',
+  'violet',
+  'orange',
+  'rose',
+  'amber',
+  'cyan',
+  'slate',
+] as const
+
+const RESERVED_PAGE_SLUGS = [
+  'admin',
+  'api',
+  'auth',
+  'login',
+  'setup',
+  '_health',
+  'static',
+  'assets',
+  'favicon.ico',
+] as const
+
 interface Heartbeat {
   status: 'up' | 'down' | 'degraded'
   responseTimeMs: number | null
@@ -42,6 +68,29 @@ interface Incident {
   resolvedAt: string | null
   cause: 'auto' | 'manual'
   note: string | null
+}
+
+interface StatusPage {
+  id: string
+  slug: string
+  title: string
+  description: string | null
+  theme: 'light' | 'dark' | 'auto'
+  passwordSet: boolean
+  hideBranding: boolean
+  customDomain: string | null
+  logoPath: string | null
+  accent: string | null
+  websiteUrl: string | null
+  customCss: string | null
+  monitorCount?: number
+}
+
+interface PageMonitorLink {
+  statusPageId: string
+  monitorId: string
+  groupName: string | null
+  sortOrder: number
 }
 
 /** MCP content is text; JSON keeps it unambiguous for the model to parse. */
@@ -94,6 +143,75 @@ function summarise(m: Monitor) {
     lastMessage: m.latest?.message || null,
     notifiesChannels: m.channelIds?.length ?? 0,
   }
+}
+
+/** Page rows carry logoPath/customCss blobs; expose booleans instead. */
+function summarisePage(p: StatusPage) {
+  return {
+    id: p.id,
+    slug: p.slug,
+    path: `/${p.slug}`,
+    title: p.title,
+    description: p.description,
+    theme: p.theme,
+    passwordSet: p.passwordSet,
+    monitorCount: p.monitorCount ?? null,
+    accent: p.accent,
+    websiteUrl: p.websiteUrl,
+    hideBranding: p.hideBranding,
+    hasLogo: !!p.logoPath,
+    hasCustomCss: !!p.customCss,
+  }
+}
+
+/** Branding inputs shared by create_status_page and update_status_page. */
+const pageBrandingSchema = {
+  accent: z
+    .enum(PAGE_ACCENTS)
+    .nullable()
+    .optional()
+    .describe('Preset accent color. Null clears it back to the default green.'),
+  websiteUrl: z
+    .string()
+    .url()
+    .nullable()
+    .optional()
+    .describe('"Back to website" link shown on the page. Null clears it.'),
+  hideBranding: z
+    .boolean()
+    .optional()
+    .describe('Hide the "Powered by PingBoard" footer.'),
+  customCss: z
+    .string()
+    .max(10 * 1024)
+    .nullable()
+    .optional()
+    .describe('Custom CSS injected into the page, max 10 KB. Null clears it.'),
+}
+
+const pageMonitorSchema = z.object({
+  monitorId: z.string().describe('Monitor id from list_monitors.'),
+  groupName: z
+    .string()
+    .optional()
+    .describe('Group heading on the page, e.g. "APIs". Omit for ungrouped.'),
+  sortOrder: z
+    .number()
+    .int()
+    .optional()
+    .describe('Display position; defaults to array order.'),
+})
+
+/** Fail fast on slugs the server would reject, with a clearer message. */
+function validateSlug(raw: unknown): string {
+  const slug = String(raw ?? '').trim().toLowerCase()
+  if (!/^[a-z0-9-]+$/.test(slug)) {
+    throw new Error('Slug must be lowercase letters, digits, and hyphens.')
+  }
+  if ((RESERVED_PAGE_SLUGS as readonly string[]).includes(slug)) {
+    throw new Error(`"${slug}" is reserved by PingBoard itself — pick another.`)
+  }
+  return slug
 }
 
 export function registerTools(server: McpServer, client: PingBoardClient): void {
@@ -205,6 +323,33 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
     guard(async () => ok(await client.get('/api/admin/pages'))),
+  )
+
+  server.registerTool(
+    'get_status_page',
+    {
+      title: 'Get status page detail',
+      description:
+        "Full settings for one public status page plus the monitors it publishes, with their grouping and order. Call this before update_status_page to see the current monitor list — updates replace it wholesale.",
+      inputSchema: {
+        pageId: z.string().describe('Status page id from list_status_pages.'),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    guard(async ({ pageId }: { pageId: string }) => {
+      const detail = await client.get<{
+        page: StatusPage
+        monitors: PageMonitorLink[]
+      }>(`/api/admin/pages/${pageId}`)
+      return ok({
+        page: summarisePage(detail.page),
+        monitors: detail.monitors.map((m) => ({
+          monitorId: m.monitorId,
+          groupName: m.groupName,
+          sortOrder: m.sortOrder,
+        })),
+      })
+    }),
   )
 
   server.registerTool(
@@ -382,6 +527,96 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
       }
       if (end <= start) throw new Error('endsAt must be after startsAt.')
       return ok(await client.post('/api/admin/maintenance-windows', args))
+    }),
+  )
+
+  server.registerTool(
+    'create_status_page',
+    {
+      title: 'Create a status page',
+      description:
+        'Create a public status page at /<slug>. Attach monitors to publish them on it, and set a password to gate the page. Slugs are permanent — they cannot be changed later.',
+      inputSchema: {
+        slug: z
+          .string()
+          .min(1)
+          .describe('URL path segment: lowercase letters, digits, hyphens.'),
+        title: z
+          .string()
+          .optional()
+          .describe('Heading on the page. Defaults to the slug.'),
+        description: z.string().optional(),
+        theme: z
+          .enum(PAGE_THEMES)
+          .optional()
+          .describe("Default 'auto' follows the visitor's system theme."),
+        password: z
+          .string()
+          .optional()
+          .describe('If set, visitors must enter this to view the page.'),
+        monitors: z
+          .array(pageMonitorSchema)
+          .optional()
+          .describe('Monitors to publish on the page.'),
+        ...pageBrandingSchema,
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+    },
+    guard(async (args: Record<string, unknown>) => {
+      const slug = validateSlug(args.slug)
+      const created = await client.post<{ page: StatusPage }>('/api/admin/pages', {
+        ...args,
+        slug,
+      })
+      return ok(summarisePage(created.page))
+    }),
+  )
+
+  server.registerTool(
+    'update_status_page',
+    {
+      title: 'Update a status page',
+      description:
+        "Change a page's title, description, theme, password, branding or published monitors. Fields you omit are left as-is; pass null to clear description/accent/websiteUrl/customCss, or an empty password to remove the gate. Passing monitors replaces the page's whole list — call get_status_page first so nothing is dropped. The slug cannot change.",
+      inputSchema: {
+        pageId: z.string().describe('Status page id from list_status_pages.'),
+        title: z.string().optional(),
+        description: z.string().nullable().optional(),
+        theme: z.enum(PAGE_THEMES).optional(),
+        password: z
+          .string()
+          .nullable()
+          .optional()
+          .describe('New gate password; null or "" removes it.'),
+        monitors: z
+          .array(pageMonitorSchema)
+          .optional()
+          .describe("Full replacement for the page's monitor list."),
+        ...pageBrandingSchema,
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    guard(async ({ pageId, ...rest }: { pageId: string } & Record<string, unknown>) => {
+      const res = await client.patch<{ page: StatusPage }>(
+        `/api/admin/pages/${pageId}`,
+        rest,
+      )
+      return ok(summarisePage(res.page))
+    }),
+  )
+
+  server.registerTool(
+    'delete_status_page',
+    {
+      title: 'Delete a status page',
+      description:
+        'Permanently delete a public status page and its uploaded logo. The monitors it published are untouched — only the page itself goes away. This cannot be undone.',
+      inputSchema: { pageId: z.string() },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true },
+    },
+    guard(async ({ pageId }: { pageId: string }) => {
+      await client.delete(`/api/admin/pages/${pageId}`)
+      return ok({ deleted: pageId })
     }),
   )
 }

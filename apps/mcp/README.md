@@ -86,6 +86,7 @@ Add to the client's MCP config:
 | `get_monitor` | Full config, recent heartbeats and incident history for one check |
 | `list_incidents` | Every down→up transition, open or resolved |
 | `list_status_pages` | Public pages, their slugs and how many monitors each publishes |
+| `get_status_page` | One page's full settings plus the monitors it publishes, in order |
 | `list_maintenance_windows` | Scheduled downtime |
 | `list_notification_channels` | Where alerts go, and whether each channel is enabled |
 | `run_check` | Run one check right now without saving it — useful before creating a monitor |
@@ -100,8 +101,11 @@ Add to the client's MCP config:
 | `resolve_incident` | Manually close an open incident |
 | `annotate_incident` | Add an explanation; notes appear on the public status page |
 | `schedule_maintenance` | Preferred over pausing for planned downtime — heartbeats keep recording honestly |
+| `create_status_page` | Slug is permanent; attach `monitors` or the page shows nothing |
+| `update_status_page` | Omitted fields are untouched; passing `monitors` replaces the whole list |
+| `delete_status_page` | Permanent — marked destructive. Monitors themselves are untouched |
 
-Read-only tools are annotated as such, and `delete_monitor` is annotated
+Read-only tools are annotated as such, and both delete tools are annotated
 destructive, so clients can gate or confirm them.
 
 ## Notes
@@ -110,4 +114,6 @@ A token has the same access as the admin account — there are no scopes yet.
 Revoking it from Settings takes effect immediately.
 
 Deliberately not included: anything that acts on the *monitored* systems.
-PingBoard observes; remediation belongs to whatever you actually run.
+PingBoard observes; remediation belongs to whatever you actually run. Logo
+uploads are also UI-only — the API takes multipart forms, which doesn't map
+cleanly onto MCP.
