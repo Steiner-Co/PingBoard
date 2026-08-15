@@ -89,6 +89,6 @@ With Compose: `docker compose pull && docker compose up -d`. Releases are tagged
 
 ## Data retention
 
-Raw heartbeats don't accumulate forever. A background job (runs daily, plus a sweep shortly after boot) aggregates heartbeats older than the retention window into per-day statistics — uptime percentage and average response time — and then deletes the raw rows. Uptime history effectively lives forever as daily rollups; only the per-check granularity expires.
+Raw heartbeats don't accumulate forever. A background job (runs hourly, plus a sweep shortly after boot) rolls each completed day up into per-day statistics — uptime percentage and average response time — and deletes raw rows once they pass the retention window. Uptime history effectively lives forever as daily rollups; only the per-check granularity expires.
 
 The window is configurable in **Settings**: 7, 30 (default), 60, 90, 180, or 365 days. The settings screen also reports the database size, the oldest raw heartbeat on file, and row counts, so you can see retention doing its job.

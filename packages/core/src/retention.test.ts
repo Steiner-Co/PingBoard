@@ -55,20 +55,38 @@ async function seedHeartbeat(daysAgo: number, status: 'up' | 'down') {
 }
 
 describe('runRetention', () => {
-  test('aggregates rows older than the window and deletes them', async () => {
+  test('aggregates all completed days; deletes only rows past the window', async () => {
     await seedHeartbeat(40, 'up')
     await seedHeartbeat(40, 'down')
-    await seedHeartbeat(1, 'up') // inside the window, must survive
+    await seedHeartbeat(1, 'up') // recent complete day: aggregated, not deleted
 
     const result = await runRetention(db, 30)
 
+    expect(result.aggregatedDays).toBe(2)
     expect(result.deletedRows).toBe(2)
+    // The recent day's raw rows survive — only past-window rows are deleted.
     const remaining = await db.select().from(heartbeats)
     expect(remaining).toHaveLength(1)
+    expect(remaining[0]!.status).toBe('up')
 
-    const stats = await db.select().from(dailyStats)
-    expect(stats).toHaveLength(1)
-    expect(stats[0]!.uptimePct).toBe(50)
+    const stats = await db
+      .select()
+      .from(dailyStats)
+      .orderBy(dailyStats.date)
+    expect(stats).toHaveLength(2)
+    expect(stats[0]!.uptimePct).toBe(50) // 40 days ago: 1 up, 1 down
+    expect(stats[1]!.uptimePct).toBe(100) // yesterday: 1 up
+  })
+
+  test('does not aggregate today — the day is still incomplete', async () => {
+    await seedHeartbeat(0, 'up')
+
+    const result = await runRetention(db, 30)
+
+    expect(result.aggregatedDays).toBe(0)
+    expect(result.deletedRows).toBe(0)
+    expect(await db.select().from(dailyStats)).toHaveLength(0)
+    expect(await db.select().from(heartbeats)).toHaveLength(1)
   })
 
   test('is idempotent', async () => {

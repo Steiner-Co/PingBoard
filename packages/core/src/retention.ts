@@ -4,16 +4,25 @@ import { dailyStats, getRetentionDays, heartbeats } from '@pingboard/db'
 import { DEFAULT_RETENTION_DAYS } from '@pingboard/shared'
 
 /**
- * Aggregates raw heartbeats older than `retentionDays` into daily stats,
- * then deletes the originals. Idempotent.
+ * Aggregates raw heartbeats into per-day stats, then deletes raw rows older
+ * than `retentionDays`. Idempotent.
+ *
+ * Aggregation covers every COMPLETE day (anything before today's UTC
+ * midnight), not just rows past the retention cutoff: the status-page
+ * timeline and the dashboard uptime strips read daily_stats for history, so
+ * a day needs its rollup row as soon as it closes — otherwise the last
+ * `retentionDays` of the timeline render as "no data". Only deletion is
+ * gated on the retention window.
  */
 export async function runRetention(
   db: DB,
   retentionDays = DEFAULT_RETENTION_DAYS,
 ): Promise<{ aggregatedDays: number; deletedRows: number }> {
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000)
+  const todayStart = new Date()
+  todayStart.setUTCHours(0, 0, 0, 0)
 
-  // Pull (monitor_id, day) groups with computed aggregates from rows older than cutoff.
+  // Pull (monitor_id, day) groups with computed aggregates from completed days.
   const rows = await db
     .select({
       monitorId: heartbeats.monitorId,
@@ -23,7 +32,7 @@ export async function runRetention(
       avgResponseMs: sql<number | null>`avg(${heartbeats.responseTimeMs})`.as('avg_response_ms'),
     })
     .from(heartbeats)
-    .where(lt(heartbeats.checkedAt, cutoff))
+    .where(lt(heartbeats.checkedAt, todayStart))
     .groupBy(heartbeats.monitorId, sql`day`)
 
   for (const row of rows) {
@@ -58,7 +67,7 @@ export function startRetentionJob(
   db: DB,
   { bootDelayMs = RETENTION_BOOT_DELAY_MS }: { bootDelayMs?: number } = {},
 ): { stop: () => void } {
-  const ONE_DAY_MS = 24 * 60 * 60 * 1000
+  const ONE_HOUR_MS = 60 * 60 * 1000
   const tick = async () => {
     try {
       const days = await getRetentionDays(db)
@@ -67,12 +76,13 @@ export function startRetentionJob(
       console.error('Retention job failed:', err)
     }
   }
-  // Sweep shortly after boot as well as daily. With only the interval, an
-  // instance restarted more often than every 24h — which is any instance
-  // that gets upgraded — would never sweep at all, and the heartbeat table
-  // would grow without bound regardless of the configured retention.
+  // Sweep shortly after boot as well as hourly. Without the boot sweep, an
+  // instance restarted often would never aggregate/delete at all. Hourly
+  // rather than daily because the sweep is idempotent and cheap, and the
+  // status-page timeline renders from the rollups — yesterday's bar should
+  // appear within the hour, not up to a day late.
   const initial = setTimeout(() => void tick(), bootDelayMs)
-  const handle = setInterval(() => void tick(), ONE_DAY_MS)
+  const handle = setInterval(() => void tick(), ONE_HOUR_MS)
   return {
     stop: () => {
       clearTimeout(initial)
