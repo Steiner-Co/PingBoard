@@ -20,6 +20,11 @@ declare module "@tanstack/react-table" {
   interface TableMeta<TData extends RowData> {
     uptimeById?: Map<string, MonitorUptime>
   }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData extends RowData, TValue> {
+    /** Extra classes applied to both the header and body cells of the column. */
+    className?: string
+  }
 }
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
@@ -128,6 +133,9 @@ const columns: ColumnDef<MonitorRow>[] = [
   {
     accessorKey: "type",
     header: "Type",
+    // The first column to yield when space gets tight — the target already
+    // hints at the type, and the detail page states it outright.
+    meta: { className: "hidden 2xl:table-cell" },
     cell: ({ row }) => (
       <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
         {row.original.type}
@@ -155,6 +163,8 @@ const columns: ColumnDef<MonitorRow>[] = [
   {
     accessorKey: "interval",
     header: () => <div className="w-full text-right">Interval</div>,
+    // Lowest-value column: only survives on wide desktops.
+    meta: { className: "hidden 2xl:table-cell" },
     cell: ({ row }) => (
       <div className="text-right text-xs tabular-nums text-muted-foreground">
         {row.original.interval}
@@ -178,7 +188,7 @@ function TargetCell({ target }: { target: string }) {
   }
   return (
     <div className="flex items-center gap-1">
-      <span className="font-mono text-xs text-muted-foreground truncate max-w-[240px] inline-block align-middle">
+      <span className="font-mono text-xs text-muted-foreground truncate max-w-[160px] inline-block align-middle">
         {target}
       </span>
       {/* relative z-10 lifts the button above the row's stretched name link. */}
@@ -325,7 +335,11 @@ export function DataTable({
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
                     return (
-                      <TableHead key={header.id} colSpan={header.colSpan}>
+                      <TableHead
+                        key={header.id}
+                        colSpan={header.colSpan}
+                        className={header.column.columnDef.meta?.className}
+                      >
                         {header.isPlaceholder
                           ? null
                           : flexRender(
@@ -348,6 +362,7 @@ export function DataTable({
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
                         key={cell.id}
+                        className={cell.column.columnDef.meta?.className}
                         onClick={
                           cell.column.id === "actions"
                             ? (e) => e.stopPropagation()

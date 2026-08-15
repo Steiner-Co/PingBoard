@@ -869,12 +869,10 @@ function CheckboxField({
 }) {
   return (
     <label htmlFor={id} className="flex items-center gap-2 text-sm">
-      <input
+      <Checkbox
         id={id}
-        type="checkbox"
         checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="h-4 w-4 rounded border-input"
+        onCheckedChange={(v) => onChange(v === true)}
       />
       {label}
     </label>

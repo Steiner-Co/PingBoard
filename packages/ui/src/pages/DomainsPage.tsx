@@ -280,7 +280,7 @@ export function DomainsPage() {
                   icon={ArrowClockwise}
                   className={cn('h-4 w-4', query.isFetching && 'animate-spin')}
                 />
-                ArrowClockwise
+                Refresh
               </Button>
               <Button onClick={() => setAddOpen(true)} className="gap-2">
                 <Icon icon={PlusSquare} className="h-4 w-4" />

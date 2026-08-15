@@ -44,7 +44,9 @@ export function UptimeBars({ uptime }: { uptime: MonitorUptime | undefined }) {
           />
         ))}
       </div>
-      <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+      {/* The pct label yields below ~1400px — the bars carry the story; the
+          number is on the detail page. */}
+      <span className="hidden font-mono text-[11px] tabular-nums text-muted-foreground min-[1400px]:inline">
         {uptime.pct == null ? "—" : `${uptime.pct.toFixed(1)}%`}
       </span>
     </div>

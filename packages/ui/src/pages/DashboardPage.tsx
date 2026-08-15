@@ -206,7 +206,7 @@ export function DashboardPage() {
                 icon={ArrowClockwise}
                 className={cn('h-4 w-4', refreshing && 'animate-spin')}
               />
-              ArrowClockwise
+              Refresh
             </Button>
             <Button asChild className="gap-2">
               <Link to="/admin/monitors/new">

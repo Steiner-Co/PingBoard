@@ -87,6 +87,16 @@ landing-side med clusters listed at the bottom.
   ships neutral light/dark `theme-color` fallbacks which the client re-tints to live
   status; the password gate and retry/not-found states use the shared
   Input/Button primitives.
+- **Craft sweep — FIXED 2026-08-15.** Full-app screenshot pass (both themes, all
+  admin routes) after the "feels 90% there" report: refresh buttons on Dashboard
+  and Domains rendered the literal text `ArrowClockwise` (icon-migration slip);
+  monitor-edit HTTP checkboxes were native inputs (browser-blue against the green
+  accent) and now use the shared `Checkbox`; the dashboard table clipped its last
+  columns at ≤1440px — Type/Interval are now wide-desktop-only and the uptime pct
+  label and target column yield below ~1400px; light-theme `--primary` was a pale
+  mint that read as disabled next to the vivid status greens — deepened to
+  `oklch(0.56 0.12 160)` with a near-white foreground (ring/sidebar tokens
+  follow).
 
 ### Closed by `9162b30` (slice lows/meds)
 
