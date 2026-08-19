@@ -49,3 +49,7 @@ coverage/
 drizzle/
 !packages/db/drizzle/
 !packages/db/drizzle/**
+
+# QA scratch (playwright sweep artifacts)
+.qa/
+*.qa-vite.config.ts

@@ -156,6 +156,55 @@
   --motion-overlay-out: 120ms;
 }
 
+/* ── Docs: heading anchor links (Fumadocs-style hover reveal) ── */
+[data-docs-article] h2 a,
+[data-docs-article] h3 a {
+  text-decoration: none;
+  color: inherit;
+}
+[data-docs-article] h2 a::after,
+[data-docs-article] h3 a::after {
+  content: '#';
+  margin-left: 0.35em;
+  font-weight: 400;
+  color: var(--muted-foreground);
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+[data-docs-article] h2:hover a::after,
+[data-docs-article] h3:hover a::after {
+  opacity: 0.5;
+}
+/* Code blocks: shiki copy affordance is added by JS — keep pre relative */
+[data-docs-article] pre {
+  position: relative;
+}
+
+/* Docs tables: Fumadocs-like — subtle header, zebra-free, compact */
+[data-docs-article] table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+[data-docs-article] thead th {
+  background: var(--muted);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
+  border-bottom: 1px solid var(--border);
+}
+[data-docs-article] tbody td {
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+[data-docs-article] tbody tr:last-child td {
+  border-bottom: none;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   /* Anchor jumps from the section nav glide; reduced motion gets the hard cut. */
   html {

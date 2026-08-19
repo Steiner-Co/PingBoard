@@ -4,7 +4,7 @@ import { LandingPage } from './LandingPage'
 import { Seo } from './components/Seo'
 import { SITE_DESCRIPTION } from './lib/site'
 import { SiteLayout } from './layouts/SiteLayout'
-import { DocsLayout } from './layouts/DocsLayout'
+import { DocsShell } from './layouts/DocsShell'
 import { DocsPage, DocsRedirect } from './pages/DocsPage'
 import { BlogIndex } from './pages/BlogIndex'
 import { BlogPost } from './pages/BlogPost'
@@ -31,7 +31,7 @@ export const routes: RouteRecord[] = [
       },
       {
         path: 'docs',
-        element: <SiteLayout width="wide"><DocsLayout /></SiteLayout>,
+        element: <DocsShell />,
         children: [
           { index: true, element: <DocsRedirect /> },
           { path: ':slug', element: <DocsPage /> },
