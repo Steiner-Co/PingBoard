@@ -16,6 +16,11 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Panel } from '@/components/panel'
+import { Badge } from '@/components/ui/badge'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank"
 import { ACCENT_PRESETS } from '@/public/accent-presets'
 import { useSSE } from '@/lib/sse'
 import { useNow } from '@/hooks/use-now'
@@ -25,7 +30,9 @@ import {
   formatDateTimeRange,
   formatDuration,
   formatRelative,
+  formatTime,
 } from '@/lib/utils'
+import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown"
 
 type AdminTheme = 'light' | 'dark' | 'auto'
 
@@ -361,7 +368,11 @@ export function PublicStatusView({
           ))}
         </div>
 
-        <IncidentHistory incidents={incidents} />
+        <PastEventsPanel
+          incidents={incidents}
+          maintenance={maintenance}
+          monitors={monitors}
+        />
 
         {!page?.hideBranding && (
           <footer className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground pt-8">
@@ -560,80 +571,418 @@ function MonitorRow({
   )
 }
 
-function IncidentHistory({ incidents }: { incidents: PublicIncident[] }) {
-  if (incidents.length === 0) {
-    return (
-      <section className="space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Past incidents
-        </h2>
-        <Panel className="p-5 text-sm text-muted-foreground">
-          No incidents in the last 30 days. Quiet is good.
-        </Panel>
-      </section>
-    )
+// A monitor that fails this often, this briefly, isn't having outages — it's
+// flapping. Listing every two-minute blip drowns the page (and the real
+// incidents) in noise, so a day showing this many consecutive incidents from
+// one monitor collapses into a single summary row, expandable for the detail.
+const FLAP_CLUSTER_MIN = 3
+// After clustering, a day renders at most this many entries; older ones hide
+// behind a "Show earlier" toggle so one chaotic day can't stretch the page.
+const MAX_DAY_ENTRIES = 8
+// Keep in sync with the public payload's incident cap (buildPublicPayload).
+const PUBLIC_INCIDENT_CAP = 50
+
+type DayEntry =
+  | { kind: 'single'; incident: PublicIncident }
+  | {
+      kind: 'cluster'
+      key: string
+      monitorName: string
+      incidents: PublicIncident[]
+      spanStartMs: number
+      spanEndMs: number
+      downMs: number
+      openNow: boolean
+    }
+
+/**
+ * Folds a day's incidents (newest first) into renderable entries: consecutive
+ * same-monitor runs at or above FLAP_CLUSTER_MIN become one cluster, everything
+ * else stays an individual row.
+ */
+function buildDayEntries(list: PublicIncident[]): DayEntry[] {
+  const sorted = [...list].sort(
+    (a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
+  )
+  const entries: DayEntry[] = []
+  let run: PublicIncident[] = []
+
+  const flushRun = () => {
+    const first = run[0]
+    if (!first) return
+    if (run.length >= FLAP_CLUSTER_MIN) {
+      let spanStartMs = Infinity
+      let spanEndMs = 0
+      let downMs = 0
+      let openNow = false
+      for (const i of run) {
+        const start = new Date(i.startedAt).getTime()
+        spanStartMs = Math.min(spanStartMs, start)
+        spanEndMs = Math.max(spanEndMs, start)
+        if (i.resolvedAt) {
+          const ms = new Date(i.resolvedAt).getTime() - start
+          if (ms > 0) downMs += ms
+        } else {
+          openNow = true
+          downMs += Math.max(0, Date.now() - start)
+        }
+      }
+      entries.push({
+        kind: 'cluster',
+        key: first.id,
+        monitorName: first.monitorName,
+        incidents: run,
+        spanStartMs,
+        spanEndMs,
+        downMs,
+        openNow,
+      })
+    } else {
+      for (const i of run) entries.push({ kind: 'single', incident: i })
+    }
+    run = []
   }
 
-  // Group incidents by day for a compact log-style display.
+  for (const i of sorted) {
+    const prev = run[run.length - 1]
+    if (prev && prev.monitorId !== i.monitorId) flushRun()
+    run.push(i)
+  }
+  flushRun()
+  return entries
+}
+
+/** Local calendar day as YYYY-MM-DD — the key incidents are grouped by. */
+function localDayKey(d: Date): string {
+  return (
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-` +
+    `${String(d.getDate()).padStart(2, '0')}`
+  )
+}
+
+type PanelTab = 'incidents' | 'maintenance'
+
+/**
+ * The tabbed "history" panel: incidents log + maintenance schedule. The
+ * calendar that filters the log lives in a popover off the header — it's a
+ * navigation aid, not content, so it doesn't earn permanent space on the page.
+ */
+function PastEventsPanel({
+  incidents,
+  maintenance,
+  monitors,
+}: {
+  incidents: PublicIncident[]
+  maintenance: MaintenanceWindow[]
+  monitors: PublicMonitor[]
+}) {
+  const [tab, setTab] = useState<PanelTab>('incidents')
+  // Which day's incidents the log is filtered to; undefined shows every day.
+  const [selectedDay, setSelectedDay] = useState<Date | undefined>(undefined)
+  const [calendarOpen, setCalendarOpen] = useState(false)
+
+  const now = new Date()
+  const DAY_MS = 24 * 60 * 60 * 1000
+  // Matches the server's 30-day incident window; floored to the day so the
+  // oldest window day is fully clickable on the calendar.
+  const windowStart = new Date(now.getTime() - 30 * DAY_MS)
+  windowStart.setHours(0, 0, 0, 0)
+
+  // Group by the visitor's local calendar day — the header and the times
+  // inside a group have to agree, and UTC-day keys didn't (anyone outside UTC
+  // got times that shuffled across a day boundary that wasn't theirs).
   const groups = new Map<string, PublicIncident[]>()
+  let oldestMs = Infinity
   for (const i of incidents) {
-    const key = new Date(i.startedAt).toISOString().slice(0, 10)
+    const key = localDayKey(new Date(i.startedAt))
     const arr = groups.get(key) ?? []
     arr.push(i)
     groups.set(key, arr)
+    oldestMs = Math.min(oldestMs, new Date(i.startedAt).getTime())
   }
 
+  // Calendar overview: one dot per day that had incidents, navigation bounded
+  // to the span we can actually show (the server's 30-day window, or less if
+  // history is shorter than that).
+  const incidentDates = [...groups.keys()].map((k) => new Date(`${k}T00:00:00`))
+  const firstOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1)
+  const startMonth = firstOfMonth(new Date(Math.min(oldestMs, windowStart.getTime())))
+  const endMonth = firstOfMonth(now)
+
+  // Default view: the last 7 calendar days only. Older incidents stay
+  // reachable through the calendar (their dots still show) — they just don't
+  // earn space by default.
+  const weekStart = new Date(now.getTime() - 6 * DAY_MS)
+  weekStart.setHours(0, 0, 0, 0)
+
+  const visibleGroups = selectedDay
+    ? [...groups.entries()].filter(([day]) => day === localDayKey(selectedDay))
+    : [...groups.entries()].filter(([day]) => day >= localDayKey(weekStart))
+
+  const activeMaintenance = maintenance.filter((w) => {
+    return (
+      new Date(w.startsAt).getTime() <= now.getTime() &&
+      new Date(w.endsAt).getTime() >= now.getTime()
+    )
+  })
+  const upcomingMaintenance = maintenance.filter(
+    (w) => new Date(w.startsAt).getTime() > now.getTime(),
+  )
+  const monitorName = (id: string) =>
+    monitors.find((m) => m.id === id)?.name ?? 'a monitor'
+
   return (
-    <section className="space-y-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        Past incidents
-      </h2>
-      <Panel className="divide-y">
-        {[...groups.entries()].map(([day, list]) => (
-          <div key={day} className="p-4 sm:p-5 space-y-3">
-            <div className="text-sm font-medium">{humanDate(day)}</div>
-            <ul className="space-y-2">
-              {list.map((i) => {
-                const startedAt = new Date(i.startedAt)
-                const isOpen = !i.resolvedAt
-                const durationMs = isOpen
-                  ? Date.now() - startedAt.getTime()
-                  : new Date(i.resolvedAt!).getTime() - startedAt.getTime()
-                return (
-                  <li
-                    key={i.id}
-                    className="flex flex-col sm:flex-row sm:items-baseline sm:gap-3 text-sm"
+    <section>
+      <Panel className="p-0">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as PanelTab)} className="gap-0">
+          <header className="flex items-center justify-between gap-3 border-b border-border/60 pr-2 pl-2 sm:pr-3 sm:pl-4">
+            <TabsList variant="line" aria-label="Past incidents and maintenance">
+              <TabsTrigger value="incidents">Incidents</TabsTrigger>
+              <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
+            </TabsList>
+            {incidents.length > 0 && (
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={selectedDay ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="gap-1.5 px-2.5 text-xs font-medium text-muted-foreground hover:text-foreground data-[state=open]:bg-muted"
                   >
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span
-                        className={cn(
-                          'inline-block h-1.5 w-1.5 rounded-full',
-                          isOpen ? 'bg-destructive' : 'bg-muted-foreground',
-                        )}
-                      />
-                      <span className="font-medium">{i.monitorName}</span>
-                      <span className="text-xs text-muted-foreground tabular-nums">
-                        {startedAt.toLocaleTimeString(undefined, {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}{' '}
-                        · {formatDuration(durationMs)}
-                        {isOpen && ' (ongoing)'}
+                    <Icon icon={CalendarBlank} className="h-3.5 w-3.5" />
+                    {selectedDay ? humanDate(localDayKey(selectedDay)) : 'Calendar'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-auto p-3">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDay}
+                    onSelect={(d) => {
+                      setSelectedDay(d ?? undefined)
+                      setCalendarOpen(false)
+                    }}
+                    defaultMonth={firstOfMonth(new Date(incidents[0]!.startedAt))}
+                    startMonth={startMonth}
+                    endMonth={endMonth}
+                    disabled={[{ before: windowStart }, { after: now }]}
+                    modifiers={{ hasIncidents: incidentDates }}
+                    modifiersClassNames={{
+                      hasIncidents:
+                        'after:pointer-events-none after:absolute after:bottom-[3px] after:left-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:rounded-full after:bg-destructive after:content-[""]',
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
+          </header>
+
+          {/* ── Incidents ── */}
+          <TabsContent value="incidents" className="text-sm">
+            {incidents.length === 0 ? (
+              <div className="p-5 text-muted-foreground">
+                No incidents in the last 30 days. Quiet is good.
+              </div>
+            ) : (
+              <div className="divide-y">
+                {selectedDay && (
+                  <div className="flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground sm:px-5">
+                    <span>
+                      Showing{' '}
+                      <span className="font-medium text-foreground">
+                        {humanDate(localDayKey(selectedDay))}
                       </span>
-                    </div>
-                    {i.note && (
-                      <div className="text-muted-foreground sm:ml-auto sm:text-right">
-                        {i.note}
-                      </div>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        ))}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDay(undefined)}
+                      className="rounded-sm font-medium underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      Show last 7 days
+                    </button>
+                  </div>
+                )}
+                {visibleGroups.length === 0 ? (
+                  <div className="p-5 text-muted-foreground">
+                    {selectedDay
+                      ? 'No incidents on this day.'
+                      : 'No incidents in the last 7 days.'}
+                  </div>
+                ) : (
+                  visibleGroups.map(([day, list]) => (
+                    <IncidentDay key={day} day={day} list={list} />
+                  ))
+                )}
+                {incidents.length >= PUBLIC_INCIDENT_CAP && (
+                  <p className="px-4 py-2.5 text-[11px] text-muted-foreground sm:px-5">
+                    Showing the {PUBLIC_INCIDENT_CAP} most recent incidents.
+                  </p>
+                )}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ── Maintenance ── */}
+          <TabsContent value="maintenance" className="text-sm">
+            {maintenance.length === 0 ? (
+              <div className="p-5 text-muted-foreground">
+                No maintenance scheduled. All clear.
+              </div>
+            ) : (
+              <div className="divide-y">
+                {activeMaintenance.map((w) => (
+                  <MaintenanceRow
+                    key={w.id}
+                    window={w}
+                    monitorName={monitorName(w.monitorId)}
+                    inProgress
+                  />
+                ))}
+                {upcomingMaintenance.map((w) => (
+                  <MaintenanceRow
+                    key={w.id}
+                    window={w}
+                    monitorName={monitorName(w.monitorId)}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </Panel>
     </section>
+  )
+}
+
+function MaintenanceRow({
+  window: w,
+  monitorName,
+  inProgress = false,
+}: {
+  window: MaintenanceWindow
+  monitorName: string
+  inProgress?: boolean
+}) {
+  return (
+    <div className="space-y-1 p-4 sm:p-5">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="font-medium">{w.title}</span>
+        {inProgress && <Badge variant="warning">In progress</Badge>}
+      </div>
+      <div className="text-xs text-muted-foreground">
+        {monitorName} —{' '}
+        {inProgress ? `until ${formatDateTime(w.endsAt)}` : formatDateTimeRange(w.startsAt, w.endsAt)}
+      </div>
+      {w.description && (
+        <div className="text-xs text-muted-foreground">{w.description}</div>
+      )}
+    </div>
+  )
+}
+
+function IncidentDay({ day, list }: { day: string; list: PublicIncident[] }) {
+  const [showAll, setShowAll] = useState(false)
+  const entries = buildDayEntries(list)
+  const visible = showAll ? entries : entries.slice(0, MAX_DAY_ENTRIES)
+  const hiddenCount = entries.length - visible.length
+
+  return (
+    <div className="p-4 sm:p-5 space-y-3">
+      <div className="text-sm font-medium">{humanDate(day)}</div>
+      <ul className="space-y-2">
+        {visible.map((e) =>
+          e.kind === 'single' ? (
+            <IncidentItem key={e.incident.id} incident={e.incident} />
+          ) : (
+            <IncidentCluster key={e.key} cluster={e} />
+          ),
+        )}
+      </ul>
+      {hiddenCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          aria-expanded={showAll}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {showAll
+            ? 'Show fewer'
+            : `Show ${hiddenCount} earlier ${hiddenCount === 1 ? 'incident' : 'incidents'}`}
+        </button>
+      )}
+    </div>
+  )
+}
+
+function IncidentItem({ incident }: { incident: PublicIncident }) {
+  const startedAt = new Date(incident.startedAt)
+  const isOpen = !incident.resolvedAt
+  const durationMs = isOpen
+    ? Date.now() - startedAt.getTime()
+    : new Date(incident.resolvedAt!).getTime() - startedAt.getTime()
+  return (
+    <li className="flex flex-col sm:flex-row sm:items-baseline sm:gap-3 text-sm">
+      <div className="flex items-center gap-2 shrink-0">
+        <span
+          className={cn(
+            'inline-block h-1.5 w-1.5 rounded-full',
+            isOpen ? 'bg-destructive' : 'bg-muted-foreground',
+          )}
+        />
+        <span className="font-medium">{incident.monitorName}</span>
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {formatTime(startedAt)} · {formatDuration(durationMs)}
+          {isOpen && ' (ongoing)'}
+        </span>
+      </div>
+      {incident.note && (
+        <div className="text-muted-foreground sm:ml-auto sm:text-right">
+          {incident.note}
+        </div>
+      )}
+    </li>
+  )
+}
+
+function IncidentCluster({ cluster }: { cluster: Extract<DayEntry, { kind: 'cluster' }> }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <li className="space-y-2">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="group flex w-full flex-col gap-1 rounded-md text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex-row sm:items-baseline sm:gap-3"
+      >
+        <span className="flex items-center gap-2">
+          <span
+            className={cn(
+              'inline-block h-1.5 w-1.5 rounded-full shrink-0',
+              cluster.openNow ? 'bg-destructive' : 'bg-muted-foreground',
+            )}
+          />
+          <span className="font-medium">{cluster.monitorName}</span>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {cluster.incidents.length} incidents ·{' '}
+            {formatTime(cluster.spanStartMs)} – {formatTime(cluster.spanEndMs)}{' '}
+            · {formatDuration(cluster.downMs)} down
+            {cluster.openNow && ' (ongoing)'}
+          </span>
+        </span>
+        <span className="flex items-center gap-1 text-xs text-muted-foreground transition-colors group-hover:text-foreground sm:ml-auto shrink-0">
+          {open ? 'Hide' : 'Show each'}
+          <Icon
+            icon={CaretDown}
+            className={cn('h-3 w-3 transition-transform', open && 'rotate-180')}
+          />
+        </span>
+      </button>
+      {open && (
+        <ul className="space-y-2 ml-[3px] border-l border-border/60 pl-4">
+          {cluster.incidents.map((i) => (
+            <IncidentItem key={i.id} incident={i} />
+          ))}
+        </ul>
+      )}
+    </li>
   )
 }
 
