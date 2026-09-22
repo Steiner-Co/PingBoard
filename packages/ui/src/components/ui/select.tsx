@@ -62,7 +62,11 @@ function SelectTrigger({
 function SelectContent({
   className,
   children,
-  position = "item-aligned",
+  // `popper` (not Radix's `item-aligned` default): item-aligned positions the
+  // list from its own measured px, which the root `zoom` scales a second time
+  // and lands the list ~47px off the trigger. Popper routes through
+  // `[data-radix-popper-content-wrapper]`, which the zoom already compensates.
+  position = "popper",
   align = "center",
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content>) {
