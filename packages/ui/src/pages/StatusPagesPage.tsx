@@ -74,7 +74,6 @@ export function StatusPagesPage() {
   const confirm = useConfirm()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
-  const [passwordTarget, setPasswordTarget] = useState<StatusPage | null>(null)
 
   const pages = useQuery({
     queryKey: ['pages'],
@@ -143,18 +142,6 @@ export function StatusPagesPage() {
     },
     onError: (err) =>
       toast.error(err instanceof Error ? err.message : 'Failed to delete'),
-  })
-
-  const updatePassword = useMutation({
-    mutationFn: ({ id, password }: { id: string; password: string | null }) =>
-      api.patch(`/api/admin/pages/${id}`, { password }),
-    onSuccess: (_data, vars) => {
-      void queryClient.invalidateQueries({ queryKey: ['pages'] })
-      toast.success(vars.password ? 'Password updated' : 'Password protection removed')
-      setPasswordTarget(null)
-    },
-    onError: (err) =>
-      toast.error(err instanceof Error ? err.message : 'Failed to update password'),
   })
 
   return (
@@ -232,17 +219,6 @@ export function StatusPagesPage() {
                   key={p.id}
                   page={p}
                   health={healthByPageId.get(p.id) ?? null}
-                  onSetPassword={() => setPasswordTarget(p)}
-                  onRemovePassword={async () => {
-                    const ok = await confirm({
-                      title: `Remove password from "${p.title}"?`,
-                      description:
-                        'Anyone with the URL will be able to view this status page.',
-                      confirmLabel: 'Remove password',
-                      destructive: true,
-                    })
-                    if (ok) updatePassword.mutate({ id: p.id, password: null })
-                  }}
                   onDelete={async () => {
                     const ok = await confirm({
                       title: `Delete "${p.title}"?`,
@@ -262,15 +238,6 @@ export function StatusPagesPage() {
       )}
 
       <PageDialog open={open} onClose={() => setOpen(false)} />
-      <PasswordDialog
-        page={passwordTarget}
-        onClose={() => setPasswordTarget(null)}
-        onSubmit={(password) =>
-          passwordTarget &&
-          updatePassword.mutate({ id: passwordTarget.id, password })
-        }
-        pending={updatePassword.isPending}
-      />
     </div>
   )
 }
@@ -356,14 +323,10 @@ function PagesSkeleton() {
 function PageRow({
   page,
   health,
-  onSetPassword,
-  onRemovePassword,
   onDelete,
 }: {
   page: StatusPage
   health: PageHealth | null
-  onSetPassword: () => void
-  onRemovePassword: () => void
   onDelete: () => void
 }) {
   const count = page.monitorCount ?? 0
@@ -448,16 +411,6 @@ function PageRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={onSetPassword}>
-              <Icon icon={LockKey} className="h-3.5 w-3.5" />
-              {page.passwordSet ? 'Change password' : 'Set password'}
-            </DropdownMenuItem>
-            {page.passwordSet && (
-              <DropdownMenuItem onSelect={onRemovePassword}>
-                Remove password
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onSelect={onDelete}>
               <Icon icon={Trash} className="h-3.5 w-3.5" />
               Delete
@@ -562,70 +515,6 @@ function CoverageBanner({
         ))}
       </ul>
     </Panel>
-  )
-}
-
-function PasswordDialog({
-  page,
-  onClose,
-  onSubmit,
-  pending,
-}: {
-  page: StatusPage | null
-  onClose: () => void
-  onSubmit: (password: string) => void
-  pending: boolean
-}) {
-  const [password, setPassword] = useState('')
-  const open = !!page
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(v) => {
-        if (!v) {
-          setPassword('')
-          onClose()
-        }
-      }}
-    >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            {page?.passwordSet ? 'Change password' : 'Set password'}
-          </DialogTitle>
-          <DialogDescription>
-            Visitors will need this password to view{' '}
-            <span className="font-mono">/{page?.slug}</span>. Cookies are issued
-            for 30 days.
-          </DialogDescription>
-        </DialogHeader>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            if (password.trim()) onSubmit(password.trim())
-          }}
-          className="space-y-2"
-        >
-          <Label htmlFor="page-password">New password</Label>
-          <Input
-            id="page-password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoFocus
-          />
-          <DialogFooter className="pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!password.trim() || pending}>
-              {pending ? 'Saving…' : 'Save'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
   )
 }
 

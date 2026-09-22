@@ -10,6 +10,7 @@ import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft"
 import { ArrowUp } from "@phosphor-icons/react/dist/icons/ArrowUp"
 import { ArrowCircleUpRight } from "@phosphor-icons/react/dist/icons/ArrowCircleUpRight"
 import { Globe } from "@phosphor-icons/react/dist/icons/Globe"
+import { LockKey } from "@phosphor-icons/react/dist/icons/LockKey"
 import { UploadSimple } from "@phosphor-icons/react/dist/icons/UploadSimple"
 import { Trash } from "@phosphor-icons/react/dist/icons/Trash"
 import { Sun } from "@phosphor-icons/react/dist/icons/Sun"
@@ -22,6 +23,13 @@ import { useConfirm } from '@/components/confirm-provider'
 import { useUnsavedGuard } from '@/contexts/unsaved-changes'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PasswordInput } from '@/components/ui/password-input'
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { ACCENT_PRESETS } from '@/public/accent-presets'
 import {
@@ -51,6 +59,9 @@ interface PageDetail {
   page: StatusPage
   monitors: LinkedMonitor[]
 }
+
+/** Rail tabs — every page setting has a home here, and only here. */
+type EditorTab = 'setup' | 'branding' | 'monitors' | 'advanced'
 
 // Sort: selected monitors in their explicit `order` first, then unselected
 // monitors after. Lets the user see the live ordering while still being able
@@ -123,6 +134,11 @@ export function StatusPageEditorPage() {
   // draft theme setting. Reset whenever the draft theme changes.
   const [peekTheme, setPeekTheme] = useState<'light' | 'dark' | null>(null)
   const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit')
+  const [tab, setTab] = useState<EditorTab>('setup')
+  // Password is applied immediately rather than through "Save changes": it is
+  // a security action and the PATCH takes it as a standalone field.
+  const [password, setPassword] = useState('')
+  const [changingPassword, setChangingPassword] = useState(false)
 
   // Hydrate when the detail query lands, guarded by dataUpdatedAt so a
   // logo-upload refetch mid-edit doesn't wipe unsaved drafts.
@@ -229,6 +245,32 @@ export function StatusPageEditorPage() {
     },
     onError: (err) => setError(err instanceof Error ? err.message : 'Failed'),
   })
+
+  const savePassword = useMutation({
+    mutationFn: (next: string | null) =>
+      api.patch(`/api/admin/pages/${id}`, { password: next }),
+    onSuccess: (_data, next) => {
+      setPassword('')
+      setChangingPassword(false)
+      void queryClient.invalidateQueries({ queryKey: ['page', id] })
+      void queryClient.invalidateQueries({ queryKey: ['pages'] })
+      toast.success(
+        next ? 'Password protection enabled' : 'Password protection removed',
+      )
+    },
+    onError: (err) => setError(err instanceof Error ? err.message : 'Failed'),
+  })
+
+  const removePassword = async () => {
+    const ok = await confirm({
+      title: 'Remove password protection?',
+      description:
+        'Anyone with the link will be able to view this status page again.',
+      confirmLabel: 'Remove password',
+      destructive: true,
+    })
+    if (ok) savePassword.mutate(null)
+  }
 
   const handleSubmit = () => {
     if (!detail.data) return // never submit a form that never hydrated
@@ -429,221 +471,320 @@ export function StatusPageEditorPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)] lg:items-start">
-        {/* Controls rail */}
-        <div
+        {/* Controls rail. Sticky with its own scroll, so the preview holds
+            still while editing, and tabbed so no setting is a screen of
+            scrolling away (Custom CSS used to sit ~1.5 screens down). */}
+        <Panel
           className={cn(
             mobileTab === 'edit' ? 'flex' : 'hidden',
-            'lg:flex flex-col gap-4',
+            'lg:flex flex-col overflow-hidden p-0 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-9rem)]',
           )}
         >
-          {!page ? (
-            <EditorSkeleton />
-          ) : (
-            <>
-              <Panel className="flex flex-col gap-4 p-4">
-                <div className="space-y-2">
-                  <Label htmlFor="editor-title">Title</Label>
-                  <Input
-                    id="editor-title"
-                    name="title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="editor-desc">Description</Label>
-                  <Input
-                    id="editor-desc"
-                    name="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Optional"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="editor-theme">Theme</Label>
-                  <Select
-                    value={theme}
-                    onValueChange={(v) => {
-                      setTheme(v as Theme)
-                      setPeekTheme(null)
-                    }}
-                  >
-                    <SelectTrigger id="editor-theme">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="auto">Auto (follow visitor)</SelectItem>
-                      <SelectItem value="light">Light</SelectItem>
-                      <SelectItem value="dark">Dark</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </Panel>
-
-              <Panel className="flex flex-col gap-4 p-4">
-                <p className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-                  Appearance
-                </p>
-
-                <LogoField page={page} logoPath={page.logoPath} />
-
-                <div className="space-y-2">
-                  <Label>Accent</Label>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setAccent(null)}
-                      aria-pressed={accent === null}
-                      title="Default (PingBoard green)"
-                      className={cn(
-                        'size-6 rounded-full outline-none transition-[box-shadow,transform] duration-150 ease-out active:scale-95',
-                        'bg-success',
-                        accent === null
-                          ? 'ring-2 ring-foreground/60 ring-offset-2 ring-offset-background'
-                          : 'opacity-60 hover:opacity-100',
-                      )}
-                    />
-                    {Object.entries(ACCENT_PRESETS).map(([key, p]) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setAccent(key)}
-                        aria-pressed={accent === key}
-                        title={p.label}
-                        style={{ backgroundColor: p.swatch }}
-                        className={cn(
-                          'size-6 rounded-full outline-none transition-[box-shadow,transform] duration-150 ease-out active:scale-95',
-                          accent === key
-                            ? 'ring-2 ring-foreground/60 ring-offset-2 ring-offset-background'
-                            : 'opacity-60 hover:opacity-100',
-                        )}
+          <Tabs
+            value={tab}
+            onValueChange={(v) => setTab(v as EditorTab)}
+            className="min-h-0 flex-1"
+          >
+            <div className="shrink-0 border-b border-border/60 p-3">
+              <TabsList className="w-full">
+                <TabsTrigger value="setup">Setup</TabsTrigger>
+                <TabsTrigger value="branding">Branding</TabsTrigger>
+                <TabsTrigger value="monitors">Monitors</TabsTrigger>
+                <TabsTrigger value="advanced">Advanced</TabsTrigger>
+              </TabsList>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              {!page ? (
+                <EditorSkeleton />
+              ) : (
+                <div className="flex flex-col gap-4">
+                  <TabsContent value="setup" className="flex flex-col gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="editor-title">Title</Label>
+                      <Input
+                        id="editor-title"
+                        name="title"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
                       />
-                    ))}
-                  </div>
-                </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editor-desc">Description</Label>
+                      <Input
+                        id="editor-desc"
+                        name="description"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Optional"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editor-theme">Theme</Label>
+                      <Select
+                        value={theme}
+                        onValueChange={(v) => {
+                          setTheme(v as Theme)
+                          setPeekTheme(null)
+                        }}
+                      >
+                        <SelectTrigger id="editor-theme">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">Auto (follow visitor)</SelectItem>
+                          <SelectItem value="light">Light</SelectItem>
+                          <SelectItem value="dark">Dark</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="editor-website">Website URL</Label>
-                  <Input
-                    id="editor-website"
-                    name="websiteUrl"
-                    value={websiteUrl}
-                    onChange={(e) => setWebsiteUrl(e.target.value)}
-                    placeholder="https://example.com"
-                    autoComplete="off"
-                    spellCheck={false}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    The logo and title on the public page link here.
-                  </p>
-                </div>
-
-                <label className="flex cursor-pointer items-center gap-2.5 text-sm">
-                  <Checkbox
-                    checked={hideBranding}
-                    onCheckedChange={(v) => setHideBranding(v === true)}
-                  />
-                  Hide the “Powered by PingBoard” footer
-                </label>
-
-                <div className="space-y-2">
-                  <Label htmlFor="editor-css">Custom CSS</Label>
-                  <Textarea
-                    id="editor-css"
-                    name="customCss"
-                    value={customCss}
-                    onChange={(e) => setCustomCss(e.target.value)}
-                    placeholder={'.my-rule { … }'}
-                    rows={6}
-                    spellCheck={false}
-                    className="font-mono text-xs"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Injected into this status page only, up to 10 KB. It's your
-                    page — unescaped by design.
-                  </p>
-                </div>
-              </Panel>
-
-              <Panel className="flex flex-col gap-2 p-4">
-                <Label>Monitors</Label>
-                <div className="divide-y divide-border/60 rounded-md border border-border/60">
-                  {/* Selected monitors first, in display order — so the up/down
-                      buttons make visual sense. Unselected appear below. */}
-                  {orderedMonitorList(allMonitors, order).map((m) => {
-                    const checked = selected.has(m.id)
-                    return (
-                      <div key={m.id} className="flex items-center gap-3 p-3">
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={() => toggle(m.id)}
-                        />
-                        <div className="min-w-0 flex-1 text-sm">
-                          <div className="truncate font-medium">{m.name}</div>
-                          <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-                            {m.type}
+                    {/* Password protection used to be a dialog off the list
+                        page, which split page config across two surfaces. */}
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="editor-password">
+                        Password protection
+                      </Label>
+                      {page.passwordSet && !changingPassword ? (
+                        <div className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-muted/30 px-3 py-2">
+                          <span className="flex items-center gap-2 text-xs/relaxed text-muted-foreground">
+                            <Icon icon={LockKey} className="size-3.5" />
+                            On — visitors need a password
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setChangingPassword(true)}
+                            >
+                              Change
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="text-destructive"
+                              disabled={savePassword.isPending}
+                              onClick={() => void removePassword()}
+                            >
+                              Remove
+                            </Button>
                           </div>
                         </div>
-                        {checked && (
-                          <>
-                            <div className="flex items-center gap-0.5">
-                              <Button
-                                type="button"
-                                size="icon-sm"
-                                variant="ghost"
-                                aria-label="Move up"
-                                disabled={order.indexOf(m.id) <= 0}
-                                onClick={() => moveOrder(m.id, -1)}
-                              >
-                                <Icon icon={ArrowUp} className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                type="button"
-                                size="icon-sm"
-                                variant="ghost"
-                                aria-label="Move down"
-                                disabled={
-                                  order.indexOf(m.id) === order.length - 1 ||
-                                  order.indexOf(m.id) === -1
-                                }
-                                onClick={() => moveOrder(m.id, 1)}
-                              >
-                                <Icon icon={ArrowDown} className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                            <Input
-                              value={selected.get(m.id) ?? ''}
-                              onChange={(e) => setGroup(m.id, e.target.value)}
-                              placeholder="Group"
-                              className="w-28 text-xs"
-                            />
-                          </>
-                        )}
-                      </div>
-                    )
-                  })}
-                  {allMonitors.length === 0 && (
-                    <div className="p-4 text-center text-sm text-muted-foreground">
-                      No monitors to add.
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <PasswordInput
+                            id="editor-password"
+                            autoComplete="new-password"
+                            placeholder={
+                              page.passwordSet ? 'New password' : 'Set a password'
+                            }
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="flex-1"
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            disabled={!password.trim() || savePassword.isPending}
+                            onClick={() => savePassword.mutate(password.trim())}
+                          >
+                            {savePassword.isPending
+                              ? 'Saving…'
+                              : page.passwordSet
+                                ? 'Update'
+                                : 'Set'}
+                          </Button>
+                          {page.passwordSet && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setChangingPassword(false)
+                                setPassword('')
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                      <p className="text-xs/relaxed text-muted-foreground">
+                        Visitors need this password to view{' '}
+                        <span className="font-mono">/{page.slug}</span>. Cookies
+                        last 30 days. Applied immediately, not with Save
+                        changes.
+                      </p>
                     </div>
+                  </TabsContent>
+
+                  <TabsContent value="branding" className="flex flex-col gap-4">
+                    <LogoField page={page} logoPath={page.logoPath} />
+
+                    <div className="space-y-2">
+                      <Label>Accent</Label>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setAccent(null)}
+                          aria-pressed={accent === null}
+                          title="Default (PingBoard green)"
+                          className={cn(
+                            'size-6 rounded-full outline-none transition-[box-shadow,transform] duration-150 ease-out active:scale-95',
+                            'bg-success',
+                            accent === null
+                              ? 'ring-2 ring-foreground/60 ring-offset-2 ring-offset-background'
+                              : 'opacity-60 hover:opacity-100',
+                          )}
+                        />
+                        {Object.entries(ACCENT_PRESETS).map(([key, p]) => (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => setAccent(key)}
+                            aria-pressed={accent === key}
+                            title={p.label}
+                            style={{ backgroundColor: p.swatch }}
+                            className={cn(
+                              'size-6 rounded-full outline-none transition-[box-shadow,transform] duration-150 ease-out active:scale-95',
+                              accent === key
+                                ? 'ring-2 ring-foreground/60 ring-offset-2 ring-offset-background'
+                                : 'opacity-60 hover:opacity-100',
+                            )}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="editor-website">Website URL</Label>
+                      <Input
+                        id="editor-website"
+                        name="websiteUrl"
+                        value={websiteUrl}
+                        onChange={(e) => setWebsiteUrl(e.target.value)}
+                        placeholder="https://example.com"
+                        autoComplete="off"
+                        spellCheck={false}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        The logo and title on the public page link here.
+                      </p>
+                    </div>
+
+                    <label className="flex cursor-pointer items-center gap-2.5 text-sm">
+                      <Checkbox
+                        checked={hideBranding}
+                        onCheckedChange={(v) => setHideBranding(v === true)}
+                      />
+                      Hide the “Powered by PingBoard” footer
+                    </label>
+                  </TabsContent>
+
+                  <TabsContent value="monitors" className="flex flex-col gap-3">
+                    <p className="text-xs/relaxed text-muted-foreground">
+                      Ticked monitors appear on the public page, in this order.
+                      Group names cluster them (e.g. “API”, “Web”, “Database”).
+                    </p>
+                    <div className="divide-y divide-border/60 rounded-md border border-border/60">
+                    {/* Selected monitors first, in display order — so the
+                        reorder controls make visual sense. Unselected below. */}
+                    {orderedMonitorList(allMonitors, order).map((m) => {
+                      const checked = selected.has(m.id)
+                      return (
+                        <div key={m.id} className="flex items-center gap-3 p-3">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={() => toggle(m.id)}
+                          />
+                          <div className="min-w-0 flex-1 text-sm">
+                            <div className="truncate font-medium">{m.name}</div>
+                            <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                              {m.type}
+                            </div>
+                          </div>
+                          {checked && (
+                            <>
+                              <div className="flex items-center gap-0.5">
+                                <Button
+                                  type="button"
+                                  size="icon-sm"
+                                  variant="ghost"
+                                  aria-label="Move up"
+                                  disabled={order.indexOf(m.id) <= 0}
+                                  onClick={() => moveOrder(m.id, -1)}
+                                >
+                                  <Icon icon={ArrowUp} className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="icon-sm"
+                                  variant="ghost"
+                                  aria-label="Move down"
+                                  disabled={
+                                    order.indexOf(m.id) === order.length - 1 ||
+                                    order.indexOf(m.id) === -1
+                                  }
+                                  onClick={() => moveOrder(m.id, 1)}
+                                >
+                                  <Icon icon={ArrowDown} className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                              <Input
+                                value={selected.get(m.id) ?? ''}
+                                onChange={(e) => setGroup(m.id, e.target.value)}
+                                placeholder="Group"
+                                aria-label={`Group for ${m.name}`}
+                                className="w-28 text-xs"
+                              />
+                            </>
+                          )}
+                        </div>
+                      )
+                    })}
+                    {allMonitors.length === 0 && (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        No monitors to add.
+                      </div>
+                    )}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="advanced" className="flex flex-col gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="editor-css">Custom CSS</Label>
+                      <Textarea
+                        id="editor-css"
+                        name="customCss"
+                        value={customCss}
+                        onChange={(e) => setCustomCss(e.target.value)}
+                        placeholder={'.my-rule { … }'}
+                        rows={8}
+                        spellCheck={false}
+                        className="font-mono text-xs"
+                      />
+                      <p className="text-xs/relaxed text-muted-foreground">
+                        Injected into this status page only, up to 10 KB. It's
+                        your page — unescaped by design.
+                      </p>
+                    </div>
+                  </TabsContent>
+
+                  {error && (
+                    <p
+                      role="alert"
+                      aria-live="polite"
+                      className="text-sm text-destructive"
+                    >
+                      {error}
+                    </p>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Use the arrows to reorder. Group names cluster monitors on the
-                  public page (e.g. "API", "Web", "Database").
-                </p>
-              </Panel>
-
-              {error && (
-                <p role="alert" aria-live="polite" className="text-sm text-destructive">
-                  {error}
-                </p>
               )}
-              <div className="flex justify-end">{saveButton}</div>
-            </>
-          )}
-        </div>
+            </div>
+          </Tabs>
+        </Panel>
 
         {/* Live preview */}
         <div
