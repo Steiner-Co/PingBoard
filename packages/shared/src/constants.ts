@@ -12,6 +12,7 @@ export const RESERVED_SLUGS = [
   'admin',
   'api',
   'auth',
+  'forgot-password',
   'login',
   'setup',
   '_health',

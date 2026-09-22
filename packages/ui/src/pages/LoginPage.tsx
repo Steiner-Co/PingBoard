@@ -1,9 +1,10 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { AuthLayout } from '@/components/auth-layout'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PasswordInput } from '@/components/ui/password-input'
 import { useAuth } from '@/contexts/auth'
 
 export function LoginPage() {
@@ -33,67 +34,70 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-muted/30">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <img src="/logomark.png" alt="" className="size-5 rounded-md" />
-            <CardTitle>Sign in</CardTitle>
+    <AuthLayout>
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-xl font-semibold tracking-tight">Sign in</h1>
+          <p className="text-sm text-muted-foreground">
+            Welcome back to PingBoard.
+          </p>
+        </div>
+
+        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              ref={emailRef}
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="username"
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? 'login-error' : undefined}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoFocus
+            />
           </div>
-          <CardDescription>Welcome back to PingBoard.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                ref={emailRef}
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="username"
-                aria-invalid={error ? true : undefined}
-                aria-describedby={error ? 'login-error' : undefined}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoFocus
-              />
-            </div>
-            <div className="space-y-2">
+
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                aria-invalid={error ? true : undefined}
-                aria-describedby={error ? 'login-error' : undefined}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <Link
+                to="/forgot-password"
+                className="text-xs/relaxed text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+              >
+                Forgot password?
+              </Link>
             </div>
+            <PasswordInput
+              id="password"
+              name="password"
+              autoComplete="current-password"
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? 'login-error' : undefined}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          {error ? (
             <p
               id="login-error"
               role="alert"
-              className="min-h-5 text-sm text-destructive"
+              className="text-xs/relaxed text-destructive"
             >
               {error}
             </p>
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? 'Signing in…' : 'Sign in'}
-            </Button>
-            <p className="text-xs text-muted-foreground text-center pt-1">
-              Forgot your password? Run{' '}
-              <code className="px-1 py-0.5 bg-muted rounded text-foreground">
-                docker exec pingboard pingboard reset-password &lt;email&gt;
-              </code>{' '}
-              from the host.
-            </p>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+          ) : null}
+
+          <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+            {submitting ? 'Signing in…' : 'Sign in'}
+          </Button>
+        </form>
+      </div>
+    </AuthLayout>
   )
 }

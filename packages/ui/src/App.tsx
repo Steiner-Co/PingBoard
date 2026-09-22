@@ -5,6 +5,7 @@ import { AdminLayout } from '@/layouts/AdminLayout'
 import { ChannelsPage } from '@/pages/ChannelsPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { DomainsPage } from '@/pages/DomainsPage'
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { IncidentsPage } from '@/pages/IncidentsPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { MaintenancePage } from '@/pages/MaintenancePage'
@@ -31,7 +32,7 @@ export function App() {
 // less like a broken deploy than a flash of the wrong page.
 function BootSplash() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-app flex items-center justify-center">
       <div className="flex items-center gap-3 text-muted-foreground">
         <img src="/logomark.png" alt="" className="size-6 rounded-md motion-safe:animate-pulse" />
         <span className="text-sm">PingBoard</span>
@@ -54,6 +55,14 @@ function SetupRoute() {
   return setupComplete === false ? <SetupPage /> : <Navigate to="/admin" replace />
 }
 
+function ForgotPasswordRoute() {
+  const { loading, user, setupComplete } = useAuth()
+  if (loading) return <BootSplash />
+  // First run must finish setup before password recovery is relevant.
+  if (setupComplete === false) return <Navigate to="/setup" replace />
+  return user ? <Navigate to="/admin" replace /> : <ForgotPasswordPage />
+}
+
 function AdminRoute() {
   const { loading, user, setupComplete } = useAuth()
   if (loading) return <BootSplash />
@@ -74,6 +83,7 @@ function IndexRedirect() {
 const router = createBrowserRouter([
   { path: '/login', element: <LoginRoute /> },
   { path: '/setup', element: <SetupRoute /> },
+  { path: '/forgot-password', element: <ForgotPasswordRoute /> },
   {
     path: '/admin',
     element: <AdminRoute />,
