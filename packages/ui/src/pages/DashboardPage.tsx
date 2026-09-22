@@ -4,11 +4,11 @@ import { Link } from 'react-router-dom'
 import { z } from 'zod'
 import { Icon } from '@/components/ui/icon'
 import { Pulse } from "@phosphor-icons/react/dist/icons/Pulse"
-import { PlusSquare } from "@phosphor-icons/react/dist/icons/PlusSquare"
+import { PlusCircle } from "@phosphor-icons/react/dist/icons/PlusCircle"
 import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass"
 import { ArrowClockwise } from "@phosphor-icons/react/dist/icons/ArrowClockwise"
 import { Info } from "@phosphor-icons/react/dist/icons/Info"
-import { XSquare } from "@phosphor-icons/react/dist/icons/XSquare"
+import { XCircle } from "@phosphor-icons/react/dist/icons/XCircle"
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -210,7 +210,7 @@ export function DashboardPage() {
             </Button>
             <Button asChild className="gap-2">
               <Link to="/admin/monitors/new">
-                <Icon icon={PlusSquare} className="h-4 w-4" />
+                <Icon icon={PlusCircle} className="h-4 w-4" />
                 Add monitor
               </Link>
             </Button>
@@ -275,7 +275,7 @@ function LiveBanner() {
         }}
         className="shrink-0 rounded-md p-0.5 text-muted-foreground transition-[color,background-color] duration-150 ease-out hover:bg-accent hover:text-foreground"
       >
-        <Icon icon={XSquare} className="size-4" />
+        <Icon icon={XCircle} className="size-4" />
       </button>
     </Panel>
   )
@@ -473,7 +473,7 @@ function EmptyDashboard() {
         </div>
         <Button asChild>
           <Link to="/admin/monitors/new" className="gap-2">
-            <Icon icon={PlusSquare} className="h-4 w-4" />
+            <Icon icon={PlusCircle} className="h-4 w-4" />
             Add your first check
           </Link>
         </Button>

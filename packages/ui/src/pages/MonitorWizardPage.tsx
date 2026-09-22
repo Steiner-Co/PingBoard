@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
 import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft"
 import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight"
-import { XSquare } from "@phosphor-icons/react/dist/icons/XSquare"
+import { XCircle } from "@phosphor-icons/react/dist/icons/XCircle"
 import { TestTube } from "@phosphor-icons/react/dist/icons/TestTube"
 import { WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle"
 import { ALLOWED_INTERVALS_SECONDS } from '@pingboard/shared'
@@ -580,7 +580,7 @@ export function TagInput({
               className="opacity-60 hover:opacity-100"
               aria-label={`Remove ${tag}`}
             >
-              <Icon icon={XSquare} className="h-3.5 w-3.5" />
+              <Icon icon={XCircle} weight="fill" className="h-3.5 w-3.5" />
             </button>
           </Badge>
         ))}

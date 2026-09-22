@@ -7,10 +7,10 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
 import { Copy } from "@phosphor-icons/react/dist/icons/Copy"
 import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple"
-import { ArrowSquareUpRight } from "@phosphor-icons/react/dist/icons/ArrowSquareUpRight"
+import { ArrowCircleUpRight } from "@phosphor-icons/react/dist/icons/ArrowCircleUpRight"
 import { LockKey } from "@phosphor-icons/react/dist/icons/LockKey"
 import { DotsThreeOutlineVertical } from "@phosphor-icons/react/dist/icons/DotsThreeOutlineVertical"
-import { PlusSquare } from "@phosphor-icons/react/dist/icons/PlusSquare"
+import { PlusCircle } from "@phosphor-icons/react/dist/icons/PlusCircle"
 import { Warning } from "@phosphor-icons/react/dist/icons/Warning"
 import { Trash } from "@phosphor-icons/react/dist/icons/Trash"
 import { Globe } from "@phosphor-icons/react/dist/icons/Globe"
@@ -167,7 +167,7 @@ export function StatusPagesPage() {
           </p>
         </div>
         <Button onClick={() => setOpen(true)} className="gap-2 self-start sm:self-auto">
-          <Icon icon={PlusSquare} className="h-4 w-4" />
+          <Icon icon={PlusCircle} className="h-4 w-4" />
           Create page
         </Button>
       </div>
@@ -183,7 +183,7 @@ export function StatusPagesPage() {
           description="Create a public page to share live status with users, customers, or stakeholders. Each page can list a custom subset of your monitors."
           action={
             <Button onClick={() => setOpen(true)}>
-              <Icon icon={PlusSquare} className="h-4 w-4" />
+              <Icon icon={PlusCircle} className="h-4 w-4" />
               Create your first page
             </Button>
           }
@@ -424,7 +424,7 @@ function PageRow({
       <div className="flex shrink-0 items-center gap-2">
         <Button size="sm" variant="outline" asChild>
           <a href={`/${page.slug}`} target="_blank" rel="noreferrer">
-            <Icon icon={ArrowSquareUpRight} className="h-3.5 w-3.5" />
+            <Icon icon={ArrowCircleUpRight} className="h-3.5 w-3.5" />
             View
           </a>
         </Button>
@@ -541,7 +541,7 @@ function CoverageBanner({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" variant="outline" className="shrink-0">
-                  <Icon icon={PlusSquare} className="h-3.5 w-3.5" />
+                  <Icon icon={PlusCircle} className="h-3.5 w-3.5" />
                   Add to page
                 </Button>
               </DropdownMenuTrigger>

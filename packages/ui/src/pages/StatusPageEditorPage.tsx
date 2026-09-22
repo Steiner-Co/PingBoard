@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { ArrowDown } from "@phosphor-icons/react/dist/icons/ArrowDown"
 import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft"
 import { ArrowUp } from "@phosphor-icons/react/dist/icons/ArrowUp"
-import { ArrowSquareUpRight } from "@phosphor-icons/react/dist/icons/ArrowSquareUpRight"
+import { ArrowCircleUpRight } from "@phosphor-icons/react/dist/icons/ArrowCircleUpRight"
 import { Globe } from "@phosphor-icons/react/dist/icons/Globe"
 import { UploadSimple } from "@phosphor-icons/react/dist/icons/UploadSimple"
 import { Trash } from "@phosphor-icons/react/dist/icons/Trash"
@@ -405,7 +405,7 @@ export function StatusPageEditorPage() {
         {page && (
           <Button size="sm" variant="outline" asChild className="gap-1.5">
             <a href={`/${page.slug}`} target="_blank" rel="noreferrer">
-              <Icon icon={ArrowSquareUpRight} className="h-3.5 w-3.5" />
+              <Icon icon={ArrowCircleUpRight} className="h-3.5 w-3.5" />
               View
             </a>
           </Button>

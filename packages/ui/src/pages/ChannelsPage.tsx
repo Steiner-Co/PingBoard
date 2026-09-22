@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
 import { Checkbox } from '@/components/ui/checkbox'
-import { PlusSquare } from "@phosphor-icons/react/dist/icons/PlusSquare"
+import { PlusCircle } from "@phosphor-icons/react/dist/icons/PlusCircle"
 import { TestTube } from "@phosphor-icons/react/dist/icons/TestTube"
 import { Trash } from "@phosphor-icons/react/dist/icons/Trash"
 import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple"
@@ -149,7 +149,7 @@ export function ChannelsPage() {
         </p>
       </div>
       <Button onClick={() => setOpen(true)} className="gap-2 self-start sm:self-auto">
-        <Icon icon={PlusSquare} className="h-4 w-4" />
+        <Icon icon={PlusCircle} className="h-4 w-4" />
         Add channel
       </Button>
     </div>
@@ -200,7 +200,7 @@ export function ChannelsPage() {
           }
           action={
             <Button onClick={() => setOpen(true)}>
-        <Icon icon={PlusSquare} className="h-4 w-4" />
+        <Icon icon={PlusCircle} className="h-4 w-4" />
               Add your first channel
             </Button>
           }

@@ -10,7 +10,7 @@ import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight"
 import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank"
 import { SealCheck } from "@phosphor-icons/react/dist/icons/SealCheck"
 import { Globe } from "@phosphor-icons/react/dist/icons/Globe"
-import { PlusSquare } from "@phosphor-icons/react/dist/icons/PlusSquare"
+import { PlusCircle } from "@phosphor-icons/react/dist/icons/PlusCircle"
 import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass"
 import { ArrowClockwise } from "@phosphor-icons/react/dist/icons/ArrowClockwise"
 import { toast } from 'sonner'
@@ -283,7 +283,7 @@ export function DomainsPage() {
                 Refresh
               </Button>
               <Button onClick={() => setAddOpen(true)} className="gap-2">
-                <Icon icon={PlusSquare} className="h-4 w-4" />
+                <Icon icon={PlusCircle} className="h-4 w-4" />
                 Add domain
               </Button>
             </div>
@@ -984,7 +984,7 @@ function EmptyDomains({ onAdd }: { onAdd: () => void }) {
           </p>
         </div>
         <Button onClick={onAdd} className="gap-2">
-          <Icon icon={PlusSquare} className="h-4 w-4" />
+          <Icon icon={PlusCircle} className="h-4 w-4" />
           Add your first domain
         </Button>
       </div>

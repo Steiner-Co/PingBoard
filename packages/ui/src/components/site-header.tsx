@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { Icon } from "@/components/ui/icon"
-import { ArrowSquareUpRight } from "@phosphor-icons/react/dist/icons/ArrowSquareUpRight"
+import { ArrowCircleUpRight } from "@phosphor-icons/react/dist/icons/ArrowCircleUpRight"
 
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { ThemeSwitch } from "@/components/unlumen-ui/theme-switch"
@@ -43,7 +43,7 @@ export function SiteHeader({ title = "Dashboard" }: { title?: string }) {
               rel="noreferrer noopener"
               className={statusLinkClass}
             >
-              <Icon icon={ArrowSquareUpRight} className="size-3.5" />
+              <Icon icon={ArrowCircleUpRight} className="size-3.5" />
               Status page
             </a>
           ) : pages.isPending ? (
