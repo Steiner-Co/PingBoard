@@ -140,6 +140,10 @@
   --shadow-2xl: 0px 1px 3px 0px hsl(0 0% 0% / 0.43);
 
   --tracking-normal: 0.025em;
+
+  /* Scrollbar thumb — see the ::-webkit-scrollbar rules in @layer base. */
+  --scrollbar-thumb: oklch(0.85 0 0);
+  --scrollbar-thumb-hover: oklch(0.7 0 0);
 }
 
 .dark {
@@ -186,6 +190,10 @@
   --sidebar-accent-foreground: oklch(0.9851 0 0);
   --sidebar-border: oklch(0.24 0 0);
   --sidebar-ring: oklch(0.8003 0.1821 151.7110);
+
+  /* Scrollbar thumb — see light :root. */
+  --scrollbar-thumb: oklch(0.33 0 0);
+  --scrollbar-thumb-hover: oklch(0.47 0 0);
 }
 
 /* Forced-light scope. The status-page live preview renders inside the (dark)
@@ -224,6 +232,10 @@
   --chart-3: oklch(0.6056 0.2189 292.7172);
   --chart-4: oklch(0.7686 0.1647 70.0804);
   --chart-5: oklch(0.6959 0.1491 162.4796);
+
+  /* Scrollbar thumb — keep in sync with the light :root block. */
+  --scrollbar-thumb: oklch(0.85 0 0);
+  --scrollbar-thumb-hover: oklch(0.7 0 0);
 }
 
 /*
@@ -308,5 +320,44 @@
      makes computed positions render 1:1 (menu content renders at 100%). */
   [data-radix-popper-content-wrapper] {
     zoom: calc(1 / var(--app-zoom));
+  }
+
+  /*
+   * Minimal scrollbars. Chromium — the app's only runtime (Bun-served SPA and
+   * the Electron desktop shell) — gives up its native track, arrows and corner
+   * via the WebKit pseudo-elements. Deliberately NOT `scrollbar-width`:
+   * Chromium honours that by *ignoring* these pseudo-elements entirely.
+   *
+   * The thumb carries a transparent border with `background-clip: content-box`,
+   * so it paints as a floating pill in its own gutter rather than a filled bar.
+   * Firefox has no ::-webkit-scrollbar, so it gets the standard properties
+   * behind a support query — true in Chromium, which then skips the block.
+   */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    background-clip: content-box;
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    transition: background-color 150ms var(--ease-out-quart);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+  }
+  ::-webkit-scrollbar-button {
+    display: none;
+  }
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) transparent;
+    }
   }
 }
