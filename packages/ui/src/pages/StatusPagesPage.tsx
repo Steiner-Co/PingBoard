@@ -576,7 +576,7 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
           <DialogTitle>Create status page</DialogTitle>
           <DialogDescription>
             Public, shareable, and updates live. After creating, open Edit to add
-            a logo, accent color, and custom CSS.
+            a logo, a theme, and custom CSS.
           </DialogDescription>
         </DialogHeader>
         <form

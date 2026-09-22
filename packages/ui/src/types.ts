@@ -87,7 +87,6 @@ export interface StatusPage {
   passwordSet: boolean
   customDomain: string | null
   logoPath: string | null
-  accent: string | null
   websiteUrl: string | null
   hideBranding: boolean
   customCss: string | null

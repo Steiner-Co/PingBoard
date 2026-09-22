@@ -43,6 +43,13 @@
       "when": 1786181903411,
       "tag": "0005_milky_lockheed",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1790063515380,
+      "tag": "0006_futuristic_nico_minoru",
+      "breakpoints": true
     }
   ]
 }

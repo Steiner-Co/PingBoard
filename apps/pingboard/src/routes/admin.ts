@@ -22,7 +22,6 @@ import {
   ALLOWED_INTERVALS_SECONDS,
   ALLOWED_MONITOR_TYPES,
   RESERVED_SLUGS,
-  STATUS_PAGE_ACCENTS,
   STATUS_PAGE_MAX_CUSTOM_CSS,
   STATUS_PAGE_MAX_LOGO_BYTES,
   type MonitorType,
@@ -671,15 +670,6 @@ function parseBranding(
   body: Record<string, unknown>,
 ): Partial<typeof statusPages.$inferInsert> | { error: string } {
   const out: Partial<typeof statusPages.$inferInsert> = {}
-  if ('accent' in body) {
-    if (body.accent == null || body.accent === '') out.accent = null
-    else if (
-      typeof body.accent === 'string' &&
-      (STATUS_PAGE_ACCENTS as readonly string[]).includes(body.accent)
-    )
-      out.accent = body.accent
-    else return { error: `Accent must be one of: ${STATUS_PAGE_ACCENTS.join(', ')}` }
-  }
   if ('websiteUrl' in body) {
     if (body.websiteUrl == null || body.websiteUrl === '') out.websiteUrl = null
     else if (typeof body.websiteUrl === 'string' && /^https?:\/\/.+/.test(body.websiteUrl))

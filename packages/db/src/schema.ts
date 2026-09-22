@@ -182,9 +182,8 @@ export const statusPages = sqliteTable(
     passwordHash: text('password_hash'),
     customDomain: text('custom_domain'),
     // Branding — all free, all optional. logoPath is a file name under
-    // <dataDir>/assets/, accent is a preset key (NULL = default green).
+    // <dataDir>/assets/.
     logoPath: text('logo_path'),
-    accent: text('accent'),
     websiteUrl: text('website_url'),
     hideBranding: integer('hide_branding').notNull().default(0),
     customCss: text('custom_css'),

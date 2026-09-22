@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { humanDate, UptimeTimeline } from '@/components/uptime-timeline'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from 'next-themes'
@@ -21,7 +21,6 @@ import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank"
-import { ACCENT_PRESETS } from '@/public/accent-presets'
 import { useSSE } from '@/lib/sse'
 import { useNow } from '@/hooks/use-now'
 import {
@@ -267,23 +266,6 @@ export function PublicStatusView({
     return acc
   }, {})
 
-  // Brand accent: preset values become inline CSS vars on the page root,
-  // scoped to this page. Light/dark values follow the visitor's theme.
-  const accentPreset = page?.accent ? ACCENT_PRESETS[page.accent] : undefined
-  const accentVars = (() => {
-    if (!accentPreset) return undefined
-    const v =
-      (forcedTheme ?? resolvedTheme) === 'dark'
-        ? accentPreset.dark
-        : accentPreset.light
-    return {
-      '--primary': v.primary,
-      '--primary-foreground': v.primaryForeground,
-      '--primary-text': v.primaryText,
-      '--ring': v.ring,
-    } as CSSProperties
-  })()
-
   const headerTitle = (
     <div className="flex items-center gap-3.5 min-w-0">
       {page?.logoUrl && (
@@ -309,7 +291,6 @@ export function PublicStatusView({
   return (
     <div
       className={cn('bg-background text-foreground', preview ? 'min-h-full' : 'min-h-app')}
-      style={accentVars}
     >
       {page?.customCss && (
         <style data-pb-custom>{page.customCss}</style>

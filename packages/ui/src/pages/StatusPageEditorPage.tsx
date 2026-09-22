@@ -31,7 +31,6 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { ACCENT_PRESETS } from '@/public/accent-presets'
 import { THEME_PRESETS, type ThemePreset } from '@/public/theme-presets'
 import {
   PublicStatusView,
@@ -122,7 +121,6 @@ export function StatusPageEditorPage() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [theme, setTheme] = useState<Theme>('auto')
-  const [accent, setAccent] = useState<string | null>(null)
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [hideBranding, setHideBranding] = useState(false)
   const [customCss, setCustomCss] = useState('')
@@ -156,13 +154,12 @@ export function StatusPageEditorPage() {
         title: title.trim(),
         description: description.trim(),
         theme,
-        accent,
         websiteUrl: websiteUrl.trim(),
         hideBranding,
         customCss: customCss.trim(),
         monitors: order.map((mid) => [mid, selected.get(mid)?.trim() || '']),
       }),
-    [title, description, theme, accent, websiteUrl, hideBranding, customCss, order, selected],
+    [title, description, theme, websiteUrl, hideBranding, customCss, order, selected],
   )
 
   useEffect(() => {
@@ -176,7 +173,6 @@ export function StatusPageEditorPage() {
     setTitle(detail.data.page.title)
     setDescription(detail.data.page.description ?? '')
     setTheme(detail.data.page.theme)
-    setAccent(detail.data.page.accent)
     setWebsiteUrl(detail.data.page.websiteUrl ?? '')
     setHideBranding(detail.data.page.hideBranding)
     setCustomCss(detail.data.page.customCss ?? '')
@@ -304,7 +300,6 @@ export function StatusPageEditorPage() {
       title: title.trim() || detail.data.page.slug,
       description: description.trim() || null,
       theme,
-      accent,
       websiteUrl: websiteUrl.trim() || null,
       hideBranding,
       customCss: customCss.trim() || null,
@@ -382,7 +377,6 @@ export function StatusPageEditorPage() {
         title: title.trim() || saved.page.title,
         description: description.trim() || null,
         theme,
-        accent,
         websiteUrl: websiteUrl.trim() || null,
         hideBranding,
         customCss: customCss.trim() || null,
@@ -402,7 +396,6 @@ export function StatusPageEditorPage() {
     title,
     description,
     theme,
-    accent,
     websiteUrl,
     hideBranding,
     customCss,
@@ -691,41 +684,6 @@ export function StatusPageEditorPage() {
                     </div>
 
                     <LogoField page={page} logoPath={page.logoPath} />
-
-                    <div className="space-y-2">
-                      <Label>Accent</Label>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setAccent(null)}
-                          aria-pressed={accent === null}
-                          title="Default (PingBoard green)"
-                          className={cn(
-                            'size-6 rounded-full outline-none transition-[box-shadow,transform] duration-150 ease-out active:scale-95',
-                            'bg-success',
-                            accent === null
-                              ? 'ring-2 ring-foreground/60 ring-offset-2 ring-offset-background'
-                              : 'opacity-60 hover:opacity-100',
-                          )}
-                        />
-                        {Object.entries(ACCENT_PRESETS).map(([key, p]) => (
-                          <button
-                            key={key}
-                            type="button"
-                            onClick={() => setAccent(key)}
-                            aria-pressed={accent === key}
-                            title={p.label}
-                            style={{ backgroundColor: p.swatch }}
-                            className={cn(
-                              'size-6 rounded-full outline-none transition-[box-shadow,transform] duration-150 ease-out active:scale-95',
-                              accent === key
-                                ? 'ring-2 ring-foreground/60 ring-offset-2 ring-offset-background'
-                                : 'opacity-60 hover:opacity-100',
-                            )}
-                          />
-                        ))}
-                      </div>
-                    </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="editor-website">Website URL</Label>

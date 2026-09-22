@@ -237,7 +237,6 @@ export async function buildPublicPayload(
       description: page.description,
       theme: page.theme,
       logoUrl: page.logoPath ? `/api/public/assets/${page.logoPath}` : null,
-      accent: page.accent,
       websiteUrl: page.websiteUrl,
       hideBranding: page.hideBranding === 1,
       customCss: page.customCss,
