@@ -34,6 +34,9 @@ data/
 *.swo
 .DS_Store
 
+# OpenCode harness config (local board binding, agent scaffolding)
+.opencode/
+
 # Logs
 *.log
 npm-debug.log*
