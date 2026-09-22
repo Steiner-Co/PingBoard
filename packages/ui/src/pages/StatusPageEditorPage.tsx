@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { ACCENT_PRESETS } from '@/public/accent-presets'
+import { THEME_PRESETS, type ThemePreset } from '@/public/theme-presets'
 import {
   PublicStatusView,
   type PublicData,
@@ -270,6 +271,26 @@ export function StatusPageEditorPage() {
       destructive: true,
     })
     if (ok) savePassword.mutate(null)
+  }
+
+  // A preset is "active" only while the Custom CSS field still matches it
+  // byte-for-byte — edit the CSS and the picker shows nothing selected, which
+  // is the honest answer.
+  const activePresetId =
+    THEME_PRESETS.find((p) => p.css.trim() === customCss.trim())?.id ?? null
+
+  const applyPreset = async (preset: ThemePreset) => {
+    if (customCss.trim() && !activePresetId) {
+      const ok = await confirm({
+        title: `Replace your custom CSS with ${preset.label}?`,
+        description:
+          'This overwrites the CSS currently in Advanced. You can still edit it afterwards.',
+        confirmLabel: 'Replace',
+        destructive: true,
+      })
+      if (!ok) return
+    }
+    setCustomCss(preset.css)
   }
 
   const handleSubmit = () => {
@@ -620,6 +641,55 @@ export function StatusPageEditorPage() {
                   </TabsContent>
 
                   <TabsContent value="branding" className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-2">
+                      <Label>Theme preset</Label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {THEME_PRESETS.map((preset) => {
+                          const active = activePresetId === preset.id
+                          return (
+                            <button
+                              key={preset.id}
+                              type="button"
+                              onClick={() => void applyPreset(preset)}
+                              aria-pressed={active}
+                              title={`Apply ${preset.label}`}
+                              className={cn(
+                                'flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs/relaxed outline-none transition-[border-color,background-color,box-shadow] duration-150 ease-out',
+                                active
+                                  ? 'border-ring ring-2 ring-ring/30'
+                                  : 'border-border/60 hover:bg-muted/50',
+                              )}
+                            >
+                              <span className="flex overflow-hidden rounded-sm ring-1 ring-foreground/10">
+                                {preset.swatches.map((color) => (
+                                  <span
+                                    key={color}
+                                    className="size-3"
+                                    style={{ backgroundColor: color }}
+                                  />
+                                ))}
+                              </span>
+                              {preset.label}
+                            </button>
+                          )
+                        })}
+                        {activePresetId && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setCustomCss('')}
+                          >
+                            Default
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-xs/relaxed text-muted-foreground">
+                        Writes a dark + light palette into Custom CSS
+                        (Advanced) — edit it there, or pick Default to clear it.
+                      </p>
+                    </div>
+
                     <LogoField page={page} logoPath={page.logoPath} />
 
                     <div className="space-y-2">
