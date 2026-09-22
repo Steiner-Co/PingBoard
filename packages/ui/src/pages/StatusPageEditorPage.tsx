@@ -764,7 +764,7 @@ function LogoField({
         const data = (await res.json().catch(() => null)) as {
           error?: string
         } | null
-        throw new Error(data?.error ?? `UploadSimple failed (${res.status})`)
+        throw new Error(data?.error ?? `Upload failed (${res.status})`)
       }
     },
     onSuccess: () => {
@@ -772,7 +772,7 @@ function LogoField({
       toast.success('Logo updated')
     },
     onError: (err) =>
-      toast.error(err instanceof Error ? err.message : 'UploadSimple failed'),
+      toast.error(err instanceof Error ? err.message : 'Upload failed'),
   })
 
   const remove = useMutation({
@@ -812,7 +812,7 @@ function LogoField({
             className="gap-1.5"
           >
             <Icon icon={UploadSimple} className="h-3.5 w-3.5" />
-            {upload.isPending ? 'Uploading…' : logoPath ? 'Replace' : 'UploadSimple'}
+            {upload.isPending ? 'Uploading…' : logoPath ? 'Replace' : 'Upload'}
           </Button>
           {logoPath && (
             <Button

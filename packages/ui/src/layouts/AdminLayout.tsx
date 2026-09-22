@@ -38,6 +38,7 @@ function titleForPath(pathname: string): string {
   if (/^\/admin\/monitors\/[^/]+\/edit$/.test(pathname)) return 'Edit monitor'
   if (pathname.startsWith('/admin/monitors/')) return 'Monitor'
   if (pathname.startsWith('/admin/monitors')) return 'Monitors'
+  if (/^\/admin\/pages\/[^/]+\/edit$/.test(pathname)) return 'Edit status page'
   return 'Dashboard'
 }
 
