@@ -149,7 +149,7 @@ function SidebarProvider({
           } as React.CSSProperties
         }
         className={cn(
-          "group/sidebar-wrapper flex min-h-svh w-full has-data-[variant=inset]:bg-sidebar",
+          "group/sidebar-wrapper flex min-h-app w-full has-data-[variant=inset]:bg-sidebar",
           className
         )}
         {...props}
@@ -246,7 +246,7 @@ function Sidebar({
           // The panel itself animates with transform only (GPU); the gap
           // sibling above owns the layout reflow, synchronized by the shared
           // duration/easing tokens.
-          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) data-[side=left]:left-0 data-[side=right]:right-0 motion-safe:transition-transform motion-safe:duration-[var(--motion-overlay-in)] motion-safe:ease-[var(--ease-out-quart)] group-data-[instant]:transition-none data-[side=left]:group-data-[collapsible=offcanvas]:-translate-x-full data-[side=right]:group-data-[collapsible=offcanvas]:translate-x-full md:flex",
+          "fixed inset-y-0 z-10 hidden h-app w-(--sidebar-width) data-[side=left]:left-0 data-[side=right]:right-0 motion-safe:transition-transform motion-safe:duration-[var(--motion-overlay-in)] motion-safe:ease-[var(--ease-out-quart)] group-data-[instant]:transition-none data-[side=left]:group-data-[collapsible=offcanvas]:-translate-x-full data-[side=right]:group-data-[collapsible=offcanvas]:translate-x-full md:flex",
           // Adjust the padding for floating and inset variants.
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"

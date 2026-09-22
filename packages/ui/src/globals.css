@@ -281,6 +281,27 @@
   --chart-tooltip-background: var(--popover);
 }
 
+/*
+ * Intentional product zoom. `zoom` scales rem AND px (see `html` in @layer
+ * base), but viewport units resolve pre-zoom and are then scaled by it — so a
+ * raw `100svh` box renders 1.1x taller than the screen and every full-height
+ * page overruns by ~11%. Keep the factor in one place and expose a viewport
+ * height that already accounts for it.
+ */
+:root {
+  --app-zoom: 1.1;
+  --app-viewport-height: calc(100svh / var(--app-zoom));
+}
+
+/* Full-viewport height that survives the root zoom. Prefer these over
+   `h-screen` / `min-h-svh` anywhere a box should meet the viewport edge. */
+@utility min-h-app {
+  min-height: var(--app-viewport-height);
+}
+@utility h-app {
+  height: var(--app-viewport-height);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -290,7 +311,7 @@
     /* Product reads ~10% too small at 100%; validated against 110% browser
        zoom. CSS zoom scales rem AND px (unlike a root font-size bump, which
        would leave the text-[10px]/text-[11px] mono labels behind). */
-    zoom: 1.1;
+    zoom: var(--app-zoom);
   }
   body {
     @apply bg-background text-foreground;
@@ -302,6 +323,6 @@
      menus off-screen near the viewport edge. Counter-zooming the wrapper
      makes computed positions render 1:1 (menu content renders at 100%). */
   [data-radix-popper-content-wrapper] {
-    zoom: calc(1 / 1.1);
+    zoom: calc(1 / var(--app-zoom));
   }
 }

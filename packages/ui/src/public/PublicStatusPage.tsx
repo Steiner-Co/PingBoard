@@ -133,7 +133,7 @@ export function PublicStatusPage({ slug }: { slug: string }) {
       <div
         role="status"
         aria-live="polite"
-        className="min-h-screen flex items-center justify-center"
+        className="min-h-app flex items-center justify-center"
       >
         <span aria-hidden className="relative inline-flex h-2.5 w-2.5">
           <span
@@ -161,7 +161,7 @@ export function PublicStatusPage({ slug }: { slug: string }) {
     // masquerade as one. Everything else gets an honest failure + retry.
     if (query.error instanceof GateError && query.error.kind === 'not-found') {
       return (
-        <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-6 text-center">
+        <div className="min-h-app flex flex-col items-center justify-center gap-3 px-6 text-center">
           <img src="/logomark.png" alt="" className="size-8 rounded-md" />
           <p className="text-sm font-medium">Status page not found</p>
           <p className="text-sm text-muted-foreground max-w-xs">
@@ -173,7 +173,7 @@ export function PublicStatusPage({ slug }: { slug: string }) {
     return (
       <div
         role="alert"
-        className="min-h-screen flex flex-col items-center justify-center gap-3 px-6 text-center"
+        className="min-h-app flex flex-col items-center justify-center gap-3 px-6 text-center"
       >
         <p className="text-sm font-medium">Couldn't load this status page</p>
         <p className="text-sm text-muted-foreground max-w-xs">
@@ -308,7 +308,7 @@ export function PublicStatusView({
 
   return (
     <div
-      className={cn('bg-background text-foreground', preview ? 'min-h-full' : 'min-h-screen')}
+      className={cn('bg-background text-foreground', preview ? 'min-h-full' : 'min-h-app')}
       style={accentVars}
     >
       {page?.customCss && (
@@ -1086,7 +1086,7 @@ function PasswordGate({
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-6">
+    <div className="min-h-app flex items-center justify-center bg-background px-6">
       <Panel className="w-full max-w-sm shadow-sm">
       <form onSubmit={submit} className="p-6 space-y-4">
         <div className="space-y-1">
