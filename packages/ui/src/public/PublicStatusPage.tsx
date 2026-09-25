@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { humanDate, UptimeTimeline } from '@/components/uptime-timeline'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from 'next-themes'
@@ -31,6 +31,11 @@ import {
   formatRelative,
   formatTime,
 } from '@/lib/utils'
+import {
+  isRichTextBlank,
+  richTextToPlainText,
+  sanitizeRichText,
+} from '@/lib/rich-text'
 import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown"
 
 type AdminTheme = 'light' | 'dark' | 'auto'
@@ -278,11 +283,7 @@ export function PublicStatusView({
         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
           {page.title}
         </h1>
-        {page.description && (
-          <p className="text-muted-foreground text-sm sm:text-base">
-            {page.description}
-          </p>
-        )}
+        <RichDescription html={page.description} />
       </div>
     </div>
   )
@@ -375,6 +376,24 @@ export function PublicStatusView({
   )
 }
 
+/**
+ * Page description, rendered as sanitized rich text. The editor stores a small
+ * HTML subset (bold/italic/underline/strike/link/colors); older pages hold
+ * plain text, which passes through the sanitizer as escaped text. Blank
+ * markup renders nothing.
+ */
+function RichDescription({ html }: { html: string | null }) {
+  const clean = useMemo(
+    () => (html && !isRichTextBlank(html) ? sanitizeRichText(html) : ''),
+    [html],
+  )
+  if (!clean) return null
+  return (
+    <p className="rich-text text-muted-foreground text-sm sm:text-base">
+      <span dangerouslySetInnerHTML={{ __html: clean }} />
+    </p>
+  )
+}
 /**
  * Status dot. Down states get a gentle ping — an outage is a rare,
  * high-attention moment on an otherwise static page, so the motion earns its
@@ -1167,21 +1186,19 @@ function useDocumentMeta(
   useEffect(() => {
     if (!page) return
     const fallback = 'Status'
+    // Meta/OG tags are plain text — strip the description's formatting.
+    const plainDesc =
+      page.description && !isRichTextBlank(page.description)
+        ? richTextToPlainText(page.description)
+        : `Live service status for ${page.title}.`
     document.title = `${page.title} — ${fallback}`
-    setMeta('description', page.description ?? `Live service status for ${page.title}.`)
+    setMeta('description', plainDesc)
     setMeta('og:title', page.title, true)
-    setMeta(
-      'og:description',
-      page.description ?? `Live service status for ${page.title}.`,
-      true,
-    )
+    setMeta('og:description', plainDesc, true)
     setMeta('og:type', 'website', true)
     setMeta('twitter:card', 'summary')
     setMeta('twitter:title', page.title)
-    setMeta(
-      'twitter:description',
-      page.description ?? `Live service status for ${page.title}.`,
-    )
+    setMeta('twitter:description', plainDesc)
 
     // Theme-color tints the mobile browser chrome to reflect status.
     if (monitors && monitors.length > 0) {

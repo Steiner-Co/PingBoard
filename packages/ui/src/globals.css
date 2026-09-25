@@ -361,3 +361,17 @@
     }
   }
 }
+
+/* Status-page rich description: contentEditable placeholder + public link style. */
+.rich-edit:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+.rich-text a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.rich-text a:hover {
+  color: var(--foreground);
+}

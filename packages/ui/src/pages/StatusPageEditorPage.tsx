@@ -46,6 +46,8 @@ import {
 } from '@/components/ui/select'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { isRichTextBlank, sanitizeRichText } from '@/lib/rich-text'
+import { DescriptionField } from '@/components/description-editor'
 import type { MonitorWithLatest, StatusPage, Theme } from '@/types'
 
 interface LinkedMonitor {
@@ -296,9 +298,13 @@ export function StatusPageEditorPage() {
       return
     }
     setError(null)
+    // The description is edited as HTML — scrub pasted junk down to the
+    // supported subset before saving so the column only holds clean markup.
+    const cleanDesc = sanitizeRichText(description)
+    if (cleanDesc !== description) setDescription(cleanDesc)
     save.mutate({
       title: title.trim() || detail.data.page.slug,
-      description: description.trim() || null,
+      description: isRichTextBlank(cleanDesc) ? null : cleanDesc,
       theme,
       websiteUrl: websiteUrl.trim() || null,
       hideBranding,
@@ -375,7 +381,7 @@ export function StatusPageEditorPage() {
       page: {
         ...saved.page,
         title: title.trim() || saved.page.title,
-        description: description.trim() || null,
+        description: isRichTextBlank(description) ? null : description,
         theme,
         websiteUrl: websiteUrl.trim() || null,
         hideBranding,
@@ -524,12 +530,11 @@ export function StatusPageEditorPage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="editor-desc">Description</Label>
-                      <Input
-                        id="editor-desc"
-                        name="description"
+                      {/* Rich text — the floating toolbar at the bottom of the
+                          screen formats this field; the preview shows it live. */}
+                      <DescriptionField
                         value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        placeholder="Optional"
+                        onChange={setDescription}
                       />
                     </div>
                     <div className="space-y-2">
