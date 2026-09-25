@@ -11,7 +11,7 @@ The PRD's v1 feature scope is **complete, and in places exceeded**:
 - Monitor types: HTTP(S), TCP, ping, DNS — plus SSL expiry, domain expiry, and push (all
   post-v1 candidates in the PRD, already built)
 - Channels: email, webhook, Discord, Slack, ntfy — all five, with test buttons
-- Status pages: branding (logo/accent/custom CSS), live editor, password protection,
+- Status pages: branding (logo/themes/custom CSS), live editor, password protection,
   custom domains, SSE live updates
 - Beyond PRD: maintenance windows, API tokens, MCP server on npm (`@pingboard/mcp`),
   instance version badge + update check

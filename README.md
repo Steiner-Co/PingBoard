@@ -28,7 +28,7 @@ Open `http://localhost:3000`, create your admin account, add your first monitor.
 - **7 monitor types** — HTTP(S), TCP, ping, DNS, SSL-certificate expiry, domain expiry, and push/heartbeat, plus keyword/JSON assertions on HTTP bodies
 - **5 notification channels** — email (SMTP), webhook, Discord, Slack, ntfy
 - **Public status pages** — multiple per instance, optional password protection, custom slugs
-- **Free branding** — logo, accent color, website link, custom CSS, and a white-label toggle on every status page. Others charge per page for this; PingBoard doesn't
+- **Free branding** — logo, theme presets, website link, custom CSS, and a white-label toggle on every status page. Others charge per page for this; PingBoard doesn't
 - **Live dashboard** — real-time updates via SSE, no polling
 - **Maintenance windows** — schedule downtime; alerts stay quiet, the status page says why
 - **API tokens** — drive everything from scripts, not just the browser
@@ -54,7 +54,7 @@ All optional — no env vars are required to boot.
 Every status page can be branded from **Status pages → Edit** — a live editor that renders the real page next to your changes as you make them:
 
 - **Logo** — PNG/JPEG/SVG/WebP up to 512 KB, stored under `/data/assets`
-- **Accent color** — curated presets that hold contrast in both light and dark
+- **Theme presets** — five prebuilt palettes (Catppuccin, Nord, Gruvbox, Tokyo Night, Rosé Pine) that hold contrast in both light and dark, written into Custom CSS where you can tweak them
 - **Website URL** — the logo and title link back to your site
 - **Custom CSS** — injected into that page only (≤ 10 KB)
 - **White label** — hide the "Powered by PingBoard" footer, free

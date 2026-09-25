@@ -42,7 +42,6 @@ export interface PublicData {
     description: string | null
     theme: AdminTheme
     logoUrl: string | null
-    accent: string | null
     websiteUrl: string | null
     hideBranding: boolean
     customCss: string | null

@@ -21,7 +21,6 @@ const PAGE = {
   hideBranding: false,
   customDomain: null,
   logoPath: null,
-  accent: null,
   websiteUrl: null,
   customCss: null,
 }
@@ -88,7 +87,6 @@ describe('status page tools', () => {
       slug: 'My-Status',
       title: 'My Status',
       monitors: [{ monitorId: 'm1', groupName: 'APIs' }],
-      accent: 'violet',
     })
     expect(isError).toBe(false)
     expect(calls[0]!.method).toBe('POST')
@@ -96,7 +94,6 @@ describe('status page tools', () => {
       slug: 'my-status',
       title: 'My Status',
       monitors: [{ monitorId: 'm1', groupName: 'APIs' }],
-      accent: 'violet',
     })
     expect(data.id).toBe('p1')
     await close()
@@ -130,9 +127,8 @@ describe('status page tools', () => {
     await callTool(mcp, 'update_status_page', {
       pageId: 'p1',
       password: null,
-      accent: null,
     })
-    expect(await calls[0]!.json()).toEqual({ password: null, accent: null })
+    expect(await calls[0]!.json()).toEqual({ password: null })
     await close()
   })
 

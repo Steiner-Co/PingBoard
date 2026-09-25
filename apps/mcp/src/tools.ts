@@ -16,18 +16,6 @@ const ALLOWED_INTERVALS = [10, 30, 60, 300, 900, 3600] as const
 
 const PAGE_THEMES = ['light', 'dark', 'auto'] as const
 
-// Status-page presets, duplicated from @pingboard/shared so the published
-// package has no repo-local imports (same pattern as MONITOR_TYPES above).
-const PAGE_ACCENTS = [
-  'blue',
-  'violet',
-  'orange',
-  'rose',
-  'amber',
-  'cyan',
-  'slate',
-] as const
-
 const RESERVED_PAGE_SLUGS = [
   'admin',
   'api',
@@ -80,7 +68,6 @@ interface StatusPage {
   hideBranding: boolean
   customDomain: string | null
   logoPath: string | null
-  accent: string | null
   websiteUrl: string | null
   customCss: string | null
   monitorCount?: number
@@ -128,7 +115,6 @@ interface BackupPage {
   title?: string
   description?: string | null
   theme?: string
-  accent?: string | null
   websiteUrl?: string | null
   hideBranding?: boolean
   customCss?: string | null
@@ -206,7 +192,6 @@ function summarisePage(p: StatusPage) {
     theme: p.theme,
     passwordSet: p.passwordSet,
     monitorCount: p.monitorCount ?? null,
-    accent: p.accent,
     websiteUrl: p.websiteUrl,
     hideBranding: p.hideBranding,
     hasLogo: !!p.logoPath,
@@ -216,11 +201,6 @@ function summarisePage(p: StatusPage) {
 
 /** Branding inputs shared by create_status_page and update_status_page. */
 const pageBrandingSchema = {
-  accent: z
-    .enum(PAGE_ACCENTS)
-    .nullable()
-    .optional()
-    .describe('Preset accent color. Null clears it back to the default green.'),
   websiteUrl: z
     .string()
     .url()
@@ -492,7 +472,6 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
             title: p.title,
             description: p.description,
             theme: p.theme,
-            accent: p.accent,
             websiteUrl: p.websiteUrl,
             hideBranding: p.hideBranding,
             customCss: p.customCss,
@@ -784,7 +763,7 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
     {
       title: 'Update a status page',
       description:
-        "Change a page's title, description, theme, password, branding or published monitors. Fields you omit are left as-is; pass null to clear description/accent/websiteUrl/customCss, or an empty password to remove the gate. Passing monitors replaces the page's whole list — call get_status_page first so nothing is dropped. The slug cannot change.",
+        "Change a page's title, description, theme, password, branding or published monitors. Fields you omit are left as-is; pass null to clear description/websiteUrl/customCss, or an empty password to remove the gate. Passing monitors replaces the page's whole list — call get_status_page first so nothing is dropped. The slug cannot change.",
       inputSchema: {
         pageId: z.string().describe('Status page id from list_status_pages.'),
         title: z.string().optional(),
@@ -908,7 +887,6 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
               title: p.title,
               description: p.description ?? undefined,
               theme: p.theme,
-              accent: p.accent ?? undefined,
               websiteUrl: p.websiteUrl ?? undefined,
               hideBranding: p.hideBranding,
               customCss: p.customCss ?? undefined,
