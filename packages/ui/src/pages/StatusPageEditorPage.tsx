@@ -1,36 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
-import { Checkbox } from '@/components/ui/checkbox'
-import { ArrowDown } from "@phosphor-icons/react/dist/icons/ArrowDown"
 import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft"
-import { ArrowUp } from "@phosphor-icons/react/dist/icons/ArrowUp"
 import { ArrowCircleUpRight } from "@phosphor-icons/react/dist/icons/ArrowCircleUpRight"
-import { Globe } from "@phosphor-icons/react/dist/icons/Globe"
-import { LockKey } from "@phosphor-icons/react/dist/icons/LockKey"
-import { UploadSimple } from "@phosphor-icons/react/dist/icons/UploadSimple"
-import { Trash } from "@phosphor-icons/react/dist/icons/Trash"
-import { Sun } from "@phosphor-icons/react/dist/icons/Sun"
-import { Moon } from "@phosphor-icons/react/dist/icons/Moon"
+import { ListChecks } from '@phosphor-icons/react/dist/icons/ListChecks'
+import { Palette } from '@phosphor-icons/react/dist/icons/Palette'
+import { LockKey } from '@phosphor-icons/react/dist/icons/LockKey'
+import { LockKeyOpen } from '@phosphor-icons/react/dist/icons/LockKeyOpen'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/panel'
 import { QueryError } from '@/components/QueryError'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useConfirm } from '@/components/confirm-provider'
 import { useUnsavedGuard } from '@/contexts/unsaved-changes'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { PasswordInput } from '@/components/ui/password-input'
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs'
-import { Textarea } from '@/components/ui/textarea'
 import { THEME_PRESETS, type ThemePreset } from '@/public/theme-presets'
 import {
   PublicStatusView,
@@ -38,16 +23,16 @@ import {
   type PublicMonitor,
 } from '@/public/PublicStatusPage'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  AccessPanel,
+  AppearancePanel,
+  MonitorsPanel,
+} from './StatusPageEditorPanels'
+import {
+  EditorToolbar,
+  type ToolbarSection,
+} from '@/components/description-editor'
 import { api } from '@/lib/api'
-import { cn } from '@/lib/utils'
 import { isRichTextBlank, sanitizeRichText } from '@/lib/rich-text'
-import { DescriptionField } from '@/components/description-editor'
 import type { MonitorWithLatest, StatusPage, Theme } from '@/types'
 
 interface LinkedMonitor {
@@ -62,32 +47,25 @@ interface PageDetail {
   monitors: LinkedMonitor[]
 }
 
-/** Rail tabs — every page setting has a home here, and only here. */
-type EditorTab = 'setup' | 'branding' | 'monitors' | 'advanced'
-
-// Sort: selected monitors in their explicit `order` first, then unselected
-// monitors after. Lets the user see the live ordering while still being able
-// to pick from the full pool.
-function orderedMonitorList(
-  monitors: MonitorWithLatest[],
-  order: string[],
-): MonitorWithLatest[] {
-  const ordered: MonitorWithLatest[] = []
-  for (const id of order) {
-    const m = monitors.find((x) => x.id === id)
-    if (m) ordered.push(m)
-  }
-  for (const m of monitors) {
-    if (!order.includes(m.id)) ordered.push(m)
-  }
-  return ordered
-}
+const SECTIONS: ToolbarSection[] = [
+  {
+    id: 'monitors',
+    label: 'Monitors',
+    icon: <Icon icon={ListChecks} className="h-4 w-4" />,
+  },
+  {
+    id: 'appearance',
+    label: 'Appearance',
+    icon: <Icon icon={Palette} className="h-4 w-4" />,
+  },
+]
 
 /**
- * WordPress-customizer-style editor: controls on the left, the real public
- * page rendered live on the right from draft state. Nothing is saved until
- * "Save changes"; only logo uploads take effect immediately (they're a
- * separate multipart round-trip).
+ * Status page editor: the page itself is the canvas. Title + description
+ * edit inline on the full-width preview; the floating toolbar below hosts
+ * text formatting plus the Monitors / Appearance / Access panels. Nothing is
+ * saved until "Save changes"; only logo uploads and the password take effect
+ * immediately (separate round-trips).
  */
 export function StatusPageEditorPage() {
   const { id } = useParams<{ id: string }>()
@@ -131,15 +109,21 @@ export function StatusPageEditorPage() {
   const [order, setOrder] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [hydrated, setHydrated] = useState(false)
-  // Manual light/dark override for the preview frame; null = follow the
-  // draft theme setting. Reset whenever the draft theme changes.
+  // Manual light/dark override for the preview; null = follow the draft
+  // theme setting. Reset whenever the draft theme changes.
   const [peekTheme, setPeekTheme] = useState<'light' | 'dark' | null>(null)
-  const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit')
-  const [tab, setTab] = useState<EditorTab>('setup')
+  // Which toolbar section panel is open above the bar; null = formatting only.
+  // The ?add= deep link opens Monitors so the ticked monitor is visible.
+  const [activeSection, setActiveSection] = useState<string | null>(
+    addMonitorId ? 'monitors' : null,
+  )
   // Password is applied immediately rather than through "Save changes": it is
   // a security action and the PATCH takes it as a standalone field.
   const [password, setPassword] = useState('')
   const [changingPassword, setChangingPassword] = useState(false)
+  // Ref of the inline description editor on the canvas — the toolbar's
+  // formatting commands act on whatever it holds a selection in.
+  const descriptionEditorRef = useRef<HTMLDivElement | null>(null)
 
   // Hydrate when the detail query lands, guarded by dataUpdatedAt so a
   // logo-upload refetch mid-edit doesn't wipe unsaved drafts.
@@ -154,7 +138,10 @@ export function StatusPageEditorPage() {
     () =>
       JSON.stringify({
         title: title.trim(),
-        description: description.trim(),
+        // Compare sanitized: the editor's DOM readback adds explicit
+        // link attrs (target/rel) that are semantically identical — without
+        // this, a focus+blur with zero edits would read as dirty.
+        description: sanitizeRichText(description).trim(),
         theme,
         websiteUrl: websiteUrl.trim(),
         hideBranding,
@@ -173,7 +160,8 @@ export function StatusPageEditorPage() {
       return
     lastHydrated.current = { at: detail.dataUpdatedAt, add: addMonitorId }
     setTitle(detail.data.page.title)
-    setDescription(detail.data.page.description ?? '')
+    // Store sanitized so the baseline matches what the editor DOM reads back.
+    setDescription(sanitizeRichText(detail.data.page.description ?? ''))
     setTheme(detail.data.page.theme)
     setWebsiteUrl(detail.data.page.websiteUrl ?? '')
     setHideBranding(detail.data.page.hideBranding)
@@ -232,6 +220,18 @@ export function StatusPageEditorPage() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [isDirty])
 
+  // The Access dropdown anchors to the top bar — dismiss it on outside click.
+  useEffect(() => {
+    if (activeSection !== 'access') return
+    const onDown = (e: PointerEvent) => {
+      if (!(e.target as HTMLElement).closest('[data-access-menu]')) {
+        setActiveSection(null)
+      }
+    }
+    document.addEventListener('pointerdown', onDown)
+    return () => document.removeEventListener('pointerdown', onDown)
+  }, [activeSection])
+
   const save = useMutation({
     mutationFn: (payload: object) =>
       api.patch(`/api/admin/pages/${id}`, payload),
@@ -282,7 +282,7 @@ export function StatusPageEditorPage() {
       const ok = await confirm({
         title: `Replace your custom CSS with ${preset.label}?`,
         description:
-          'This overwrites the CSS currently in Advanced. You can still edit it afterwards.',
+          'This overwrites the CSS currently in the Appearance panel. You can still edit it afterwards.',
         confirmLabel: 'Replace',
         destructive: true,
       })
@@ -472,420 +472,149 @@ export function StatusPageEditorPage() {
             </a>
           </Button>
         )}
+        {page && (
+          <div className="relative" data-access-menu>
+            <Button
+              size="icon-sm"
+              variant="outline"
+              aria-label={
+                page.passwordSet
+                  ? 'Access: password protected. Change settings.'
+                  : 'Access: public. Change settings.'
+              }
+              title="Access"
+              aria-pressed={activeSection === 'access'}
+              onClick={() =>
+                setActiveSection((prev) => (prev === 'access' ? null : 'access'))
+              }
+            >
+              <Icon
+                icon={page.passwordSet ? LockKey : LockKeyOpen}
+                className="h-3.5 w-3.5"
+              />
+            </Button>
+            {activeSection === 'access' && (
+              <div
+                role="dialog"
+                aria-label="Access settings"
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setActiveSection(null)
+                }}
+                className="absolute right-0 top-full z-40 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-border/70 bg-card p-4 shadow-lg"
+              >
+                <AccessPanel
+                  slug={page.slug}
+                  passwordSet={page.passwordSet}
+                  password={password}
+                  onPassword={setPassword}
+                  changingPassword={changingPassword}
+                  onChangingPassword={setChangingPassword}
+                  saving={savePassword.isPending}
+                  onSave={() => savePassword.mutate(password.trim())}
+                  onRemove={() => void removePassword()}
+                />
+              </div>
+            )}
+          </div>
+        )}
         {saveButton}
       </div>
 
-      {/* Mobile: Edit / Preview tabs. Desktop: side by side. */}
-      <div className="flex gap-1 lg:hidden">
-        {(['edit', 'preview'] as const).map((t) => (
-          <Button
-            key={t}
-            size="sm"
-            variant={mobileTab === t ? 'secondary' : 'ghost'}
-            onClick={() => setMobileTab(t)}
-            className="capitalize"
-          >
-            {t}
-          </Button>
-        ))}
+      {error && (
+        <p
+          role="alert"
+          aria-live="polite"
+          className="text-sm text-destructive"
+        >
+          {error}
+        </p>
+      )}
+
+      {/* The page is the canvas: full width, title + description editable in
+          place. Bottom padding keeps the footer clear of the fixed toolbar. */}
+      <div className="pb-32">
+        {!page || !hydrated ? (
+          <EditorSkeleton />
+        ) : preview.isError ? (
+          <div className="p-4">
+            <QueryError
+              subject="preview"
+              onRetry={() => void preview.refetch()}
+            />
+          </div>
+        ) : previewData ? (
+          // `dark`/`light` scope the class-based tokens to just this page,
+          // overriding whatever the admin shell uses — no next-themes or
+          // localStorage side effects.
+          <div className={effectiveTheme === 'dark' ? 'dark' : 'light'}>
+            <PublicStatusView
+              data={previewData}
+              dataUpdatedAt={preview.dataUpdatedAt}
+              forcedTheme={effectiveTheme}
+              preview
+              editable
+              pageId={id}
+              titleValue={title}
+              onTitleChange={setTitle}
+              descriptionValue={description}
+              onDescriptionChange={setDescription}
+              descriptionEditorRef={descriptionEditorRef}
+            />
+          </div>
+        ) : (
+          <div className="mx-auto max-w-3xl space-y-4 px-5 py-10">
+            <Skeleton className="h-8 w-56" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-40 w-full" />
+          </div>
+        )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)] lg:items-start">
-        {/* Controls rail. Sticky with its own scroll, so the preview holds
-            still while editing, and tabbed so no setting is a screen of
-            scrolling away (Custom CSS used to sit ~1.5 screens down). */}
-        <Panel
-          className={cn(
-            mobileTab === 'edit' ? 'flex' : 'hidden',
-            'lg:flex flex-col overflow-hidden p-0 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-9rem)]',
-          )}
-        >
-          <Tabs
-            value={tab}
-            onValueChange={(v) => setTab(v as EditorTab)}
-            className="min-h-0 flex-1"
-          >
-            <div className="shrink-0 border-b border-border/60 p-3">
-              <TabsList className="w-full">
-                <TabsTrigger value="setup">Setup</TabsTrigger>
-                <TabsTrigger value="branding">Branding</TabsTrigger>
-                <TabsTrigger value="monitors">Monitors</TabsTrigger>
-                <TabsTrigger value="advanced">Advanced</TabsTrigger>
-              </TabsList>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-4">
-              {!page ? (
-                <EditorSkeleton />
-              ) : (
-                <div className="flex flex-col gap-4">
-                  <TabsContent value="setup" className="flex flex-col gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="editor-title">Title</Label>
-                      <Input
-                        id="editor-title"
-                        name="title"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="editor-desc">Description</Label>
-                      {/* Rich text — the floating toolbar at the bottom of the
-                          screen formats this field; the preview shows it live. */}
-                      <DescriptionField
-                        value={description}
-                        onChange={setDescription}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="editor-theme">Theme</Label>
-                      <Select
-                        value={theme}
-                        onValueChange={(v) => {
-                          setTheme(v as Theme)
-                          setPeekTheme(null)
-                        }}
-                      >
-                        <SelectTrigger id="editor-theme">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="auto">Auto (follow visitor)</SelectItem>
-                          <SelectItem value="light">Light</SelectItem>
-                          <SelectItem value="dark">Dark</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Password protection used to be a dialog off the list
-                        page, which split page config across two surfaces. */}
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="editor-password">
-                        Password protection
-                      </Label>
-                      {page.passwordSet && !changingPassword ? (
-                        <div className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-muted/30 px-3 py-2">
-                          <span className="flex items-center gap-2 text-xs/relaxed text-muted-foreground">
-                            <Icon icon={LockKey} className="size-3.5" />
-                            On — visitors need a password
-                          </span>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setChangingPassword(true)}
-                            >
-                              Change
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              className="text-destructive"
-                              disabled={savePassword.isPending}
-                              onClick={() => void removePassword()}
-                            >
-                              Remove
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <PasswordInput
-                            id="editor-password"
-                            autoComplete="new-password"
-                            placeholder={
-                              page.passwordSet ? 'New password' : 'Set a password'
-                            }
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="flex-1"
-                          />
-                          <Button
-                            type="button"
-                            size="sm"
-                            disabled={!password.trim() || savePassword.isPending}
-                            onClick={() => savePassword.mutate(password.trim())}
-                          >
-                            {savePassword.isPending
-                              ? 'Saving…'
-                              : page.passwordSet
-                                ? 'Update'
-                                : 'Set'}
-                          </Button>
-                          {page.passwordSet && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                setChangingPassword(false)
-                                setPassword('')
-                              }}
-                            >
-                              Cancel
-                            </Button>
-                          )}
-                        </div>
-                      )}
-                      <p className="text-xs/relaxed text-muted-foreground">
-                        Visitors need this password to view{' '}
-                        <span className="font-mono">/{page.slug}</span>. Cookies
-                        last 30 days. Applied immediately, not with Save
-                        changes.
-                      </p>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="branding" className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-2">
-                      <Label>Theme preset</Label>
-                      <div className="flex flex-wrap gap-1.5">
-                        {THEME_PRESETS.map((preset) => {
-                          const active = activePresetId === preset.id
-                          return (
-                            <button
-                              key={preset.id}
-                              type="button"
-                              onClick={() => void applyPreset(preset)}
-                              aria-pressed={active}
-                              title={`Apply ${preset.label}`}
-                              className={cn(
-                                'flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs/relaxed outline-none transition-[border-color,background-color,box-shadow] duration-150 ease-out',
-                                active
-                                  ? 'border-ring ring-2 ring-ring/30'
-                                  : 'border-border/60 hover:bg-muted/50',
-                              )}
-                            >
-                              <span className="flex overflow-hidden rounded-sm ring-1 ring-foreground/10">
-                                {preset.swatches.map((color) => (
-                                  <span
-                                    key={color}
-                                    className="size-3"
-                                    style={{ backgroundColor: color }}
-                                  />
-                                ))}
-                              </span>
-                              {preset.label}
-                            </button>
-                          )
-                        })}
-                        {activePresetId && (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setCustomCss('')}
-                          >
-                            Default
-                          </Button>
-                        )}
-                      </div>
-                      <p className="text-xs/relaxed text-muted-foreground">
-                        Writes a dark + light palette into Custom CSS
-                        (Advanced) — edit it there, or pick Default to clear it.
-                      </p>
-                    </div>
-
-                    <LogoField page={page} logoPath={page.logoPath} />
-
-                    <div className="space-y-2">
-                      <Label htmlFor="editor-website">Website URL</Label>
-                      <Input
-                        id="editor-website"
-                        name="websiteUrl"
-                        value={websiteUrl}
-                        onChange={(e) => setWebsiteUrl(e.target.value)}
-                        placeholder="https://example.com"
-                        autoComplete="off"
-                        spellCheck={false}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        The logo and title on the public page link here.
-                      </p>
-                    </div>
-
-                    <label className="flex cursor-pointer items-center gap-2.5 text-sm">
-                      <Checkbox
-                        checked={hideBranding}
-                        onCheckedChange={(v) => setHideBranding(v === true)}
-                      />
-                      Hide the “Powered by PingBoard” footer
-                    </label>
-                  </TabsContent>
-
-                  <TabsContent value="monitors" className="flex flex-col gap-3">
-                    <p className="text-xs/relaxed text-muted-foreground">
-                      Ticked monitors appear on the public page, in this order.
-                      Group names cluster them (e.g. “API”, “Web”, “Database”).
-                    </p>
-                    <div className="divide-y divide-border/60 rounded-md border border-border/60">
-                    {/* Selected monitors first, in display order — so the
-                        reorder controls make visual sense. Unselected below. */}
-                    {orderedMonitorList(allMonitors, order).map((m) => {
-                      const checked = selected.has(m.id)
-                      return (
-                        <div key={m.id} className="flex items-center gap-3 p-3">
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={() => toggle(m.id)}
-                          />
-                          <div className="min-w-0 flex-1 text-sm">
-                            <div className="truncate font-medium">{m.name}</div>
-                            <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-                              {m.type}
-                            </div>
-                          </div>
-                          {checked && (
-                            <>
-                              <div className="flex items-center gap-0.5">
-                                <Button
-                                  type="button"
-                                  size="icon-sm"
-                                  variant="ghost"
-                                  aria-label="Move up"
-                                  disabled={order.indexOf(m.id) <= 0}
-                                  onClick={() => moveOrder(m.id, -1)}
-                                >
-                                  <Icon icon={ArrowUp} className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="icon-sm"
-                                  variant="ghost"
-                                  aria-label="Move down"
-                                  disabled={
-                                    order.indexOf(m.id) === order.length - 1 ||
-                                    order.indexOf(m.id) === -1
-                                  }
-                                  onClick={() => moveOrder(m.id, 1)}
-                                >
-                                  <Icon icon={ArrowDown} className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                              <Input
-                                value={selected.get(m.id) ?? ''}
-                                onChange={(e) => setGroup(m.id, e.target.value)}
-                                placeholder="Group"
-                                aria-label={`Group for ${m.name}`}
-                                className="w-28 text-xs"
-                              />
-                            </>
-                          )}
-                        </div>
-                      )
-                    })}
-                    {allMonitors.length === 0 && (
-                      <div className="p-4 text-center text-sm text-muted-foreground">
-                        No monitors to add.
-                      </div>
-                    )}
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="advanced" className="flex flex-col gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="editor-css">Custom CSS</Label>
-                      <Textarea
-                        id="editor-css"
-                        name="customCss"
-                        value={customCss}
-                        onChange={(e) => setCustomCss(e.target.value)}
-                        placeholder={'.my-rule { … }'}
-                        rows={8}
-                        spellCheck={false}
-                        className="font-mono text-xs"
-                      />
-                      <p className="text-xs/relaxed text-muted-foreground">
-                        Injected into this status page only, up to 10 KB. It's
-                        your page — unescaped by design.
-                      </p>
-                    </div>
-                  </TabsContent>
-
-                  {error && (
-                    <p
-                      role="alert"
-                      aria-live="polite"
-                      className="text-sm text-destructive"
-                    >
-                      {error}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </Tabs>
-        </Panel>
-
-        {/* Live preview */}
-        <div
-          className={cn(
-            mobileTab === 'preview' ? 'flex' : 'hidden',
-            'lg:flex min-w-0 flex-col gap-2 lg:sticky lg:top-4',
-          )}
-        >
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-              Live preview
-            </span>
-            <div className="flex items-center gap-1">
-              <Button
-                size="icon-sm"
-                variant={effectiveTheme === 'light' ? 'secondary' : 'ghost'}
-                aria-label="Preview light theme"
-                aria-pressed={effectiveTheme === 'light'}
-                onClick={() => setPeekTheme('light')}
-              >
-                <Icon icon={Sun} className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                size="icon-sm"
-                variant={effectiveTheme === 'dark' ? 'secondary' : 'ghost'}
-                aria-label="Preview dark theme"
-                aria-pressed={effectiveTheme === 'dark'}
-                onClick={() => setPeekTheme('dark')}
-              >
-                <Icon icon={Moon} className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
-          {/* `dark`/`light` scope the class-based tokens to just this frame,
-              overriding whatever the admin shell uses — no next-themes or
-              localStorage side effects. */}
-          <div
-            className={cn(
-              'overflow-hidden rounded-xl border border-border/60 ring-1 ring-foreground/10',
-              effectiveTheme === 'dark' ? 'dark' : 'light',
-            )}
-          >
-            <div className="h-[65vh] overflow-auto bg-background lg:h-[calc(100dvh-14rem)]">
-              {preview.isError ? (
-                <div className="p-4">
-                  <QueryError
-                    subject="preview"
-                    onRetry={() => void preview.refetch()}
-                  />
-                </div>
-              ) : previewData ? (
-                <PublicStatusView
-                  data={previewData}
-                  dataUpdatedAt={preview.dataUpdatedAt}
-                  forcedTheme={effectiveTheme}
-                  preview
-                />
-              ) : (
-                <div className="space-y-4 p-6">
-                  <Skeleton className="h-8 w-56" />
-                  <Skeleton className="h-24 w-full" />
-                  <Skeleton className="h-40 w-full" />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      {page && hydrated && (
+        <EditorToolbar
+          editorRef={descriptionEditorRef}
+          onInput={(html) => setDescription(html)}
+          sections={SECTIONS}
+          activeSection={activeSection}
+          onSection={(sid) =>
+            setActiveSection((prev) => (prev === sid ? null : sid))
+          }
+          onClose={() => setActiveSection(null)}
+          panel={
+            activeSection === 'monitors' ? (
+              <MonitorsPanel
+                allMonitors={allMonitors}
+                order={order}
+                selected={selected}
+                onToggle={toggle}
+                onMove={moveOrder}
+                onGroup={setGroup}
+              />
+            ) : activeSection === 'appearance' ? (
+              <AppearancePanel
+                theme={theme}
+                onTheme={(v) => {
+                  setTheme(v)
+                  setPeekTheme(null)
+                }}
+                activePresetId={activePresetId}
+                onPreset={(preset) => void applyPreset(preset)}
+                onClearPreset={() => setCustomCss('')}
+                pageId={page.id}
+                logoPath={page.logoPath}
+                websiteUrl={websiteUrl}
+                onWebsiteUrl={setWebsiteUrl}
+                hideBranding={hideBranding}
+                onHideBranding={setHideBranding}
+                customCss={customCss}
+                onCustomCss={setCustomCss}
+                peekTheme={peekTheme}
+                onPeekTheme={setPeekTheme}
+              />
+            ) : null
+          }
+        />
+      )}
     </div>
   )
 }
@@ -901,123 +630,5 @@ function EditorSkeleton() {
         </Panel>
       ))}
     </>
-  )
-}
-
-/**
- * Logo picker. Uploads take effect immediately (separate from Save) because
- * the file endpoint is its own multipart round-trip; everything else on the
- * form stays draft-until-save.
- */
-function LogoField({
-  page,
-  logoPath,
-}: {
-  page: StatusPage
-  logoPath: string | null
-}) {
-  const queryClient = useQueryClient()
-  const fileRef = useRef<HTMLInputElement>(null)
-
-  const invalidate = () => {
-    void queryClient.invalidateQueries({ queryKey: ['pages'] })
-    void queryClient.invalidateQueries({ queryKey: ['page', page.id] })
-    void queryClient.invalidateQueries({ queryKey: ['page-preview', page.id] })
-  }
-
-  const upload = useMutation({
-    mutationFn: async (file: File) => {
-      const form = new FormData()
-      form.append('logo', file)
-      const res = await fetch(`/api/admin/pages/${page.id}/logo`, {
-        method: 'POST',
-        credentials: 'include',
-        body: form,
-      })
-      if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as {
-          error?: string
-        } | null
-        throw new Error(data?.error ?? `Upload failed (${res.status})`)
-      }
-    },
-    onSuccess: () => {
-      invalidate()
-      toast.success('Logo updated')
-    },
-    onError: (err) =>
-      toast.error(err instanceof Error ? err.message : 'Upload failed'),
-  })
-
-  const remove = useMutation({
-    mutationFn: () => api.delete(`/api/admin/pages/${page.id}/logo`),
-    onSuccess: () => {
-      invalidate()
-      toast.success('Logo removed')
-    },
-    onError: (err) =>
-      toast.error(err instanceof Error ? err.message : 'Failed to remove'),
-  })
-
-  const busy = upload.isPending || remove.isPending
-
-  return (
-    <div className="space-y-2">
-      <Label>Logo</Label>
-      <div className="flex items-center gap-3">
-        {logoPath ? (
-          <img
-            src={`/api/public/assets/${logoPath}`}
-            alt="Current logo"
-            className="size-9 shrink-0 rounded-md border border-border/60 object-contain"
-          />
-        ) : (
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-dashed border-border text-muted-foreground">
-            <Icon icon={Globe} className="size-4" />
-          </div>
-        )}
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={busy}
-            onClick={() => fileRef.current?.click()}
-            className="gap-1.5"
-          >
-            <Icon icon={UploadSimple} className="h-3.5 w-3.5" />
-            {upload.isPending ? 'Uploading…' : logoPath ? 'Replace' : 'Upload'}
-          </Button>
-          {logoPath && (
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              disabled={busy}
-              onClick={() => remove.mutate()}
-              className="gap-1.5 text-muted-foreground"
-            >
-              <Icon icon={Trash} className="h-3.5 w-3.5" />
-              Remove
-            </Button>
-          )}
-        </div>
-      </div>
-      <p className="text-xs text-muted-foreground">
-        PNG, JPEG, SVG or WebP, up to 512 KB. Shown next to the page title.
-      </p>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/png,image/jpeg,image/svg+xml,image/webp"
-        className="hidden"
-        aria-label="Choose a logo image"
-        onChange={(e) => {
-          const file = e.target.files?.[0]
-          if (file) upload.mutate(file)
-          e.target.value = ''
-        }}
-      />
-    </div>
   )
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type MutableRefObject, type RefObject } from 'react'
 import { humanDate, UptimeTimeline } from '@/components/uptime-timeline'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from 'next-themes'
@@ -36,6 +36,8 @@ import {
   richTextToPlainText,
   sanitizeRichText,
 } from '@/lib/rich-text'
+import { DescriptionEditor } from '@/components/description-editor'
+import { InlineLogo } from '@/pages/StatusPageEditorPanels'
 import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown"
 
 type AdminTheme = 'light' | 'dark' | 'auto'
@@ -216,12 +218,28 @@ export function PublicStatusView({
   stale = false,
   forcedTheme,
   preview = false,
+  editable = false,
+  pageId,
+  titleValue,
+  onTitleChange,
+  descriptionValue,
+  onDescriptionChange,
+  descriptionEditorRef,
 }: {
   data: PublicData
   dataUpdatedAt: number
   stale?: boolean
   forcedTheme?: 'light' | 'dark'
   preview?: boolean
+  /** Inline editing: title + description become editable on the page itself. */
+  editable?: boolean
+  /** Status page id — required for inline logo upload when editable. */
+  pageId?: string
+  titleValue?: string
+  onTitleChange?: (v: string) => void
+  descriptionValue?: string
+  onDescriptionChange?: (v: string) => void
+  descriptionEditorRef?: MutableRefObject<HTMLDivElement | null>
 }) {
   const { resolvedTheme } = useTheme()
   const { page, monitors, incidents, maintenance = [] } = data
@@ -272,18 +290,41 @@ export function PublicStatusView({
 
   const headerTitle = (
     <div className="flex items-center gap-3.5 min-w-0">
-      {page?.logoUrl && (
-        <img
-          src={page.logoUrl}
-          alt=""
-          className="size-9 sm:size-10 shrink-0 rounded-md object-contain"
-        />
+      {editable && pageId ? (
+        <InlineLogo pageId={pageId} logoUrl={page.logoUrl} />
+      ) : (
+        page?.logoUrl && (
+          <img
+            src={page.logoUrl}
+            alt=""
+            className="size-11 shrink-0 rounded-md object-contain sm:size-12"
+          />
+        )
       )}
-      <div className="space-y-1.5 min-w-0">
-        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-          {page.title}
-        </h1>
-        <RichDescription html={page.description} />
+      <div className="space-y-1.5 min-w-0 flex-1">
+        {editable ? (
+          <>
+            <TitleEditor
+              value={titleValue ?? page.title}
+              onChange={onTitleChange ?? (() => {})}
+            />
+            <DescriptionEditor
+              editorRef={descriptionEditorRef}
+              value={descriptionValue ?? ''}
+              onChange={onDescriptionChange ?? (() => {})}
+              id="editor-desc"
+              placeholder="Add a short description…"
+              className="min-h-[1.5em] border-0 bg-transparent px-0 py-0 text-muted-foreground text-sm shadow-none sm:text-base focus-visible:ring-0"
+            />
+          </>
+        ) : (
+          <>
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+              {page.title}
+            </h1>
+            <RichDescription html={page.description} />
+          </>
+        )}
       </div>
     </div>
   )
@@ -373,6 +414,57 @@ export function PublicStatusView({
         )}
       </div>
     </div>
+  )
+}
+
+/**
+ * Page title, editable in place. Plain text only — pasted formatting is
+ * stripped on blur, Enter commits instead of newline.
+ */
+function TitleEditor({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (v: string) => void
+}) {
+  const ref = useRef<HTMLHeadingElement>(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    if (document.activeElement !== el && (el.innerText ?? '') !== value) {
+      el.innerText = value
+    }
+  }, [value])
+
+  const commit = () => {
+    const el = ref.current
+    if (!el) return
+    const clean = (el.innerText ?? '').replace(/\s+/g, ' ').trim()
+    if ((el.innerText ?? '') !== clean) el.innerText = clean
+    onChange(clean)
+  }
+
+  return (
+    <h1
+      ref={ref}
+      contentEditable
+      suppressContentEditableWarning
+      spellCheck={false}
+      role="textbox"
+      aria-label="Page title"
+      data-placeholder="Page title"
+      onInput={() => onChange(ref.current?.innerText.replace(/\n/g, ' ') ?? '')}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          ref.current?.blur()
+        }
+      }}
+      onBlur={commit}
+      className="rich-edit -mx-1 rounded-md px-1 text-2xl font-semibold tracking-tight outline-none transition-colors hover:bg-muted/30 focus:bg-muted/30 sm:text-3xl"
+    />
   )
 }
 

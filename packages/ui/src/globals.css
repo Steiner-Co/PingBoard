@@ -375,3 +375,10 @@
 .rich-text a:hover {
   color: var(--foreground);
 }
+
+/* contentEditable keeps a lone <br> after deleting everything — treat that as empty too. */
+.rich-edit:has(> br:only-child)::before {
+  content: attr(data-placeholder);
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
