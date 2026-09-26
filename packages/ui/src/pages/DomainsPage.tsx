@@ -13,6 +13,9 @@ import { Globe } from "@phosphor-icons/react/dist/icons/Globe"
 import { PlusCircle } from "@phosphor-icons/react/dist/icons/PlusCircle"
 import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass"
 import { ArrowClockwise } from "@phosphor-icons/react/dist/icons/ArrowClockwise"
+import { Pause } from "@phosphor-icons/react/dist/icons/Pause"
+import { Play } from "@phosphor-icons/react/dist/icons/Play"
+import { Trash } from "@phosphor-icons/react/dist/icons/Trash"
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -31,8 +34,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Panel } from '@/components/panel'
+import { EmptyState } from '@/components/EmptyState'
 import { StatusBadge } from '@/components/StatusBadge'
 import { QueryError } from '@/components/QueryError'
+import { useConfirm } from '@/components/confirm-provider'
 import { cn, formatRelative } from '@/lib/utils'
 import { api } from '@/lib/api'
 import { useSSE } from '@/lib/sse'
@@ -149,6 +154,17 @@ export function DomainsPage() {
   const [editing, setEditing] = useState<DomainWithFacts | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
+  // Channel names for the inline routing row — domains manage their own
+  // alert wiring now instead of deep-linking to a monitor detail page.
+  const channelsQuery = useQuery({
+    queryKey: ['channels'],
+    queryFn: () => api.get<{ channels: NotificationChannel[] }>('/api/admin/channels'),
+  })
+  const channelById = useMemo(
+    () => new Map((channelsQuery.data?.channels ?? []).map((c) => [c.id, c])),
+    [channelsQuery.data],
+  )
+
   const domains = query.data?.domains ?? []
 
   const filtered = useMemo(() => {
@@ -198,120 +214,186 @@ export function DomainsPage() {
       )
   }, [domains, now])
 
-  if (query.isPending) return <DomainsSkeleton />
-  if (query.isError) {
-    return (
-      <div className="px-4 lg:px-6">
-        <QueryError subject="domains" onRetry={() => void query.refetch()} />
-      </div>
-    )
-  }
-  if (domains.length === 0) {
-    return (
-      <>
-        <EmptyDomains onAdd={() => setAddOpen(true)} />
-        <AddDomainDialog open={addOpen} onClose={() => setAddOpen(false)} />
-      </>
-    )
-  }
-
   const toggle = (id: string) =>
     setExpanded((prev) => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
 
-  return (
+  // Attention rows jump to the domain in the list below — they used to link
+  // to a monitor detail page, which no longer serves domains.
+  const focusDomain = (id: string) => {
+    setExpanded((prev) => {
+      if (prev.has(id)) return prev
+      const next = new Set(prev)
+      next.add(id)
+      return next
+    })
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`domain-${id}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }
+
+  const header = (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Domains</h1>
+        <p className="text-sm text-muted-foreground">
+          Track expiry, registrar, nameservers and SSL certificates across the
+          whole portfolio
+        </p>
+      </div>
+      <Button onClick={() => setAddOpen(true)} className="gap-2 self-start sm:self-auto">
+        <Icon icon={PlusCircle} className="size-4" />
+        Add domain
+      </Button>
+    </div>
+  )
+
+  const dialogs = (
     <>
-      <div className="flex flex-col gap-6 px-4 lg:px-6">
-        <header className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Domains</h1>
-          <p className="text-sm text-muted-foreground">
-            Track expiry, registrar, nameservers and SSL certificates across the
-            whole portfolio
+      <AddDomainDialog open={addOpen} onClose={() => setAddOpen(false)} />
+      <EditDetailsDialog domain={editing} onClose={() => setEditing(null)} />
+    </>
+  )
+
+  if (query.isPending) {
+    return (
+      <div className="px-4 lg:px-6 flex flex-col gap-6">
+        {header}
+        <DomainsSkeleton />
+        {dialogs}
+      </div>
+    )
+  }
+
+  if (query.isError) {
+    return (
+      <div className="px-4 lg:px-6 flex flex-col gap-6">
+        {header}
+        <QueryError subject="domains" onRetry={() => void query.refetch()} />
+        {dialogs}
+      </div>
+    )
+  }
+
+  if (domains.length === 0) {
+    return (
+      <div className="px-4 lg:px-6 flex flex-col gap-6">
+        {header}
+        <EmptyState
+          icon={Globe}
+          title="No domains tracked yet"
+          description="Add a domain and PingBoard keeps an eye on its expiry, registrar, nameservers and SSL certificate — and warns you before anything lapses. One place for the whole portfolio."
+          action={
+            <Button onClick={() => setAddOpen(true)} className="gap-2">
+              <Icon icon={PlusCircle} className="size-4" />
+              Add your first domain
+            </Button>
+          }
+        />
+        {dialogs}
+      </div>
+    )
+  }
+
+  const refreshing = query.isFetching
+
+  return (
+    <div className="px-4 lg:px-6 flex flex-col gap-6">
+      {header}
+
+      <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
+        <StatCell
+          label="Domains"
+          value={String(summary.total)}
+          sub="Tracked in this instance"
+          className="border-b border-border/60 lg:border-b-0 border-r lg:border-r-0"
+        />
+        <StatCell
+          label="Expiring ≤ 30d"
+          value={String(summary.expiringSoon)}
+          sub="Renew before they lapse"
+          tone={summary.expiringSoon > 0 ? 'warn' : 'success'}
+          className="border-b border-border/60 lg:border-b-0"
+        />
+        <StatCell
+          label="SSL ≤ 14d"
+          value={String(summary.sslSoon)}
+          sub="Certificates near expiry"
+          tone={summary.sslSoon > 0 ? 'warn' : 'success'}
+          className="border-r border-border/60 lg:border-r-0"
+        />
+        <StatCell
+          label="Not alerting"
+          value={String(summary.notAlerting)}
+          sub={summary.notAlerting > 0 ? 'No channel would be paged' : 'All routed'}
+          tone={summary.notAlerting > 0 ? 'warn' : 'success'}
+        />
+      </Panel>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:max-w-xs">
+          <Icon
+            icon={MagnifyingGlass}
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground"
+          />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by domain, registrar, or tag…"
+            className="pl-7"
+            aria-label="Search domains"
+          />
+        </div>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <Button
+            variant="outline"
+            onClick={() => void query.refetch()}
+            disabled={refreshing}
+            className="gap-2"
+          >
+            <Icon
+              icon={ArrowClockwise}
+              className={cn('size-4', refreshing && 'animate-spin')}
+            />
+            Refresh
+          </Button>
+        </div>
+      </div>
+
+      {attention.length > 0 && (
+        <Panel className="border-warning/40">
+          <header className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2.5">
+            <h2 className="flex items-center gap-2 text-sm font-medium text-warning">
+              <Icon icon={Warning} className="size-3.5 shrink-0" />
+              Expiring soon
+            </h2>
+            <span className="font-mono text-[11px] tabular-nums text-warning">
+              {attention.length}
+            </span>
+          </header>
+          <p className="border-b border-border/60 px-4 py-2.5 text-xs text-muted-foreground">
+            Renew before they lapse — the soonest expiry is listed first.
           </p>
-        </header>
-        <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
-          <Stat label="Domains" value={summary.total} sub="Tracked in this instance" />
-          <Stat
-            label="Expiring ≤ 30d"
-            value={summary.expiringSoon}
-            sub="Renew before they lapse"
-            tone={summary.expiringSoon > 0 ? 'warn' : 'muted'}
-          />
-          <Stat
-            label="SSL ≤ 14d"
-            value={summary.sslSoon}
-            sub="Certificates near expiry"
-            tone={summary.sslSoon > 0 ? 'warn' : 'muted'}
-          />
-          <Stat
-            label="Not alerting"
-            value={summary.notAlerting}
-            sub={summary.notAlerting > 0 ? 'No channel would be paged' : 'All routed'}
-            tone={summary.notAlerting > 0 ? 'warn' : 'muted'}
-          />
-        </Panel>
-
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative w-full sm:max-w-xs">
-              <Icon
-                icon={MagnifyingGlass}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
-              />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by domain, registrar, or tag…"
-                className="pl-7"
-                aria-label="Search domains"
-              />
-            </div>
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              <Button
-                variant="outline"
-                onClick={() => void query.refetch()}
-                disabled={query.isFetching}
-                className="gap-2"
-              >
-                <Icon
-                  icon={ArrowClockwise}
-                  className={cn('h-4 w-4', query.isFetching && 'animate-spin')}
-                />
-                Refresh
-              </Button>
-              <Button onClick={() => setAddOpen(true)} className="gap-2">
-                <Icon icon={PlusCircle} className="h-4 w-4" />
-                Add domain
-              </Button>
-            </div>
-          </div>
-
-        {attention.length > 0 && (
-          <Panel className="border-warning/40">
-            <header className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2.5">
-              <h2 className="flex items-center gap-2 text-sm font-medium text-warning">
-                <Icon icon={Warning} className="size-3.5 shrink-0" />
-                Expiring soon
-              </h2>
-              <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-warning tabular-nums">
-                {attention.length} {attention.length === 1 ? 'domain' : 'domains'}
-              </span>
-            </header>
-            <ul className="divide-y divide-border/60">
-              {attention.map(({ d, de, se }) => (
-                <li key={d.id} className="flex items-center gap-3 px-4 py-2.5">
-                  <Link
-                    to={`/admin/monitors/${d.id}`}
-                    className="min-w-0 flex-1 truncate text-xs font-medium hover:underline underline-offset-4"
-                  >
+          <ul className="divide-y divide-border/60">
+            {attention.map(({ d, de, se }) => (
+              <li key={d.id}>
+                <button
+                  type="button"
+                  onClick={() => focusDomain(d.id)}
+                  className="group flex w-full items-center gap-3 px-4 py-2.5 text-left outline-none transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/30"
+                >
+                  <span className="min-w-0 flex-1 truncate text-xs font-medium">
                     {d.name}
-                  </Link>
+                  </span>
                   {de !== null && (
                     <span className="flex shrink-0 items-baseline gap-1.5">
-                      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                      <span className="text-[11px] text-muted-foreground">
                         Domain
                       </span>
                       <ExpiryValue iso={d.facts?.expiryAt ?? null} now={now} critical={7} warn={30} className="text-xs" />
@@ -319,44 +401,54 @@ export function DomainsPage() {
                   )}
                   {se !== null && (
                     <span className="flex shrink-0 items-baseline gap-1.5">
-                      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                      <span className="text-[11px] text-muted-foreground">
                         SSL
                       </span>
                       <ExpiryValue iso={d.facts?.sslExpiryAt ?? null} now={now} critical={14} warn={30} className="text-xs" />
                     </span>
                   )}
-                </li>
-              ))}
-            </ul>
-          </Panel>
-        )}
-
-        <Panel>
-          {filtered.length === 0 ? (
-            <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-              No domains match “{search}”.
-            </p>
-          ) : (
-            <ul className="divide-y divide-border/60">
-              {filtered.map((d) => (
-                <DomainRow
-                  key={d.id}
-                  domain={d}
-                  now={now}
-                  open={expanded.has(d.id)}
-                  onToggle={() => toggle(d.id)}
-                  onEdit={() => setEditing(d)}
-                />
-              ))}
-            </ul>
-          )}
+                  <Icon
+                    icon={CaretRight}
+                    className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+                  />
+                </button>
+              </li>
+            ))}
+          </ul>
         </Panel>
-      </div>
+      )}
 
-      <AddDomainDialog open={addOpen} onClose={() => setAddOpen(false)} />
-      <EditDetailsDialog domain={editing} onClose={() => setEditing(null)} />
-      </div>
-    </>
+      <Panel>
+        <header className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-2.5">
+          <h2 className="text-sm font-medium">Domains</h2>
+          <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+            {filtered.length} shown
+          </span>
+        </header>
+        {filtered.length === 0 ? (
+          <div className="py-10 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
+            <Icon icon={MagnifyingGlass} className="size-5 opacity-50" />
+            No domains match this filter.
+          </div>
+        ) : (
+          <ul className="divide-y divide-border/60">
+            {filtered.map((d) => (
+              <DomainRow
+                key={d.id}
+                domain={d}
+                now={now}
+                open={expanded.has(d.id)}
+                onToggle={() => toggle(d.id)}
+                onEdit={() => setEditing(d)}
+                channelById={channelById}
+              />
+            ))}
+          </ul>
+        )}
+      </Panel>
+
+      {dialogs}
+    </div>
   )
 }
 
@@ -366,12 +458,14 @@ function DomainRow({
   open,
   onToggle,
   onEdit,
+  channelById,
 }: {
   domain: DomainWithFacts
   now: number
   open: boolean
   onToggle: () => void
   onEdit: () => void
+  channelById: Map<string, NotificationChannel>
 }) {
   const f = d.facts
   const status = d.paused
@@ -383,28 +477,28 @@ function DomainRow({
   const isManual = manualField(d, 'manualExpiryAt') !== undefined
 
   return (
-    <li>
+    <li id={`domain-${d.id}`} className="scroll-mt-24">
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left outline-none transition-colors hover:bg-accent/40 focus-visible:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring/30"
+        className="flex w-full items-center gap-3 px-4 py-4 sm:px-5 text-left outline-none transition-colors hover:bg-accent/40 focus-visible:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring/30"
       >
         <Icon
           icon={open ? CaretDown : CaretRight}
-          className="h-4 w-4 shrink-0 text-muted-foreground"
+          className="size-4 shrink-0 text-muted-foreground"
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="truncate font-medium">{d.name}</span>
+            <span className="truncate text-sm font-medium">{d.name}</span>
             {d.channelIds.length === 0 && (
               <Badge variant="warning" className="gap-1">
-                <Icon icon={WarningCircle} className="h-3.5 w-3.5" />
+                <Icon icon={WarningCircle} className="size-3.5" />
                 Not alerting
               </Badge>
             )}
           </div>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
             <span className="truncate">{f?.registrar ?? 'Registrar unknown'}</span>
             {provider && (
               <>
@@ -419,17 +513,33 @@ function DomainRow({
               </>
             )}
           </div>
+          {/* Mobile: headline metrics are hidden below sm, so restate them
+              inline — otherwise the point of the page is invisible on phones. */}
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs sm:hidden">
+            <span className="inline-flex items-baseline gap-1.5">
+              <span className="text-[11px] text-muted-foreground">
+                Domain{isManual ? ' · manual' : ''}
+              </span>
+              <ExpiryValue iso={f?.expiryAt ?? null} now={now} critical={7} warn={30} className="text-xs" />
+            </span>
+            <span className="inline-flex items-baseline gap-1.5">
+              <span className="text-[11px] text-muted-foreground">
+                SSL
+              </span>
+              <ExpiryValue iso={f?.sslExpiryAt ?? null} now={now} critical={14} warn={30} className="text-xs" />
+            </span>
+          </div>
         </div>
 
         {/* Headline metrics: domain expiry, then SSL. */}
         <div className="hidden shrink-0 flex-col items-end gap-0.5 sm:flex">
-          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          <span className="text-[11px] text-muted-foreground">
             Domain {isManual && '· manual'}
           </span>
           <ExpiryValue iso={f?.expiryAt ?? null} now={now} critical={7} warn={30} className="text-sm" />
         </div>
         <div className="hidden w-24 shrink-0 flex-col items-end gap-0.5 md:flex">
-          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          <span className="text-[11px] text-muted-foreground">
             SSL
           </span>
           <ExpiryValue iso={f?.sslExpiryAt ?? null} now={now} critical={14} warn={30} className="text-sm" />
@@ -439,7 +549,7 @@ function DomainRow({
         </div>
       </button>
 
-      {open && <DomainDetail domain={d} onEdit={onEdit} />}
+      {open && <DomainDetail domain={d} onEdit={onEdit} channelById={channelById} />}
     </li>
   )
 }
@@ -460,7 +570,7 @@ function EditableFact({
   if (!value) {
     return (
       <Button size="sm" variant="outline" onClick={onEdit} className="h-7 gap-1.5">
-        <Icon icon={CalendarBlank} className="h-3.5 w-3.5" />
+        <Icon icon={CalendarBlank} className="size-3.5" />
         {setLabel}
       </Button>
     )
@@ -487,11 +597,131 @@ function EditableFact({
 function DomainDetail({
   domain: d,
   onEdit,
+  channelById,
 }: {
   domain: DomainWithFacts
   onEdit: () => void
+  channelById: Map<string, NotificationChannel>
 }) {
+  const queryClient = useQueryClient()
+  const confirm = useConfirm()
   const f = d.facts
+
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: ['domains'] })
+    void queryClient.invalidateQueries({ queryKey: ['monitors'] })
+  }
+
+  const togglePause = useMutation({
+    mutationFn: (paused: boolean) =>
+      api.patch(`/api/admin/monitors/${d.id}`, { paused }),
+    onSuccess: (_data, paused) => {
+      invalidate()
+      toast.success(paused ? 'Domain checks paused' : 'Domain checks resumed')
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : 'Failed to update'),
+  })
+
+  const remove = useMutation({
+    mutationFn: () => api.delete(`/api/admin/monitors/${d.id}`),
+    onSuccess: () => {
+      invalidate()
+      toast.success(`Removed "${d.name}"`)
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : 'Failed to delete'),
+  })
+
+  const attached = d.channelIds
+    .map((id) => channelById.get(id))
+    .filter((c) => c != null)
+
+  const manage = (
+    <div className="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-3 border-t border-border/60 pt-4">
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => togglePause.mutate(!d.paused)}
+        disabled={togglePause.isPending}
+        className="gap-1.5"
+      >
+        <Icon icon={d.paused ? Play : Pause} className="size-3.5" />
+        {d.paused ? 'Resume' : 'Pause'}
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={onEdit}
+        className="gap-1.5"
+      >
+        <Icon icon={CalendarBlank} className="size-3.5" />
+        Edit dates
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        aria-label={`Remove ${d.name}`}
+        onClick={async () => {
+          const ok = await confirm({
+            title: `Remove "${d.name}"?`,
+            description:
+              'Expiry tracking stops and collected facts are removed. This cannot be undone.',
+            confirmLabel: 'Remove domain',
+            destructive: true,
+          })
+          if (ok) remove.mutate()
+        }}
+        disabled={remove.isPending}
+        className="gap-1.5 text-muted-foreground"
+      >
+        <Icon icon={Trash} className="size-3.5" />
+        Remove
+      </Button>
+      <span className="ml-auto text-xs text-muted-foreground">
+        Checks hourly · expiry drives alerts
+      </span>
+    </div>
+  )
+
+  const channelsField = (
+    <Field label="Alert channels" className="sm:col-span-2 lg:col-span-3">
+      {attached.length === 0 ? (
+        <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+          <span>
+            <span className="text-warning">No channels attached</span> — expiry
+            warnings go nowhere.{' '}
+            <Link to="/admin/channels" className="underline underline-offset-4 hover:text-foreground">
+              Add one
+            </Link>
+          </span>
+          <DomainChannelsEditor domain={d} triggerLabel="Attach" />
+        </span>
+      ) : (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {attached.map((c) => (
+            <span
+              key={c.id}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-[11px]"
+            >
+              <span
+                aria-hidden
+                className={cn(
+                  'size-1.5 rounded-full',
+                  c.enabled ? 'bg-success' : 'bg-muted-foreground/50',
+                )}
+              />
+              <span className="max-w-[12rem] truncate">{c.name}</span>
+              <span className="text-[11px] text-muted-foreground">
+                {c.type}
+              </span>
+            </span>
+          ))}
+          <DomainChannelsEditor domain={d} />
+        </div>
+      )}
+    </Field>
+  )
 
   const renewalField = (
     <EditableFact
@@ -504,18 +734,30 @@ function DomainDetail({
 
   if (!f) {
     return (
-      <div className="border-t border-border/60 bg-muted/20 px-4 py-4 pl-11 text-sm text-muted-foreground">
+      <div className="border-t border-border/60 bg-muted/20 px-4 py-4 pl-11 sm:px-5 sm:pl-12 text-sm text-muted-foreground">
         <p>No data collected yet — details appear after the first check runs.</p>
         <div className="mt-2">{renewalField}</div>
         {d.latest?.message && (
           <span className="mt-2 block font-mono text-xs">{d.latest.message}</span>
         )}
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => togglePause.mutate(!d.paused)}
+            disabled={togglePause.isPending}
+            className="gap-1.5"
+          >
+            <Icon icon={d.paused ? Play : Pause} className="size-3.5" />
+            {d.paused ? 'Resume' : 'Pause'}
+          </Button>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="grid gap-x-8 gap-y-4 border-t border-border/60 bg-muted/20 px-4 py-4 pl-11 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-x-8 gap-y-4 border-t border-border/60 bg-muted/20 px-4 py-4 pl-11 sm:grid-cols-2 sm:px-5 sm:pl-12 lg:grid-cols-3">
       <Field label="Registered">
         <EditableFact
           value={f.registeredAt}
@@ -528,7 +770,7 @@ function DomainDetail({
       <Field label="SSL issuer">
         {f.sslIssuer ? (
           <span className="inline-flex items-center gap-1.5">
-            <Icon icon={SealCheck} className="h-3.5 w-3.5 text-muted-foreground" />
+            <Icon icon={SealCheck} className="size-3.5 text-muted-foreground" />
             {f.sslIssuer}
           </span>
         ) : (
@@ -574,15 +816,99 @@ function DomainDetail({
         )}
       </Field>
 
-      <div className="flex items-end sm:col-span-2 lg:col-span-3">
-        <Link
-          to={`/admin/monitors/${d.id}`}
-          className="text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
-        >
-          Open check settings (interval, channels, pause) →
-        </Link>
-      </div>
+      {channelsField}
+      {manage}
     </div>
+  )
+}
+
+function DomainChannelsEditor({ domain: d, triggerLabel = 'edit' }: { domain: DomainWithFacts; triggerLabel?: string }) {
+  const queryClient = useQueryClient()
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState<string[]>(d.channelIds)
+  const channels = useQuery({
+    queryKey: ['channels'],
+    queryFn: () => api.get<{ channels: NotificationChannel[] }>('/api/admin/channels'),
+    enabled: open,
+  })
+
+  useEffect(() => {
+    if (open) setDraft(d.channelIds)
+  }, [open, d.channelIds])
+
+  const save = useMutation({
+    mutationFn: (channelIds: string[]) =>
+      api.patch(`/api/admin/monitors/${d.id}`, { channelIds }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['domains'] })
+      void queryClient.invalidateQueries({ queryKey: ['monitors'] })
+      toast.success('Alert channels updated')
+      setOpen(false)
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : 'Failed to save'),
+  })
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+      >
+        {triggerLabel}
+      </button>
+    )
+  }
+
+  const chans = channels.data?.channels ?? []
+
+  return (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      <span className="inline-flex max-w-full flex-wrap gap-1.5 rounded-md border border-border/70 p-1.5">
+        {chans.length === 0 ? (
+          <span className="px-1 text-xs text-muted-foreground">
+            No channels yet.{' '}
+            <Link to="/admin/channels" className="underline underline-offset-4">
+              Add one
+            </Link>
+          </span>
+        ) : (
+          chans.map((c) => (
+            <label
+              key={c.id}
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-sm px-1.5 py-0.5 text-xs hover:bg-accent/40"
+            >
+              <Checkbox
+                checked={draft.includes(c.id)}
+                onCheckedChange={(v) =>
+                  setDraft((prev) =>
+                    v ? [...prev, c.id] : prev.filter((x) => x !== c.id),
+                  )
+                }
+              />
+              <span className="max-w-[10rem] truncate">{c.name}</span>
+            </label>
+          ))
+        )}
+      </span>
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-7"
+        disabled={save.isPending}
+        onClick={() => save.mutate(draft)}
+      >
+        {save.isPending ? 'Saving…' : 'Save'}
+      </Button>
+      <button
+        type="button"
+        onClick={() => setOpen(false)}
+        className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+      >
+        Cancel
+      </button>
+    </span>
   )
 }
 
@@ -597,7 +923,7 @@ function Field({
 }) {
   return (
     <div className={cn('space-y-1', className)}>
-      <div className="font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="text-xs font-medium text-muted-foreground">
         {label}
       </div>
       <div className="text-sm">{children}</div>
@@ -605,32 +931,42 @@ function Field({
   )
 }
 
-function Stat({
+// Mirrors the channels/incidents stat cell. Same visual contract — mono
+// micro-label, tabular value, tone ramp — kept identical on purpose.
+function StatCell({
   label,
   value,
   sub,
   tone = 'default',
+  className,
 }: {
   label: string
-  value: number
+  value: string
   sub: string
-  tone?: 'default' | 'warn' | 'muted'
+  tone?: 'default' | 'success' | 'warn' | 'muted'
+  className?: string
 }) {
   const valueTone =
-    tone === 'warn'
-      ? 'text-warning'
-      : tone === 'muted'
-        ? 'text-foreground'
-        : 'text-foreground'
+    tone === 'success'
+      ? 'text-success-text'
+      : tone === 'warn'
+        ? 'text-warning'
+        : tone === 'muted'
+          ? 'text-muted-foreground'
+          : 'text-foreground'
   return (
-    <div className="flex flex-col gap-2.5 p-4 sm:p-5">
+    <div className={cn('flex flex-col gap-2.5 p-4 sm:p-5', className)}>
       <div className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
         {label}
       </div>
-      <div className={cn('text-2xl font-semibold tracking-tight tabular-nums', valueTone)}>
-        {value}
+      <div className="flex items-baseline gap-1.5">
+        <span className={cn('text-2xl font-semibold tracking-tight tabular-nums', valueTone)}>
+          {value}
+        </span>
       </div>
-      <div className="text-xs text-muted-foreground line-clamp-1">{sub}</div>
+      {/* Two lines at narrow widths: at 390px a single clamped line cuts these
+          sentences mid-thought. Matches the channels band from sm up. */}
+      <div className="text-xs text-muted-foreground line-clamp-2 sm:line-clamp-1">{sub}</div>
     </div>
   )
 }
@@ -775,7 +1111,7 @@ function AddDomainDialog({ open, onClose }: { open: boolean; onClose: () => void
                       }
                     />
                     <span className="truncate">{c.name}</span>
-                    <span className="ml-auto font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                    <span className="ml-auto text-[11px] text-muted-foreground">
                       {c.type}
                     </span>
                   </label>
@@ -968,60 +1304,34 @@ function EditDetailsDialog({
   )
 }
 
-function EmptyDomains({ onAdd }: { onAdd: () => void }) {
-  return (
-    <div className="px-4 lg:px-6">
-      <div className="flex min-h-[420px] flex-col items-center justify-center gap-6 rounded-lg border border-dashed bg-card/50 p-10 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
-          <Icon icon={Globe} className="h-6 w-6" />
-        </div>
-        <div className="max-w-md space-y-2">
-          <h2 className="text-2xl font-semibold tracking-tight">No domains tracked yet</h2>
-          <p className="text-sm text-muted-foreground">
-            Add a domain and PingBoard keeps an eye on its expiry, registrar,
-            nameservers and SSL certificate — and warns you before anything
-            lapses. One place for the whole portfolio.
-          </p>
-        </div>
-        <Button onClick={onAdd} className="gap-2">
-          <Icon icon={PlusCircle} className="h-4 w-4" />
-          Add your first domain
-        </Button>
-      </div>
-    </div>
-  )
-}
-
 function DomainsSkeleton() {
   return (
     <>
-      <div className="flex flex-col gap-6 px-4 lg:px-6">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-36" />
-          <Skeleton className="h-4 w-96 max-w-full" />
-        </div>
-        <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="flex flex-col gap-2.5 p-4 sm:p-5">
-              <Skeleton className="h-3 w-24" />
-              <Skeleton className="h-8 w-16" />
-              <Skeleton className="h-3 w-32" />
-            </div>
-          ))}
-        </Panel>
-        <Panel className="divide-y divide-border/60">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="flex items-center gap-3 p-4">
-              <Skeleton className="h-4 w-4" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-48" />
-                <Skeleton className="h-3 w-64" />
-              </div>
-              <Skeleton className="h-4 w-16" />
-            </div>
-          ))}
-        </Panel>
+      <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="flex flex-col gap-2.5 p-4 sm:p-5">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-8 w-16" />
+            <Skeleton className="h-3 w-28" />
+          </div>
+        ))}
+      </Panel>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Skeleton className="h-9 w-full sm:max-w-xs" />
+        <Skeleton className="h-9 w-24" />
       </div>
+      <Panel className="divide-y divide-border/60">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="flex items-center gap-3 p-4 sm:px-5">
+            <Skeleton className="size-4" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-3 w-64" />
+            </div>
+            <Skeleton className="h-4 w-16" />
+          </div>
+        ))}
+      </Panel>
     </>
   )
 }

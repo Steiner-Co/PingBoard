@@ -316,7 +316,6 @@ export function MonitorWizardPage() {
                     <SelectItem value="ping">Ping (ICMP)</SelectItem>
                     <SelectItem value="dns">DNS lookup</SelectItem>
                     <SelectItem value="ssl">SSL certificate expiry</SelectItem>
-                    <SelectItem value="domain">Domain (WHOIS) expiry</SelectItem>
                     <SelectItem value="push">Push / heartbeat</SelectItem>
                   </SelectContent>
                 </Select>

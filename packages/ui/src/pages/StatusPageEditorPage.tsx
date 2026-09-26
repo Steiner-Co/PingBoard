@@ -351,7 +351,10 @@ export function StatusPageEditorPage() {
     })
   }
 
-  const allMonitors = monitors.data?.monitors ?? []
+  // Domains are a separate surface with no uptime bar — the backend already
+  // excludes them from /monitors, this is belt-and-braces for cached data
+  // and legacy status pages that still link one.
+  const allMonitors = (monitors.data?.monitors ?? []).filter((m) => m.type !== 'domain')
 
   // Draft preview: real rows for monitors already on the page (timelines,
   // uptime), synthesized rows for newly ticked ones; draft order/groups and

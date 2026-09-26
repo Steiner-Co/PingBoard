@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
 import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft"
@@ -130,6 +130,13 @@ export function MonitorDetailPage() {
       </div>
     )
   if (!query.data) return null
+
+  // Domains are a separate product surface — deep links here (and the old
+  // Domains-page footer link) land on the portfolio instead of an
+  // uptime detail view whose charts mean nothing for expiry.
+  if (query.data.monitor.type === 'domain') {
+    return <Navigate to="/admin/domains" replace />
+  }
 
   const { monitor, heartbeats, incidents } = query.data
   const latest = heartbeats[0] ?? null

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
@@ -307,6 +307,11 @@ export function MonitorEditPage() {
   }
 
   const monitor = detail.data.monitor
+
+  // Domains are managed from /admin/domains, not the monitor edit form.
+  if (monitor.type === 'domain') {
+    return <Navigate to="/admin/domains" replace />
+  }
 
   return (
     <form onSubmit={handleSubmit} className="px-4 lg:px-6 max-w-3xl w-full mx-auto flex flex-col gap-6">

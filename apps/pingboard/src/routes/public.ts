@@ -64,16 +64,20 @@ export async function buildPublicPayload(
   deps: { db: DB },
   page: typeof statusPages.$inferSelect,
 ): Promise<Response> {
-  const linked = await deps.db
-    .select({
-      monitorId: statusPageMonitors.monitorId,
-      groupName: statusPageMonitors.groupName,
-      sortOrder: statusPageMonitors.sortOrder,
-      monitor: monitors,
-    })
-    .from(statusPageMonitors)
-    .innerJoin(monitors, eq(monitors.id, statusPageMonitors.monitorId))
-    .where(eq(statusPageMonitors.statusPageId, page.id))
+  // Domains are excluded: a 90-day uptime bar for an expiry countdown
+  // misreads as reliability. Legacy links are hidden, not deleted.
+  const linked = (
+    await deps.db
+      .select({
+        monitorId: statusPageMonitors.monitorId,
+        groupName: statusPageMonitors.groupName,
+        sortOrder: statusPageMonitors.sortOrder,
+        monitor: monitors,
+      })
+      .from(statusPageMonitors)
+      .innerJoin(monitors, eq(monitors.id, statusPageMonitors.monitorId))
+      .where(eq(statusPageMonitors.statusPageId, page.id))
+  ).filter((l) => l.monitor.type !== 'domain')
 
   const monitorIds = linked.map((l) => l.monitorId)
   const now = new Date()

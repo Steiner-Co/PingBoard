@@ -252,7 +252,7 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
     {
       title: 'List monitors',
       description:
-        'List all monitors with their current status (up, down, degraded, paused, or pending), target, check interval and last response time. Use this first to find a monitor id for the other tools.',
+        'List uptime checks with their current status (up, down, degraded, paused, or pending), target, check interval and last response time. Domains are excluded — use list_domains for expiry tracking. Use this first to find a monitor id for the other tools.',
       inputSchema: {
         status: z
           .enum(['up', 'down', 'degraded', 'paused', 'pending'])
@@ -268,6 +268,18 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
       const rows = monitors.map(summarise)
       return ok(status ? rows.filter((r) => r.status === status) : rows)
     }),
+  )
+
+  server.registerTool(
+    'list_domains',
+    {
+      title: 'List domains',
+      description:
+        'List tracked domains with registrar, expiry, nameservers and SSL facts. Domains are separate from uptime monitors — use this (not list_monitors) for expiry questions.',
+      inputSchema: {},
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    guard(async () => ok(await client.get('/api/admin/domains'))),
   )
 
   server.registerTool(
@@ -449,13 +461,16 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
     {
       title: 'Export the full configuration',
       description:
-        'Download the whole configuration as one JSON object: monitors with their type-specific config, status pages with their monitor links, and maintenance windows. Store it as a backup; restore with import_config. NOT included: notification channels (they hold secrets), page passwords (hashed) and logos (binary).',
+        'Download the whole configuration as one JSON object: monitors with their type-specific config, domains with expiry tracking, status pages with their monitor links, and maintenance windows. Store it as a backup; restore with import_config. NOT included: notification channels (they hold secrets), page passwords (hashed) and logos (binary).',
       inputSchema: {},
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
     guard(async () => {
-      const [monitorsRes, pagesRes, windowsRes] = await Promise.all([
+      const [monitorsRes, domainsRes, pagesRes, windowsRes] = await Promise.all([
         client.get<{ monitors: MonitorRow[] }>('/api/admin/monitors'),
+        client
+          .get<{ domains: MonitorRow[] }>('/api/admin/domains')
+          .catch(() => ({ domains: [] as MonitorRow[] })),
         client.get<{ pages: StatusPage[] }>('/api/admin/pages'),
         client.get<{ windows: MaintenanceWindow[] }>(
           '/api/admin/maintenance-windows',
@@ -486,7 +501,7 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
       return ok({
         version: 1,
         exportedAt: new Date().toISOString(),
-        monitors: monitorsRes.monitors.map((m) => ({
+        monitors: [...monitorsRes.monitors, ...domainsRes.domains].map((m) => ({
           id: m.id,
           name: m.name,
           type: m.type,

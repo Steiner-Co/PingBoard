@@ -54,8 +54,15 @@ interface AdminDeps {
 
 // ─────────────────────────── Monitors ───────────────────────────
 
+// Monitors are uptime checks only. Domains live in the same table
+// (`type:domain`) but are a separate product surface with their own
+// endpoint — listing them here would mix expiry countdowns into
+// uptime, response-time and routing views.
 export async function listMonitors(deps: AdminDeps): Promise<Response> {
-  const rows = await deps.db.select().from(monitors)
+  const rows = await deps.db
+    .select()
+    .from(monitors)
+    .where(ne(monitors.type, 'domain'))
   // Channel links come along so the UI can answer "who gets paged for this?"
   // — and, more usefully, flag monitors that would page nobody.
   const links = await deps.db.select().from(monitorChannels)
@@ -124,6 +131,8 @@ export async function listDomains(deps: AdminDeps): Promise<Response> {
 /**
  * Fleet-wide response times over the last 24h, bucketed to 30 minutes.
  * Feeds the dashboard chart; one aggregate query instead of N per-monitor ones.
+ * Domain heartbeats are excluded — RDAP/WHOIS latency is not a response-time
+ * signal and would pollute the fleet average.
  */
 export async function heartbeatSummary(deps: AdminDeps): Promise<Response> {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
@@ -135,7 +144,8 @@ export async function heartbeatSummary(deps: AdminDeps): Promise<Response> {
       down: sql<number>`sum(case when ${heartbeats.status} = 'down' then 1 else 0 end)`.as('down'),
     })
     .from(heartbeats)
-    .where(gte(heartbeats.checkedAt, since))
+    .innerJoin(monitors, eq(monitors.id, heartbeats.monitorId))
+    .where(and(gte(heartbeats.checkedAt, since), ne(monitors.type, 'domain')))
     .groupBy(sql`bucket`)
     .orderBy(sql`bucket`)
   return json({ buckets: rows })
@@ -557,6 +567,8 @@ export async function testChannel(id: string, deps: AdminDeps): Promise<Response
 // ─────────────────────── Incidents ────────────────────────
 
 export async function listIncidents(deps: AdminDeps): Promise<Response> {
+  // Domain expiry incidents (weeks-long renewal countdowns) would corrupt
+  // MTTR/median stats — they live on the Domains page, not here.
   const rows = await deps.db
     .select({
       id: incidents.id,
@@ -571,6 +583,7 @@ export async function listIncidents(deps: AdminDeps): Promise<Response> {
     })
     .from(incidents)
     .innerJoin(monitors, eq(monitors.id, incidents.monitorId))
+    .where(ne(monitors.type, 'domain'))
     .orderBy(desc(incidents.startedAt))
     .limit(200)
   return json({ incidents: rows })
@@ -615,10 +628,19 @@ export async function resolveIncident(id: string, deps: AdminDeps): Promise<Resp
 export async function listStatusPages(deps: AdminDeps): Promise<Response> {
   const rows = await deps.db.select().from(statusPages)
   // Monitor counts per page: the list is meaningless without knowing whether
-  // a page actually shows anything.
-  const links = await deps.db.select().from(statusPageMonitors)
+  // a page actually shows anything. Domains are excluded — they never render
+  // on the public page, so counting them would promise monitors that aren't there.
+  const links = await deps.db
+    .select({
+      statusPageId: statusPageMonitors.statusPageId,
+      monitorId: statusPageMonitors.monitorId,
+      type: monitors.type,
+    })
+    .from(statusPageMonitors)
+    .innerJoin(monitors, eq(monitors.id, statusPageMonitors.monitorId))
   const counts = new Map<string, number>()
   for (const l of links) {
+    if (l.type === 'domain') continue
     counts.set(l.statusPageId, (counts.get(l.statusPageId) ?? 0) + 1)
   }
   return json({
@@ -904,6 +926,9 @@ export async function listMaintenanceWindows(
     })
     .from(maintenanceWindows)
     .innerJoin(monitors, eq(monitors.id, maintenanceWindows.monitorId))
+    // Domains don't have deploys to suppress — expiry alerts are managed
+    // from the Domains page, not via maintenance.
+    .where(ne(monitors.type, 'domain'))
     .orderBy(desc(maintenanceWindows.startsAt))
   return json({ windows: rows })
 }
@@ -918,10 +943,13 @@ export async function createMaintenanceWindow(
   if ('error' in validation) return error(400, validation.error)
 
   const [monitor] = await deps.db
-    .select({ id: monitors.id })
+    .select({ id: monitors.id, type: monitors.type })
     .from(monitors)
     .where(eq(monitors.id, validation.monitorId))
   if (!monitor) return error(404, 'Monitor not found')
+  if (monitor.type === 'domain') {
+    return error(400, 'Maintenance windows apply to uptime checks, not domains')
+  }
 
   const id = crypto.randomUUID()
   const window: NewMaintenanceWindow = {
