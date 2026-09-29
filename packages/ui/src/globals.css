@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/outfit";
+@import "@fontsource-variable/inter";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -75,27 +75,26 @@
 }
 
 :root {
-  --font-sans: 'Outfit Variable', sans-serif;
+  --font-sans: 'Inter Variable', sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: monospace;
 
-  --background: oklch(0.9911 0 0);
-  --foreground: oklch(0.2046 0 0);
-  --card: oklch(0.9911 0 0);
-  --card-foreground: oklch(0.2046 0 0);
-  --popover: oklch(0.9911 0 0);
-  --popover-foreground: oklch(0.4386 0 0);
-  --primary: oklch(0.56 0.12 160.9080);
-  --primary-foreground: oklch(0.984 0.005 160);
-  --secondary: oklch(0.92 0 0);
-  --secondary-foreground: oklch(0.2046 0 0);
-  /* --muted/--accent at 0.9461 sat 0.045 from --background, so hover fills
-     (bg-muted, bg-muted/50 rows) were near-invisible in light mode. 0.92
-     keeps even /50 modulations perceptible. */
-  --muted: oklch(0.92 0 0);
-  --muted-foreground: oklch(0.2435 0 0);
-  --accent: oklch(0.92 0 0);
-  --accent-foreground: oklch(0.2435 0 0);
+  --background: oklch(0.972 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.62 0.18 152);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  /* --muted/--accent track the landing tokens; screen hover fills get
+     revisited in the screen design pass. */
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.5523 0.1927 32.7272);
   --destructive-foreground: oklch(0.9934 0.0032 17.2118);
   /* Status semantics — not part of the applied theme; kept so up/degraded
@@ -109,13 +108,17 @@
      (≈2:1 / ≈1.5:1). Use *-text for text, keep the base tokens for fills. */
   --success-text: oklch(0.55 0.17 149.579);
   --primary-text: oklch(0.5 0.11 160.9080);
-  --border: oklch(0.9037 0 0);
-  /* --input doubles as the control border color (border-input) and the fill
-     (bg-input/20). At 0.9731 it sat 0.02 from --background and light-mode
-     inputs rendered borderless; it must track --border, not --background. */
-  --input: oklch(0.9037 0 0);
-  --ring: oklch(0.56 0.12 160.9080);
-  --radius: 0.5rem;
+  --border: oklch(0.922 0 0);
+  /* --input tracks --border: border-input is the control boundary. */
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --radius: 0.625rem;
+  /* Shell accents — not theme colors. --nav-active is the sidebar active
+     fill; --lime is reserved for the Add Monitor action + tiny highlights. */
+  --nav-active: #003cff;
+  --lime: #b9ff00;
+  --lime-ink: #161a00;
+  --lime-hover: #a8ec00;
   --chart-1: oklch(0.8348 0.1302 160.9080);
   --chart-2: oklch(0.6231 0.1880 259.8145);
   --chart-3: oklch(0.6056 0.2189 292.7172);
@@ -139,7 +142,7 @@
   --shadow-xl: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 8px 10px -1px hsl(0 0% 0% / 0.17);
   --shadow-2xl: 0px 1px 3px 0px hsl(0 0% 0% / 0.43);
 
-  --tracking-normal: 0.025em;
+  --tracking-normal: 0;
 
   /* Scrollbar thumb — see the ::-webkit-scrollbar rules in @layer base. */
   --scrollbar-thumb: oklch(0.85 0 0);
@@ -147,22 +150,21 @@
 }
 
 .dark {
-  /* Pangolin-style near-black planes: deep canvas, cards a half-step up,
-     sidebar a half-step down. Borders stay hairline-quiet. */
-  --background: oklch(0.16 0 0);
-  --foreground: oklch(0.9288 0.0126 255.5078);
-  --card: oklch(0.185 0 0);
-  --card-foreground: oklch(0.9288 0.0126 255.5078);
-  --popover: oklch(0.22 0 0);
-  --popover-foreground: oklch(0.7348 0 0);
-  --primary: oklch(0.4365 0.1044 156.7556);
-  --primary-foreground: oklch(0.9213 0.0135 167.1556);
+  /* Landing dark canvas + card; deeper planes for popover/muted stay. */
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.65 0.19 152);
+  --primary-foreground: oklch(0.13 0 0);
   --secondary: oklch(0.22 0 0);
   --secondary-foreground: oklch(0.9851 0 0);
-  --muted: oklch(0.22 0 0);
-  --muted-foreground: oklch(0.7122 0 0);
-  --accent: oklch(0.25 0 0);
-  --accent-foreground: oklch(0.9851 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.65 0.19 25);
   --destructive-foreground: oklch(0.21 0.02 25);
   --success: oklch(0.723 0.219 149.579);
@@ -173,10 +175,15 @@
   --success-text: oklch(0.723 0.219 149.579);
   --primary-text: oklch(0.8 0.14 160.9080);
   /* Hairlines stay visible on the deeper planes without reading as strokes. */
-  --border: oklch(0.27 0 0);
+  --border: oklch(1 0 0 / 10%);
   /* Tracks --border: border-input is the control boundary — see light :root. */
-  --input: oklch(0.27 0 0);
-  --ring: oklch(0.8003 0.1821 151.7110);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  /* Shell accents — same role as light; lime lifts slightly for dark. */
+  --nav-active: #003cff;
+  --lime: #c6ff2e;
+  --lime-ink: #101300;
+  --lime-hover: #b9ff00;
   --chart-1: oklch(0.8003 0.1821 151.7110);
   --chart-2: oklch(0.7137 0.1434 254.6240);
   --chart-3: oklch(0.7090 0.1592 293.5412);
@@ -202,20 +209,20 @@
    the cascade. Color tokens only — fonts/shadows/radius are theme-independent
    and inherit fine. Keep in sync with the light :root block above. */
 .light {
-  --background: oklch(0.9911 0 0);
-  --foreground: oklch(0.2046 0 0);
-  --card: oklch(0.9911 0 0);
-  --card-foreground: oklch(0.2046 0 0);
-  --popover: oklch(0.9911 0 0);
-  --popover-foreground: oklch(0.4386 0 0);
-  --primary: oklch(0.56 0.12 160.9080);
-  --primary-foreground: oklch(0.984 0.005 160);
-  --secondary: oklch(0.92 0 0);
-  --secondary-foreground: oklch(0.2046 0 0);
-  --muted: oklch(0.92 0 0);
-  --muted-foreground: oklch(0.2435 0 0);
-  --accent: oklch(0.92 0 0);
-  --accent-foreground: oklch(0.2435 0 0);
+  --background: oklch(0.972 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.62 0.18 152);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.5523 0.1927 32.7272);
   --destructive-foreground: oklch(0.9934 0.0032 17.2118);
   --success: oklch(0.723 0.219 149.579);
@@ -224,9 +231,13 @@
   --warning-foreground: oklch(1 0 0);
   --success-text: oklch(0.55 0.17 149.579);
   --primary-text: oklch(0.5 0.11 160.9080);
-  --border: oklch(0.9037 0 0);
-  --input: oklch(0.9037 0 0);
-  --ring: oklch(0.56 0.12 160.9080);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --nav-active: #003cff;
+  --lime: #b9ff00;
+  --lime-ink: #161a00;
+  --lime-hover: #a8ec00;
   --chart-1: oklch(0.8348 0.1302 160.9080);
   --chart-2: oklch(0.6231 0.1880 259.8145);
   --chart-3: oklch(0.6056 0.2189 292.7172);
@@ -285,7 +296,7 @@
  * height that already accounts for it.
  */
 :root {
-  --app-zoom: 1.1;
+  --app-zoom: 1;
   --app-viewport-height: calc(100svh / var(--app-zoom));
 }
 
@@ -312,7 +323,6 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: 'rlig' 1, 'calt' 1;
-    letter-spacing: var(--tracking-normal);
   }
   /* Radix/floating-ui writes viewport-derived px into the popper wrapper's
      transform; root zoom: 1.1 then scales those px a second time, pushing

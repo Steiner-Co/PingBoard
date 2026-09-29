@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -7,8 +8,9 @@ import {
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AppSidebar } from '@/components/app-sidebar'
 import { SiteHeader } from '@/components/site-header'
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { useAuth } from '@/contexts/auth'
+import { cn } from '@/lib/utils'
+import './shell.css'
 
 const ROUTE_TITLES: Record<string, string> = {
   '/admin': 'Dashboard',
@@ -42,18 +44,43 @@ function titleForPath(pathname: string): string {
   return 'Dashboard'
 }
 
+const COLLAPSED_KEY = 'pb-shell-collapsed'
+
 export function AdminLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [override, setOverride] = useState<string | null>(null)
   const title = override ?? titleForPath(pathname)
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem(COLLAPSED_KEY) === '1',
+  )
+  const [navOpen, setNavOpen] = useState(false)
 
   // Reflect the current section in the browser tab so admins juggling
   // multiple tabs can find PingBoard at a glance.
   useEffect(() => {
     document.title = `${title} — PingBoard`
   }, [title])
+
+  // The mobile overlay closes on navigation.
+  useEffect(() => {
+    setNavOpen(false)
+  }, [pathname])
+
+  const toggleSidebar = useCallback(() => {
+    // Narrow viewports get the overlay nav; wide ones collapse the rail.
+    if (window.innerWidth <= 900) {
+      setCollapsed(false)
+      setNavOpen((open) => !open)
+      return
+    }
+    setNavOpen(false)
+    setCollapsed((was) => {
+      localStorage.setItem(COLLAPSED_KEY, was ? '0' : '1')
+      return !was
+    })
+  }, [])
 
   const handleLogout = async () => {
     await logout()
@@ -67,33 +94,27 @@ export function AdminLayout() {
 
   return (
     <PageTitleContext.Provider value={setOverride}>
-    <SidebarProvider
-      style={{
-        // Block ships these as scoped CSS vars; declare them on the provider.
-        ['--sidebar-width' as string]: 'calc(var(--spacing) * 60)',
-        ['--header-height' as string]: 'calc(var(--spacing) * 11)',
-      }}
-    >
-      {/* Screen-reader / keyboard-only: jump past the sidebar+header to the
-          main content. Visually hidden until focused. */}
-      <a
-        href="#main-content"
-        className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-3 focus-visible:top-3 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-foreground focus-visible:px-3 focus-visible:py-1.5 focus-visible:text-sm focus-visible:text-background focus-visible:shadow-lg"
-      >
-        Skip to main content
-      </a>
-      <AppSidebar variant="inset" user={sidebarUser} onLogout={handleLogout} />
-      <SidebarInset id="main-content" tabIndex={-1}>
-        <SiteHeader title={title} />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+      <div className="shell-canvas">
+        {/* Screen-reader / keyboard-only: jump past the sidebar+header to the
+            main content. Visually hidden until focused. */}
+        <a
+          href="#main-content"
+          className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-3 focus-visible:top-3 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-foreground focus-visible:px-3 focus-visible:py-1.5 focus-visible:text-sm focus-visible:text-background focus-visible:shadow-lg"
+        >
+          Skip to main content
+        </a>
+        <div
+          className={cn('shell', collapsed && 'shell-collapsed', navOpen && 'shell-nav-open')}
+        >
+          <AppSidebar user={sidebarUser} onLogout={handleLogout} />
+          <div className="shell-panel">
+            <SiteHeader title={title} onToggleSidebar={toggleSidebar} />
+            <main id="main-content" tabIndex={-1} className="shell-body">
               <Outlet />
-            </div>
+            </main>
           </div>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+      </div>
     </PageTitleContext.Provider>
   )
 }

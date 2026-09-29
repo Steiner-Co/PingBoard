@@ -1,0 +1,309 @@
+/* App shell — grey canvas + floating white panel. Structure mirrors the
+   prototype in /prototype/app-shell.html; values are shell-owned, screens
+   stay in their own components. */
+
+.shell-canvas {
+  min-height: var(--app-viewport-height);
+  background: var(--background);
+}
+
+.shell {
+  display: flex;
+  gap: 24px;
+  padding: 24px;
+  width: 100%;
+  min-height: var(--app-viewport-height);
+  align-items: stretch;
+}
+
+/* Sidebar sits directly on the canvas — no card. */
+.shell-sidebar {
+  width: 228px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 96px 8px 8px;
+  position: sticky;
+  top: 24px;
+  height: calc(var(--app-viewport-height) - 48px);
+  overflow: hidden;
+  transition:
+    width 220ms var(--ease-out-quart),
+    opacity 160ms ease-out,
+    margin 220ms var(--ease-out-quart),
+    padding 220ms var(--ease-out-quart),
+    visibility 0s linear 0s;
+}
+
+.shell-nav-section {
+  font-size: 13px;
+  color: var(--muted-foreground);
+  padding: 20px 14px 8px;
+  letter-spacing: 0.01em;
+}
+.shell-nav-section:first-of-type {
+  padding-top: 4px;
+}
+
+.shell-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.shell-nav a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.2px;
+  color: var(--foreground);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 150ms ease-out, transform 150ms ease-out;
+}
+.shell-nav a:hover {
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+}
+.shell-nav a:active {
+  transform: scale(0.98);
+}
+.shell-nav a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.shell-nav a[aria-current="page"] {
+  background: var(--nav-active);
+  color: #fff;
+}
+.shell-nav a[aria-current="page"]:hover {
+  background: var(--nav-active);
+}
+
+.shell-footer {
+  margin-top: auto;
+}
+.shell-version-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  text-decoration: none;
+  color: var(--foreground);
+}
+.shell-version-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: var(--lime);
+  position: relative;
+  overflow: hidden;
+}
+.shell-version-badge::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 8px;
+  background: #003cff;
+}
+.shell-version-badge::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 9px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #003cff;
+}
+.shell-version-card b {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+}
+.shell-version-card span {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+}
+
+/* Collapsed: sidebar slides shut and fades; the panel glides full-width. */
+.shell-collapsed .shell-sidebar {
+  width: 0;
+  opacity: 0;
+  margin-right: -24px;
+  padding-left: 0;
+  padding-right: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition:
+    width 220ms var(--ease-out-quart),
+    opacity 160ms ease-out,
+    margin 220ms var(--ease-out-quart),
+    padding 220ms var(--ease-out-quart),
+    visibility 0s linear 220ms;
+}
+
+/* Main white panel. */
+.shell-panel {
+  flex: 1;
+  min-width: 0;
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.shell-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  background: var(--card);
+  z-index: 5;
+}
+
+.shell-icon-btn {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--card);
+  cursor: pointer;
+  color: var(--foreground);
+  transition: transform 150ms ease-out, background 150ms;
+}
+.shell-icon-btn:hover {
+  background: var(--muted);
+}
+.shell-icon-btn:active {
+  transform: scale(0.96);
+}
+
+/* Sidebar toggle: plain glyph, no circle. */
+.shell-toggle {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+  color: var(--foreground);
+  transition: transform 150ms ease-out, background 150ms;
+}
+.shell-toggle:hover {
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+}
+.shell-toggle:active {
+  transform: scale(0.96);
+}
+.shell-toggle:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.shell-title {
+  display: flex;
+  align-items: center;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.2px;
+}
+
+.shell-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shell-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 550;
+  letter-spacing: -0.1px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 150ms ease-out, background 150ms, opacity 150ms;
+}
+.shell-btn:hover {
+  background: var(--muted);
+}
+.shell-btn:active {
+  transform: scale(0.97);
+}
+.shell-btn:focus-visible,
+.shell-icon-btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.shell-btn-lime {
+  background: var(--lime);
+  border-color: transparent;
+  color: var(--lime-ink);
+}
+.shell-btn-lime:hover {
+  background: var(--lime-hover);
+}
+
+.shell-body {
+  /* Screens own their horizontal gutters until the screen design pass. */
+  padding: 0 0 40px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    padding: 8px;
+    gap: 0;
+  }
+  .shell-sidebar {
+    position: fixed;
+    z-index: 20;
+    left: 8px;
+    top: 8px;
+    bottom: 8px;
+    width: 228px;
+    height: auto;
+    padding: 12px 8px 8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    transform: translateX(-110%);
+    transition: transform 200ms var(--ease-out-quart);
+    opacity: 1;
+    margin-right: 0;
+    visibility: visible;
+  }
+  .shell-nav-open .shell-sidebar {
+    transform: none;
+  }
+}

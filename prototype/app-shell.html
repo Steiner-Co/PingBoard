@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PingBoard — App Shell Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css" rel="stylesheet" />
+<style>
+  /* Shared tokens — mirrored from apps/landing/src/globals.css */
+  :root {
+    color-scheme: light;
+    --background: oklch(0.972 0 0); /* #F7F7F7 soft grey canvas */
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.62 0.18 152);
+    --primary-foreground: oklch(1 0 0);
+    --secondary: oklch(0.967 0.001 286.375);
+    --secondary-foreground: oklch(0.21 0.006 285.885);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --success: oklch(0.723 0.219 149.579);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --radius: 0.625rem;
+    /* Sparing accent — Add Monitor + tiny highlights only. Not a theme color. */
+    --lime: #b9ff00;
+    --lime-ink: #161a00;
+    --lime-hover: #a8ec00;
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+    --sidebar-w: 228px;
+    /* Mock active-nav blue. */
+    --nav-active: #003CFF;
+  }
+  .dark {
+    color-scheme: dark;
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.65 0.19 152);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --lime: #c6ff2e;
+    --lime-ink: #101300;
+    --lime-hover: #b9ff00;
+  }
+  * { box-sizing: border-box; }
+  html { font-family: 'Inter', system-ui, sans-serif; }
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Flat grey canvas — matches the mock (no dot grid). */
+  .canvas {
+    min-height: 100vh;
+    background: var(--background);
+  }
+  .shell {
+    display: flex;
+    gap: 24px;
+    padding: 24px;
+    width: 100%;
+    min-height: 100vh;
+    align-items: stretch;
+  }
+  /* Sidebar sits directly on grey — no card, like the mock */
+  .sidebar {
+    width: var(--sidebar-w);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 96px 8px 8px;
+    position: sticky;
+    top: 24px;
+    height: calc(100vh - 48px);
+    overflow: hidden;
+    transition: width 220ms var(--ease-out-quart), opacity 160ms ease-out, margin 220ms var(--ease-out-quart), padding 220ms var(--ease-out-quart), visibility 0s linear 0s;
+  }
+  .nav-section {
+    font-size: 13px;
+    color: var(--muted-foreground);
+    padding: 20px 14px 8px;
+    letter-spacing: 0.01em;
+  }
+  .nav-section:first-of-type { padding-top: 4px; }
+  .nav { display: flex; flex-direction: column; gap: 6px; }
+  .nav a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: -0.2px;
+    color: var(--foreground);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 150ms ease-out, transform 150ms ease-out;
+  }
+  .nav a:hover { background: color-mix(in srgb, var(--foreground) 6%, transparent); }
+  .nav a:active { transform: scale(0.98); }
+  .nav a:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  /* Active = mock language: vivid blue rounded rect, full width */
+  .nav a[aria-current="page"] { background: var(--nav-active); color: #fff; }
+  .nav a[aria-current="page"]:hover { background: var(--nav-active); }
+  /* All icons: Phosphor Fill pack, fixed 24px */
+  .ph-fill { font-size: 24px; line-height: 1; flex-shrink: 0; }
+  .nav a .ph-fill { width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; }
+  .page-title .ph-fill, .icon-btn .ph-fill, .toggle-plain .ph-fill, .btn .ph-fill { display: inline-flex; align-items: center; justify-content: center; }
+  .icon-btn svg { width: 24px; height: 24px; display: block; }
+  .sidebar-footer { margin-top: auto; }
+  .version-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 10px 12px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .version-badge {
+    width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0;
+    background: var(--lime);
+    position: relative; overflow: hidden;
+  }
+  .version-badge::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 8px;
+    background: #003CFF;
+  }
+  .version-badge::before {
+    content: ''; position: absolute; left: 11px; top: 9px; width: 12px; height: 12px;
+    border-radius: 50%; background: #003CFF;
+  }
+  .version-card b { display: block; font-size: 12px; font-weight: 600; }
+  .version-card span { font-size: 11px; color: var(--muted-foreground); font-family: 'JetBrains Mono', monospace; }
+  /* Collapsed: sidebar slides shut and fades — width/margin/padding are
+     transitionable, so the panel glides full-width instead of snapping. */
+  .shell.collapsed .sidebar {
+    width: 0;
+    opacity: 0;
+    margin-right: -24px;
+    padding-left: 0;
+    padding-right: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transition: width 220ms var(--ease-out-quart), opacity 160ms ease-out, margin 220ms var(--ease-out-quart), padding 220ms var(--ease-out-quart), visibility 0s linear 220ms;
+  }
+  /* Main white panel — the landing content-panel idea at app scale */
+  .main {
+    flex: 1;
+    min-width: 0;
+    background: var(--card);
+    color: var(--card-foreground);
+    border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 24px;
+    position: sticky;
+    top: 0;
+    background: var(--card);
+    z-index: 5;
+  }
+  .icon-btn {
+    width: 40px; height: 40px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--card);
+    cursor: pointer;
+    color: var(--foreground);
+    transition: transform 150ms ease-out, background 150ms;
+  }
+  .icon-btn:hover { background: var(--muted); }
+  .icon-btn:active { transform: scale(0.96); }
+  /* Sidebar toggle: plain glyph, no circle — matches the mock. */
+  .toggle-plain {
+    width: 40px; height: 40px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    cursor: pointer;
+    color: var(--foreground);
+    transition: transform 150ms ease-out, background 150ms;
+  }
+  .toggle-plain:hover { background: color-mix(in srgb, var(--foreground) 6%, transparent); }
+  .toggle-plain:active { transform: scale(0.96); }
+  .toggle-plain:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .page-title { display: flex; align-items: center; gap: 9px; font-size: 17px; font-weight: 500; letter-spacing: -0.2px; }
+  .top-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 40px; padding: 0 12px;
+    border-radius: 999px;
+    font-size: 14px; font-weight: 550; letter-spacing: -0.1px;
+    border: 1px solid var(--border);
+    background: var(--card); color: var(--foreground);
+    cursor: pointer; text-decoration: none;
+    transition: transform 150ms ease-out, background 150ms, opacity 150ms;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--muted); }
+  .btn:active { transform: scale(0.97); }
+  .btn:focus-visible, .icon-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .btn-lime { background: var(--lime); border-color: transparent; color: var(--lime-ink); }
+  .btn-lime:hover { background: var(--lime-hover); }
+  .content { padding: 24px 24px 40px; display: flex; flex-direction: column; gap: 20px; }
+  .content-head h1 { margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.5px; }
+  .content-head p { margin: 6px 0 0; font-size: 13.5px; color: var(--muted-foreground); }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .stat { padding: 14px 16px; }
+  .stat + .stat { border-left: 1px solid var(--border); }
+  .stat small { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted-foreground); }
+  .stat b { display: block; margin-top: 4px; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .panel { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 600; }
+  .live { display: inline-flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+  .live i { width: 7px; height: 7px; border-radius: 50%; background: var(--success); display: inline-block; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 11px 16px; font-size: 13px; }
+  .row + .row { border-top: 1px solid var(--border); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+  .dot.down { background: var(--destructive); }
+  .dot.warn { background: #d97706; }
+  .row code { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--muted-foreground); }
+  .toolbar { display: flex; gap: 10px; align-items: center; }
+  .toolbar-note { font-size: 12px; color: var(--muted-foreground); }
+  kbd {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px;
+    padding: 1px 6px; background: var(--muted);
+  }
+  @media (max-width: 900px) {
+    .shell { padding: 8px; gap: 0; }
+    .sidebar {
+      position: fixed; z-index: 20; left: 8px; top: 8px; bottom: 8px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 20px;
+      height: auto; transform: translateX(-110%);
+      transition: transform 200ms var(--ease-out-quart);
+    }
+    .shell.nav-open .sidebar { transform: none; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .stat:nth-child(3) { border-left: none; border-top: 1px solid var(--border); }
+    .stat:nth-child(4) { border-top: 1px solid var(--border); }
+    .btn .btn-text { display: none; }
+    .btn { padding: 0 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="shell" id="shell">
+    <aside class="sidebar" aria-label="Primary">
+      <div class="nav-section">Monitor</div>
+      <nav class="nav">
+        <a href="#" aria-current="page"><i class="ph-fill ph-house"></i><span class="label">Dashboard</span></a>
+        <a href="#"><i class="ph-fill ph-planet"></i><span class="label">Domains</span></a>
+        <a href="#"><i class="ph-fill ph-warning"></i><span class="label">Incidents</span></a>
+        <a href="#"><i class="ph-fill ph-briefcase"></i><span class="label">Maintenance</span></a>
+      </nav>
+      <div class="nav-section">Config</div>
+      <nav class="nav">
+        <a href="#"><i class="ph-fill ph-bell"></i><span class="label">Channels</span></a>
+        <a href="#"><i class="ph-fill ph-cube"></i><span class="label">Status Page</span></a>
+        <a href="#"><i class="ph-fill ph-gear-six"></i><span class="label">Settings</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="version-card"><div class="version-badge"></div><div><b>PingBoard · Selfhosted</b><span>v0.99.1</span></div></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <button class="toggle-plain" id="navToggle" aria-label="Toggle sidebar"><i class="ph-fill ph-sidebar-simple"></i></button>
+        <div class="page-title">Dashboard</div>
+        <div class="top-actions">
+          <button class="icon-btn" id="themeBtn" aria-label="Toggle theme"><i class="ph-fill ph-sun"></i></button>
+          <a class="icon-btn" href="https://github.com/steiner-co/pingboard" aria-label="GitHub"><svg viewBox="0 0 1024 1024" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M512 0C229.12 0 0 229.12 0 512c0 226.56 146.56 417.92 350.08 485.76 25.6 4.48 35.2-10.88 35.2-24.32 0-12.16-.64-52.48-.64-95.36-128.64 23.68-161.92-31.36-172.16-60.16-5.76-14.72-30.72-60.16-52.48-72.32-17.92-9.6-43.52-33.28-.64-33.92 40.32-.64 69.12 37.12 78.72 52.48 46.08 77.44 119.68 55.68 149.12 42.24 4.48-33.28 17.92-55.68 32.64-68.48-113.92-12.8-232.96-56.96-232.96-252.8 0-55.68 19.84-101.76 52.48-137.6-5.12-12.8-23.04-65.28 5.12-135.68 0 0 42.88-13.44 140.8 52.48 40.96-11.52 84.48-17.28 128-17.28s87.04 5.76 128 17.28c97.92-66.56 140.8-52.48 140.8-52.48 28.16 70.4 10.24 122.88 5.12 135.68 32.64 35.84 52.48 81.28 52.48 137.6 0 196.48-119.68 240-233.6 252.8 18.56 16 34.56 46.72 34.56 94.72 0 68.48-.64 123.52-.64 140.8 0 13.44 9.6 29.44 35.2 24.32C877.44 929.92 1024 737.92 1024 512 1024 229.12 794.88 0 512 0"/></svg></a>
+          <a class="btn" href="#"><i class="ph-fill ph-cube"></i><span class="btn-text">Status Page</span></a>
+          <a class="btn btn-lime" href="#"><i class="ph-fill ph-plus-circle"></i><span class="btn-text">Add Monitor</span></a>
+        </div>
+      </div>
+      <div class="content">
+        <div class="content-head">
+          <h1>Monitors</h1>
+          <p>Create and manage checks that are continuously monitored for uptime.</p>
+        </div>
+        <div class="toolbar">
+          <span class="toolbar-note">Prototype shell — press <kbd>S</kbd> to collapse, <kbd>T</kbd> for dark, <kbd>M</kbd> mobile nav.</span>
+        </div>
+        <div class="stats">
+          <div class="stat"><small>Monitors</small><b>24</b></div>
+          <div class="stat"><small>Up</small><b>22</b></div>
+          <div class="stat"><small>Down</small><b>1</b></div>
+          <div class="stat"><small>Avg</small><b>131 ms</b></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">Activity <span class="live"><i></i>Live</span></div>
+          <div class="row"><span class="dot"></span>api.pingboard.dev <code>142 ms</code></div>
+          <div class="row"><span class="dot"></span>app.steinerandco.site <code>88 ms</code></div>
+          <div class="row"><span class="dot down"></span>checkout.acme.net <code>DOWN</code></div>
+          <div class="row"><span class="dot"></span>cdn.something.ai <code>51 ms</code></div>
+          <div class="row"><span class="dot warn"></span>status.cooldomain.so <code>420 ms</code></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+  const shell = document.getElementById('shell');
+  const navToggle = document.getElementById('navToggle');
+  const themeBtn = document.getElementById('themeBtn');
+  function toggleSidebar() {
+    if (window.innerWidth <= 900) { shell.classList.toggle('nav-open'); return; }
+    shell.classList.toggle('collapsed');
+  }
+  navToggle.addEventListener('click', toggleSidebar);
+  themeBtn.addEventListener('click', () => document.documentElement.classList.toggle('dark'));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 's' || e.key === 'S') toggleSidebar();
+    if (e.key === 't' || e.key === 'T') document.documentElement.classList.toggle('dark');
+    if (e.key === 'm' || e.key === 'M') shell.classList.toggle('nav-open');
+  });
+  document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.querySelectorAll('.nav a').forEach(x => x.removeAttribute('aria-current'));
+    a.setAttribute('aria-current', 'page');
+    document.querySelector('.page-title').lastChild.textContent = a.querySelector('.label').textContent;
+    if (window.innerWidth <= 900) shell.classList.remove('nav-open');
+  }));
+</script>
+</body>
+</html>
