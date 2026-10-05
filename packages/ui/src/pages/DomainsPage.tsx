@@ -1,18 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
 import { format } from 'date-fns'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Icon } from '@/components/ui/icon'
-import { Warning } from "@phosphor-icons/react/dist/icons/Warning"
 import { WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle"
-import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown"
 import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight"
 import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank"
 import { SealCheck } from "@phosphor-icons/react/dist/icons/SealCheck"
 import { Globe } from "@phosphor-icons/react/dist/icons/Globe"
 import { PlusCircle } from "@phosphor-icons/react/dist/icons/PlusCircle"
-import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass"
-import { ArrowClockwise } from "@phosphor-icons/react/dist/icons/ArrowClockwise"
 import { Pause } from "@phosphor-icons/react/dist/icons/Pause"
 import { Play } from "@phosphor-icons/react/dist/icons/Play"
 import { Trash } from "@phosphor-icons/react/dist/icons/Trash"
@@ -33,11 +30,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Panel } from '@/components/panel'
 import { EmptyState } from '@/components/EmptyState'
-import { StatusBadge } from '@/components/StatusBadge'
 import { QueryError } from '@/components/QueryError'
+import { ScreenHeader } from '@/components/screen'
 import { useConfirm } from '@/components/confirm-provider'
+import { usePrimaryAction } from '@/contexts/primary-action'
 import { cn, formatRelative } from '@/lib/utils'
 import { api } from '@/lib/api'
 import { useSSE } from '@/lib/sse'
@@ -45,6 +42,37 @@ import { useNow } from '@/hooks/use-now'
 import type { DomainWithFacts, NotificationChannel } from '@/types'
 
 const DAY_MS = 86_400_000
+
+type DomainStatus = 'up' | 'down' | 'disabled' | 'pending'
+
+// Check-state bucket shared with the Monitors table: anything that isn't
+// cleanly up or down reads as disabled there.
+function checkStatus(d: DomainWithFacts): DomainStatus {
+  if (d.paused) return 'disabled'
+  if (!d.latest) return 'pending'
+  if (d.latest.status === 'up') return 'up'
+  if (d.latest.status === 'down') return 'down'
+  return 'disabled'
+}
+
+// Card-level urgency: expired first, then anything due within its warning
+// window. Calm domains keep their API order (stable sort).
+function urgencyKey(d: DomainWithFacts, now: number): number {
+  const de = daysUntil(d.facts?.expiryAt ?? null, now)
+  const se = daysUntil(d.facts?.sslExpiryAt ?? null, now)
+  return Math.min(
+    de !== null && de <= 30 ? de : Infinity,
+    se !== null && se <= 14 ? se : Infinity,
+  )
+}
+
+function urgencyTone(d: DomainWithFacts, now: number): 'expired' | 'soon' | null {
+  const de = daysUntil(d.facts?.expiryAt ?? null, now)
+  if (de !== null && de < 0) return 'expired'
+  const se = daysUntil(d.facts?.sslExpiryAt ?? null, now)
+  if ((de !== null && de <= 30) || (se !== null && se <= 14)) return 'soon'
+  return null
+}
 
 function daysUntil(iso: string | null, now: number): number | null {
   if (!iso) return null
@@ -149,10 +177,16 @@ export function DomainsPage() {
   })
 
   const now = useNow()
-  const [search, setSearch] = useState('')
+  const { setAction: setPrimaryAction } = usePrimaryAction()
   const [addOpen, setAddOpen] = useState(false)
   const [editing, setEditing] = useState<DomainWithFacts | null>(null)
-  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  // The shell's lime action belongs to this screen while mounted.
+  useEffect(() => {
+    setPrimaryAction({ label: 'Add domain', onClick: () => setAddOpen(true) })
+    return () => setPrimaryAction(null)
+  }, [setPrimaryAction])
 
   // Channel names for the inline routing row — domains manage their own
   // alert wiring now instead of deep-linking to a monitor detail page.
@@ -167,91 +201,23 @@ export function DomainsPage() {
 
   const domains = query.data?.domains ?? []
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return domains
-    return domains.filter(
-      (d) =>
-        d.name.toLowerCase().includes(q) ||
-        d.target.toLowerCase().includes(q) ||
-        (d.facts?.registrar ?? '').toLowerCase().includes(q) ||
-        d.tags.some((t) => t.toLowerCase().includes(q)),
-    )
-  }, [domains, search])
+  // Urgent renewals first; calm domains keep their API order.
+  const ordered = useMemo(
+    () => [...domains].sort((a, b) => urgencyKey(a, now) - urgencyKey(b, now)),
+    [domains, now],
+  )
 
-  const summary = useMemo(() => {
-    let expiringSoon = 0
-    let sslSoon = 0
-    let notAlerting = 0
-    for (const d of domains) {
-      const de = daysUntil(d.facts?.expiryAt ?? null, now)
-      if (de !== null && de <= 30) expiringSoon++
-      const se = daysUntil(d.facts?.sslExpiryAt ?? null, now)
-      if (se !== null && se <= 14) sslSoon++
-      if (d.channelIds.length === 0) notAlerting++
-    }
-    return { total: domains.length, expiringSoon, sslSoon, notAlerting }
-  }, [domains, now])
-
-  // Time-critical domains, soonest first — the reason this screen exists,
-  // lifted out of the list so nothing about to lapse needs hunting for.
-  const attention = useMemo(() => {
-    return domains
-      .map((d) => {
-        const de = daysUntil(d.facts?.expiryAt ?? null, now)
-        const se = daysUntil(d.facts?.sslExpiryAt ?? null, now)
-        return {
-          d,
-          de: de !== null && de <= 30 ? de : null,
-          se: se !== null && se <= 14 ? se : null,
-        }
-      })
-      .filter((x) => x.de !== null || x.se !== null)
-      .sort(
-        (a, b) =>
-          Math.min(a.de ?? Infinity, a.se ?? Infinity) -
-          Math.min(b.de ?? Infinity, b.se ?? Infinity),
-      )
-  }, [domains, now])
-
-  const toggle = (id: string) =>
-    setExpanded((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-
-  // Attention rows jump to the domain in the list below — they used to link
-  // to a monitor detail page, which no longer serves domains.
-  const focusDomain = (id: string) => {
-    setExpanded((prev) => {
-      if (prev.has(id)) return prev
-      const next = new Set(prev)
-      next.add(id)
-      return next
-    })
-    requestAnimationFrame(() => {
-      document
-        .getElementById(`domain-${id}`)
-        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    })
-  }
+  // Resolved against live data so pause/remove inside the modal never
+  // render a stale copy — deleting the domain closes the modal.
+  const selected = selectedId
+    ? (domains.find((d) => d.id === selectedId) ?? null)
+    : null
 
   const header = (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Domains</h1>
-        <p className="text-sm text-muted-foreground">
-          Track expiry, registrar, nameservers and SSL certificates across the
-          whole portfolio
-        </p>
-      </div>
-      <Button onClick={() => setAddOpen(true)} className="gap-2 self-start sm:self-auto">
-        <Icon icon={PlusCircle} className="size-4" />
-        Add domain
-      </Button>
-    </div>
+    <ScreenHeader
+      title="Domains"
+      description="Track expiry, registrar, nameservers and SSL certificates across the whole portfolio"
+    />
   )
 
   const dialogs = (
@@ -307,146 +273,26 @@ export function DomainsPage() {
     <div className="px-4 lg:px-6 flex flex-col gap-6">
       {header}
 
-      <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
-        <StatCell
-          label="Domains"
-          value={String(summary.total)}
-          sub="Tracked in this instance"
-          className="border-b border-border/60 lg:border-b-0 border-r lg:border-r-0"
-        />
-        <StatCell
-          label="Expiring ≤ 30d"
-          value={String(summary.expiringSoon)}
-          sub="Renew before they lapse"
-          tone={summary.expiringSoon > 0 ? 'warn' : 'success'}
-          className="border-b border-border/60 lg:border-b-0"
-        />
-        <StatCell
-          label="SSL ≤ 14d"
-          value={String(summary.sslSoon)}
-          sub="Certificates near expiry"
-          tone={summary.sslSoon > 0 ? 'warn' : 'success'}
-          className="border-r border-border/60 lg:border-r-0"
-        />
-        <StatCell
-          label="Not alerting"
-          value={String(summary.notAlerting)}
-          sub={summary.notAlerting > 0 ? 'No channel would be paged' : 'All routed'}
-          tone={summary.notAlerting > 0 ? 'warn' : 'success'}
-        />
-      </Panel>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-xs">
-          <Icon
-            icon={MagnifyingGlass}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground"
-          />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by domain, registrar, or tag…"
-            className="pl-7"
-            aria-label="Search domains"
-          />
-        </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <Button
-            variant="outline"
-            onClick={() => void query.refetch()}
-            disabled={refreshing}
-            className="gap-2"
-          >
-            <Icon
-              icon={ArrowClockwise}
-              className={cn('size-4', refreshing && 'animate-spin')}
+      <div>
+        <ul className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {ordered.map((d) => (
+            <DomainRow
+              key={d.id}
+              domain={d}
+              now={now}
+              onOpen={() => setSelectedId(d.id)}
             />
-            Refresh
-          </Button>
-        </div>
+          ))}
+        </ul>
       </div>
 
-      {attention.length > 0 && (
-        <Panel className="border-warning/40">
-          <header className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2.5">
-            <h2 className="flex items-center gap-2 text-sm font-medium text-warning">
-              <Icon icon={Warning} className="size-3.5 shrink-0" />
-              Expiring soon
-            </h2>
-            <span className="font-mono text-[11px] tabular-nums text-warning">
-              {attention.length}
-            </span>
-          </header>
-          <p className="border-b border-border/60 px-4 py-2.5 text-xs text-muted-foreground">
-            Renew before they lapse — the soonest expiry is listed first.
-          </p>
-          <ul className="divide-y divide-border/60">
-            {attention.map(({ d, de, se }) => (
-              <li key={d.id}>
-                <button
-                  type="button"
-                  onClick={() => focusDomain(d.id)}
-                  className="group flex w-full items-center gap-3 px-4 py-2.5 text-left outline-none transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/30"
-                >
-                  <span className="min-w-0 flex-1 truncate text-xs font-medium">
-                    {d.name}
-                  </span>
-                  {de !== null && (
-                    <span className="flex shrink-0 items-baseline gap-1.5">
-                      <span className="text-[11px] text-muted-foreground">
-                        Domain
-                      </span>
-                      <ExpiryValue iso={d.facts?.expiryAt ?? null} now={now} critical={7} warn={30} className="text-xs" />
-                    </span>
-                  )}
-                  {se !== null && (
-                    <span className="flex shrink-0 items-baseline gap-1.5">
-                      <span className="text-[11px] text-muted-foreground">
-                        SSL
-                      </span>
-                      <ExpiryValue iso={d.facts?.sslExpiryAt ?? null} now={now} critical={14} warn={30} className="text-xs" />
-                    </span>
-                  )}
-                  <Icon
-                    icon={CaretRight}
-                    className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
-                  />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-      )}
-
-      <Panel>
-        <header className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-2.5">
-          <h2 className="text-sm font-medium">Domains</h2>
-          <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
-            {filtered.length} shown
-          </span>
-        </header>
-        {filtered.length === 0 ? (
-          <div className="py-10 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
-            <Icon icon={MagnifyingGlass} className="size-5 opacity-50" />
-            No domains match this filter.
-          </div>
-        ) : (
-          <ul className="divide-y divide-border/60">
-            {filtered.map((d) => (
-              <DomainRow
-                key={d.id}
-                domain={d}
-                now={now}
-                open={expanded.has(d.id)}
-                onToggle={() => toggle(d.id)}
-                onEdit={() => setEditing(d)}
-                channelById={channelById}
-              />
-            ))}
-          </ul>
-        )}
-      </Panel>
-
+      <DomainDetailDialog
+        domain={selected}
+        now={now}
+        onClose={() => setSelectedId(null)}
+        onEdit={() => selected && setEditing(selected)}
+        channelById={channelById}
+      />
       {dialogs}
     </div>
   )
@@ -455,101 +301,79 @@ export function DomainsPage() {
 function DomainRow({
   domain: d,
   now,
-  open,
-  onToggle,
-  onEdit,
-  channelById,
+  onOpen,
 }: {
   domain: DomainWithFacts
   now: number
-  open: boolean
-  onToggle: () => void
-  onEdit: () => void
-  channelById: Map<string, NotificationChannel>
+  onOpen: () => void
 }) {
   const f = d.facts
-  const status = d.paused
-    ? 'paused'
-    : d.latest
-      ? d.latest.status
-      : 'unknown'
+  const status = checkStatus(d)
   const provider = f ? nsProvider(f.nameservers) : null
   const isManual = manualField(d, 'manualExpiryAt') !== undefined
+  const de = daysUntil(f?.expiryAt ?? null, now)
+  const heroCaption =
+    de === null ? 'Domain expiry' : de < 0 ? 'Overdue' : 'Until renewal'
+  const tone = urgencyTone(d, now)
 
   return (
-    <li id={`domain-${d.id}`} className="scroll-mt-24">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        className="flex w-full items-center gap-3 px-4 py-4 sm:px-5 text-left outline-none transition-colors hover:bg-accent/40 focus-visible:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring/30"
-      >
-        <Icon
-          icon={open ? CaretDown : CaretRight}
-          className="size-4 shrink-0 text-muted-foreground"
-        />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="truncate text-sm font-medium">{d.name}</span>
+    <li>
+      <div className={cn(
+        'overflow-hidden rounded-2xl border bg-card transition-colors',
+        tone === 'expired' ? 'border-destructive/40' : tone === 'soon' ? 'border-warning/40' : 'border-border',
+      )}>
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-haspopup="dialog"
+          className="flex w-full flex-col gap-1.5 p-5 text-left outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/30"
+        >
+          <div className="flex w-full items-center gap-2">
+            <span
+              aria-hidden
+              className={cn(
+                'size-2 shrink-0 rounded-full',
+                status === 'up' && 'bg-success',
+                status === 'down' && 'bg-destructive',
+                (status === 'disabled' || status === 'pending') && 'bg-muted-foreground/50',
+              )}
+            />
+            <span className="truncate text-[15px] font-semibold tracking-tight">{d.name}</span>
             {d.channelIds.length === 0 && (
-              <Badge variant="warning" className="gap-1">
+              <Badge variant="warning" className="gap-1 shrink-0">
                 <Icon icon={WarningCircle} className="size-3.5" />
                 Not alerting
               </Badge>
             )}
+            <Icon
+              icon={CaretRight}
+              className="ml-auto size-4 shrink-0 text-muted-foreground"
+            />
           </div>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-            <span className="truncate">{f?.registrar ?? 'Registrar unknown'}</span>
-            {provider && (
-              <>
-                <span aria-hidden>·</span>
-                <span>{provider}</span>
-              </>
-            )}
-            {d.latest && (
-              <>
-                <span aria-hidden>·</span>
-                <span>Checked {formatRelative(d.latest.checkedAt)}</span>
-              </>
-            )}
+          <div className="truncate text-[13px] text-muted-foreground">
+            {f?.registrar ?? 'Registrar unknown'}
+            {provider ? ` · ${provider}` : ''}
           </div>
-          {/* Mobile: headline metrics are hidden below sm, so restate them
-              inline — otherwise the point of the page is invisible on phones. */}
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs sm:hidden">
-            <span className="inline-flex items-baseline gap-1.5">
-              <span className="text-[11px] text-muted-foreground">
-                Domain{isManual ? ' · manual' : ''}
-              </span>
-              <ExpiryValue iso={f?.expiryAt ?? null} now={now} critical={7} warn={30} className="text-xs" />
-            </span>
-            <span className="inline-flex items-baseline gap-1.5">
-              <span className="text-[11px] text-muted-foreground">
+          <div className="mt-2 text-[30px] font-semibold leading-none tracking-tight tabular-nums">
+            <ExpiryValue iso={f?.expiryAt ?? null} now={now} critical={7} warn={30} />
+          </div>
+          <div className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            {heroCaption}
+            {isManual ? ' · manual' : ''}
+          </div>
+          <div className="mt-2 flex w-full items-center justify-between gap-3 border-t border-border/60 pt-3">
+            <span className="inline-flex items-baseline gap-1.5 text-[13px]">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 SSL
               </span>
-              <ExpiryValue iso={f?.sslExpiryAt ?? null} now={now} critical={14} warn={30} className="text-xs" />
+              <ExpiryValue iso={f?.sslExpiryAt ?? null} now={now} critical={14} warn={30} className="font-semibold" />
+            </span>
+            <span className="shrink-0 text-xs text-muted-foreground">
+              {d.latest ? `Checked ${formatRelative(d.latest.checkedAt)}` : 'Not checked yet'}
             </span>
           </div>
-        </div>
-
-        {/* Headline metrics: domain expiry, then SSL. */}
-        <div className="hidden shrink-0 flex-col items-end gap-0.5 sm:flex">
-          <span className="text-[11px] text-muted-foreground">
-            Domain {isManual && '· manual'}
-          </span>
-          <ExpiryValue iso={f?.expiryAt ?? null} now={now} critical={7} warn={30} className="text-sm" />
-        </div>
-        <div className="hidden w-24 shrink-0 flex-col items-end gap-0.5 md:flex">
-          <span className="text-[11px] text-muted-foreground">
-            SSL
-          </span>
-          <ExpiryValue iso={f?.sslExpiryAt ?? null} now={now} critical={14} warn={30} className="text-sm" />
-        </div>
-        <div className="shrink-0">
-          <StatusBadge status={status} />
-        </div>
-      </button>
-
-      {open && <DomainDetail domain={d} onEdit={onEdit} channelById={channelById} />}
+        </button>
+      </div>
     </li>
   )
 }
@@ -576,7 +400,7 @@ function EditableFact({
     )
   }
   return (
-    <span className="inline-flex flex-wrap items-center gap-2">
+    <span className="inline-flex flex-nowrap items-center gap-2 whitespace-nowrap">
       {fmtDate(value)}
       {manual && (
         <Badge variant="secondary" className="text-[10px]">
@@ -596,10 +420,12 @@ function EditableFact({
 
 function DomainDetail({
   domain: d,
+  now,
   onEdit,
   channelById,
 }: {
   domain: DomainWithFacts
+  now: number
   onEdit: () => void
   channelById: Map<string, NotificationChannel>
 }) {
@@ -638,7 +464,7 @@ function DomainDetail({
     .filter((c) => c != null)
 
   const manage = (
-    <div className="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-3 border-t border-border/60 pt-4">
+    <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-4">
       <Button
         size="sm"
         variant="outline"
@@ -685,18 +511,15 @@ function DomainDetail({
   )
 
   const channelsField = (
-    <Field label="Alert channels" className="sm:col-span-2 lg:col-span-3">
+    <>
       {attached.length === 0 ? (
-        <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-          <span>
-            <span className="text-warning">No channels attached</span> — expiry
-            warnings go nowhere.{' '}
-            <Link to="/admin/channels" className="underline underline-offset-4 hover:text-foreground">
-              Add one
-            </Link>
-          </span>
-          <DomainChannelsEditor domain={d} triggerLabel="Attach" />
-        </span>
+        <div className="space-y-2.5">
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-warning">No channels attached</span>
+            {' '}— expiry warnings go nowhere.
+          </p>
+          <DomainChannelsEditor domain={d} triggerLabel="Attach channels" prominent />
+        </div>
       ) : (
         <div className="flex flex-wrap items-center gap-1.5">
           {attached.map((c) => (
@@ -720,7 +543,7 @@ function DomainDetail({
           <DomainChannelsEditor domain={d} />
         </div>
       )}
-    </Field>
+    </>
   )
 
   const renewalField = (
@@ -732,15 +555,49 @@ function DomainDetail({
     />
   )
 
+  // Hero strip — the two countdowns that answer the modal at a glance.
+  const de = daysUntil(f?.expiryAt ?? null, now)
+  const se = daysUntil(f?.sslExpiryAt ?? null, now)
+  const hero = (
+    <div className="grid gap-4 rounded-2xl bg-muted/60 p-5 sm:grid-cols-2">
+      <div>
+        <div className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+          Domain
+        </div>
+        <div className="mt-1 text-[28px] font-semibold leading-none tracking-tight tabular-nums">
+          <ExpiryValue iso={f?.expiryAt ?? null} now={now} critical={7} warn={30} />
+        </div>
+        <div className="mt-1.5 font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+          {de === null ? 'expiry unknown' : de < 0 ? 'overdue' : 'until renewal'}
+          {manualField(d, 'manualExpiryAt') !== undefined ? ' · manual' : ''}
+        </div>
+      </div>
+      <div className="border-t border-border/60 pt-4 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
+        <div className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+          SSL
+        </div>
+        <div className="mt-1 text-[28px] font-semibold leading-none tracking-tight tabular-nums">
+          <ExpiryValue iso={f?.sslExpiryAt ?? null} now={now} critical={14} warn={30} />
+        </div>
+        <div className="mt-1.5 font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+          {se === null ? 'no certificate' : se < 0 ? 'expired' : 'until renewal'}
+        </div>
+      </div>
+    </div>
+  )
+
   if (!f) {
     return (
-      <div className="border-t border-border/60 bg-muted/20 px-4 py-4 pl-11 sm:px-5 sm:pl-12 text-sm text-muted-foreground">
-        <p>No data collected yet — details appear after the first check runs.</p>
-        <div className="mt-2">{renewalField}</div>
+      <div className="space-y-4">
+        <Rise step={1}>{hero}</Rise>
+        <p className="text-sm text-muted-foreground">
+          No data collected yet — details appear after the first check runs.
+        </p>
+        <div>{renewalField}</div>
         {d.latest?.message && (
-          <span className="mt-2 block font-mono text-xs">{d.latest.message}</span>
+          <span className="block font-mono text-xs">{d.latest.message}</span>
         )}
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             size="sm"
             variant="outline"
@@ -757,72 +614,177 @@ function DomainDetail({
   }
 
   return (
-    <div className="grid gap-x-8 gap-y-4 border-t border-border/60 bg-muted/20 px-4 py-4 pl-11 sm:grid-cols-2 sm:px-5 sm:pl-12 lg:grid-cols-3">
-      <Field label="Registered">
-        <EditableFact
-          value={f.registeredAt}
-          manual={manualField(d, 'manualRegisteredAt') !== undefined}
-          onEdit={onEdit}
-          setLabel="Set date"
-        />
-      </Field>
-      <Field label="Expires">{renewalField}</Field>
-      <Field label="SSL issuer">
-        {f.sslIssuer ? (
-          <span className="inline-flex items-center gap-1.5">
-            <Icon icon={SealCheck} className="size-3.5 text-muted-foreground" />
-            {f.sslIssuer}
-          </span>
-        ) : (
-          '—'
-        )}
-      </Field>
+    <div className="space-y-6">
+      <Rise step={1}>{hero}</Rise>
 
-      <Field label="Nameservers" className="sm:col-span-2 lg:col-span-1">
-        {f.nameservers.length ? (
-          <ul className="space-y-0.5 font-mono text-xs">
-            {f.nameservers.map((ns) => (
-              <li key={ns} className="truncate">{ns}</li>
-            ))}
-          </ul>
-        ) : (
-          '—'
-        )}
-      </Field>
-
-      <Field label="DNS records">
-        <div className="space-y-1 font-mono text-xs">
-          {f.dns?.a?.length ? (
-            <div><span className="text-muted-foreground">A </span>{f.dns.a.join(', ')}</div>
-          ) : null}
-          {f.dns?.mx?.length ? (
-            <div className="truncate"><span className="text-muted-foreground">MX </span>{f.dns.mx.join(', ')}</div>
-          ) : null}
-          {!f.dns?.a?.length && !f.dns?.mx?.length ? '—' : null}
+      <div className="grid items-start gap-6 sm:grid-cols-2">
+        <div className="min-w-0">
+          <Rise step={2}>
+          <section>
+            <h3 className="mb-1 font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+              Registration
+            </h3>
+            <dl className="divide-y divide-border/60 border-y border-border/60">
+              <FactRow label="Registered">
+                <EditableFact
+                  value={f.registeredAt}
+                  manual={manualField(d, 'manualRegisteredAt') !== undefined}
+                  onEdit={onEdit}
+                  setLabel="Set date"
+                />
+              </FactRow>
+              <FactRow label="Expires">{renewalField}</FactRow>
+              <FactRow label="Registrar">{f.registrar ?? '—'}</FactRow>
+            </dl>
+          </section>
+          </Rise>
         </div>
-      </Field>
 
-      <Field label="Lock status">
-        {f.statuses.length ? (
-          <div className="flex flex-wrap gap-1">
-            {f.statuses.map((s) => (
-              <Badge key={s} variant="secondary" className="font-mono text-[10px]">
-                {s}
-              </Badge>
-            ))}
+        <Rise step={3}>
+        <section className="min-w-0">
+          <h3 className="mb-3 font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            Alerts
+          </h3>
+          {channelsField}
+        </section>
+        </Rise>
+      </div>
+
+      <Rise step={4}>
+      <section className="min-w-0">
+        <h3 className="mb-3 font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+          DNS & security
+        </h3>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <span className="shrink-0 text-[13px] text-muted-foreground">SSL issuer</span>
+            {f.sslIssuer ? (
+              <span className="inline-flex min-w-0 items-center gap-1.5 text-sm font-medium">
+                <Icon icon={SealCheck} className="size-3.5 shrink-0 text-muted-foreground" />
+                <span className="truncate">{f.sslIssuer}</span>
+              </span>
+            ) : (
+              <span className="text-sm text-muted-foreground">—</span>
+            )}
           </div>
-        ) : (
-          '—'
-        )}
-      </Field>
+          <div className="space-y-1.5">
+            <div className="text-[13px] text-muted-foreground">Nameservers</div>
+            {f.nameservers.length ? (
+              <ul className="grid gap-x-6 gap-y-0.5 font-mono text-xs sm:grid-cols-2">
+                {f.nameservers.map((ns) => (
+                  <li key={ns} className="truncate">{ns}</li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-sm text-muted-foreground">—</div>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <div className="text-[13px] text-muted-foreground">DNS records</div>
+            <div className="space-y-1 font-mono text-xs">
+              {f.dns?.a?.length ? (
+                <div><span className="text-muted-foreground">A </span>{f.dns.a.join(', ')}</div>
+              ) : null}
+              {f.dns?.mx?.length ? (
+                <div><span className="text-muted-foreground">MX </span>{f.dns.mx.join(', ')}</div>
+              ) : null}
+              {!f.dns?.a?.length && !f.dns?.mx?.length ? '—' : null}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <div className="text-[13px] text-muted-foreground">Lock status</div>
+            {f.statuses.length ? (
+              <div className="flex flex-wrap gap-1">
+                {f.statuses.map((s) => (
+                  <Badge key={s} variant="secondary" className="font-mono text-[10px]">
+                    {s}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">—</div>
+            )}
+          </div>
+        </div>
+      </section>
+      </Rise>
 
-      {channelsField}
-      {manage}
+      <Rise step={5}>{manage}</Rise>
     </div>
   )
 }
 
-function DomainChannelsEditor({ domain: d, triggerLabel = 'edit' }: { domain: DomainWithFacts; triggerLabel?: string }) {
+function FactRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-2.5">
+      <dt className="shrink-0 text-[13px] text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 text-right text-sm font-medium">{children}</dd>
+    </div>
+  )
+}
+
+// Entrance choreography for the detail modal: hero lands first, groups
+// cascade after it. Motion-driven (not CSS) so delays are exact.
+function Rise({
+  step = 0,
+  className,
+  children,
+}: {
+  step?: number
+  className?: string
+  children: ReactNode
+}) {
+  const reduceMotion = useReducedMotion() ?? false
+  if (reduceMotion) return <div className={className}>{children}</div>
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1], delay: step * 0.04 }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+function DomainDetailDialog({
+  domain,
+  now,
+  onClose,
+  onEdit,
+  channelById,
+}: {
+  domain: DomainWithFacts | null
+  now: number
+  onClose: () => void
+  onEdit: () => void
+  channelById: Map<string, NotificationChannel>
+}) {
+  const provider = domain?.facts ? nsProvider(domain.facts.nameservers) : null
+  return (
+    <Dialog open={domain !== null} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto sm:max-w-3xl">
+        {domain && (
+          <>
+            <Rise step={0}>
+            <DialogHeader>
+              <DialogTitle>{domain.name}</DialogTitle>
+              <DialogDescription>
+                {domain.facts?.registrar ?? 'Registrar unknown'}
+                {provider ? ` · ${provider}` : ''}
+              </DialogDescription>
+            </DialogHeader>
+            </Rise>
+            <DomainDetail domain={domain} now={now} onEdit={onEdit} channelById={channelById} />
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function DomainChannelsEditor({ domain: d, triggerLabel = 'edit', prominent = false }: { domain: DomainWithFacts; triggerLabel?: string; prominent?: boolean }) {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<string[]>(d.channelIds)
@@ -850,6 +812,13 @@ function DomainChannelsEditor({ domain: d, triggerLabel = 'edit' }: { domain: Do
   })
 
   if (!open) {
+    if (prominent) {
+      return (
+        <Button size="sm" variant="outline" onClick={() => setOpen(true)} className="gap-1.5">
+          {triggerLabel}
+        </Button>
+      )
+    }
     return (
       <button
         type="button"
@@ -909,65 +878,6 @@ function DomainChannelsEditor({ domain: d, triggerLabel = 'edit' }: { domain: Do
         Cancel
       </button>
     </span>
-  )
-}
-
-function Field({
-  label,
-  children,
-  className,
-}: {
-  label: string
-  children: ReactNode
-  className?: string
-}) {
-  return (
-    <div className={cn('space-y-1', className)}>
-      <div className="text-xs font-medium text-muted-foreground">
-        {label}
-      </div>
-      <div className="text-sm">{children}</div>
-    </div>
-  )
-}
-
-// Mirrors the channels/incidents stat cell. Same visual contract — mono
-// micro-label, tabular value, tone ramp — kept identical on purpose.
-function StatCell({
-  label,
-  value,
-  sub,
-  tone = 'default',
-  className,
-}: {
-  label: string
-  value: string
-  sub: string
-  tone?: 'default' | 'success' | 'warn' | 'muted'
-  className?: string
-}) {
-  const valueTone =
-    tone === 'success'
-      ? 'text-success-text'
-      : tone === 'warn'
-        ? 'text-warning'
-        : tone === 'muted'
-          ? 'text-muted-foreground'
-          : 'text-foreground'
-  return (
-    <div className={cn('flex flex-col gap-2.5 p-4 sm:p-5', className)}>
-      <div className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-        {label}
-      </div>
-      <div className="flex items-baseline gap-1.5">
-        <span className={cn('text-2xl font-semibold tracking-tight tabular-nums', valueTone)}>
-          {value}
-        </span>
-      </div>
-      {/* Two lines at narrow widths: at 390px a single clamped line cuts these
-          sentences mid-thought. Matches the channels band from sm up. */}
-      <div className="text-xs text-muted-foreground line-clamp-2 sm:line-clamp-1">{sub}</div>
-    </div>
   )
 }
 
@@ -1307,31 +1217,23 @@ function EditDetailsDialog({
 function DomainsSkeleton() {
   return (
     <>
-      <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="flex flex-col gap-2.5 p-4 sm:p-5">
-            <Skeleton className="h-3 w-24" />
-            <Skeleton className="h-8 w-16" />
-            <Skeleton className="h-3 w-28" />
-          </div>
-        ))}
-      </Panel>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Skeleton className="h-9 w-full sm:max-w-xs" />
-        <Skeleton className="h-9 w-24" />
+      <div className="flex flex-wrap items-center gap-3">
+        <Skeleton className="h-[52px] w-80 rounded-full" />
+        <div className="ml-auto flex items-center gap-2.5">
+          <Skeleton className="size-10 rounded-full" />
+          <Skeleton className="h-10 w-[153px] rounded-full" />
+        </div>
       </div>
-      <Panel className="divide-y divide-border/60">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="flex items-center gap-3 p-4 sm:px-5">
-            <Skeleton className="size-4" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-48" />
-              <Skeleton className="h-3 w-64" />
-            </div>
-            <Skeleton className="h-4 w-16" />
+      <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="space-y-3 rounded-2xl border border-border bg-card p-5">
+            <Skeleton className="h-[18px] w-40" />
+            <Skeleton className="h-3 w-56" />
+            <Skeleton className="h-[30px] w-32" />
+            <Skeleton className="h-3 w-full" />
           </div>
         ))}
-      </Panel>
+      </div>
     </>
   )
 }

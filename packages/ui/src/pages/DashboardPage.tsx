@@ -8,10 +8,6 @@ import { Pulse } from "@phosphor-icons/react/dist/icons/Pulse"
 import { PlusCircle } from "@phosphor-icons/react/dist/icons/PlusCircle"
 import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass"
 import { ArrowClockwise } from "@phosphor-icons/react/dist/icons/ArrowClockwise"
-import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
-import { XCircle } from "@phosphor-icons/react/dist/icons/XCircle"
-import { PauseCircle } from "@phosphor-icons/react/dist/icons/PauseCircle"
-import { MinusCircle } from "@phosphor-icons/react/dist/icons/MinusCircle"
 import { ArrowDown } from "@phosphor-icons/react/dist/icons/ArrowDown"
 import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft"
 import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight"
@@ -24,6 +20,7 @@ import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/panel'
 import { QueryError } from '@/components/QueryError'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ScreenHeader, SegmentFilter, StatusCell } from '@/components/screen'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -162,53 +159,20 @@ export function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6 px-4 lg:px-6">
-      <header className="space-y-2">
-        <h1 className="text-[28px] font-semibold tracking-tight">Monitors</h1>
-        <p className="text-base font-medium">
-          Every check, it&rsquo;s current state and thirty days of history
-        </p>
-      </header>
+      <ScreenHeader
+        title="Monitors"
+        description="Every check, it’s current state and thirty days of history"
+      />
 
       <div className="flex flex-wrap items-center gap-3">
-        <div
-          role="group"
-          aria-label="Status filter"
-          className="inline-flex items-center rounded-full bg-muted"
-        >
-          {STATUS_FILTERS.map((f) => {
-            const active = statusFilter === f.id
-            return (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setStatusFilter(f.id)}
-                aria-pressed={active}
-                className={cn(
-                  'relative inline-flex items-center gap-1 rounded-full px-[18px] py-[10px] text-base font-medium leading-4 outline-none transition-[color,transform] duration-150 ease-out',
-                  'focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.97]',
-                  active ? 'text-background' : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {active && (
-                  <motion.span
-                    layoutId="monitors-segment-pill"
-                    aria-hidden
-                    className="absolute inset-0 rounded-full bg-foreground"
-                    transition={
-                      reduceMotion
-                        ? { duration: 0 }
-                        : { type: 'spring', stiffness: 550, damping: 40 }
-                    }
-                  />
-                )}
-                <span className="relative">{f.label}</span>
-                <span className="relative font-mono text-[10px] opacity-60 tabular-nums">
-                  {counts[f.id]}
-                </span>
-              </button>
-            )
-          })}
-        </div>
+        <SegmentFilter
+          label="Status filter"
+          options={STATUS_FILTERS.map((f) => ({ ...f, count: counts[f.id] }))}
+          value={statusFilter}
+          onChange={setStatusFilter}
+          reduceMotion={reduceMotion}
+          layoutId="monitors-segment-pill"
+        />
         <div className="ml-auto flex items-center gap-2.5">
           <button
             type="button"
@@ -459,39 +423,6 @@ function RowActions({ monitor }: { monitor: MonitorWithLatest }) {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
-}
-
-function StatusCell({ status }: { status: ReturnType<typeof statusOf> }) {
-  if (status === 'up') {
-    return (
-      <span className="inline-flex items-center gap-[7px] text-lg font-medium">
-        <Icon icon={CheckCircle} weight="fill" className="size-5 shrink-0 text-success" />
-        Up
-      </span>
-    )
-  }
-  if (status === 'down') {
-    return (
-      <span className="inline-flex items-center gap-[7px] text-lg font-medium text-destructive">
-        <Icon icon={XCircle} weight="fill" className="size-5 shrink-0" />
-        Down
-      </span>
-    )
-  }
-  if (status === 'disabled') {
-    return (
-      <span className="inline-flex items-center gap-[7px] text-lg font-medium text-muted-foreground">
-        <Icon icon={PauseCircle} weight="fill" className="size-5 shrink-0" />
-        Disabled
-      </span>
-    )
-  }
-  return (
-    <span className="inline-flex items-center gap-[7px] text-lg font-medium text-muted-foreground">
-      <Icon icon={MinusCircle} weight="fill" className="size-5 shrink-0" />
-      Pending
-    </span>
   )
 }
 

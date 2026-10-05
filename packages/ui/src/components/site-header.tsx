@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { Cube, PlusCircle, SidebarSimple } from "@phosphor-icons/react"
 import { Icon } from "@/components/ui/icon"
 import { ThemeSwitch } from "@/components/unlumen-ui/theme-switch"
+import { usePrimaryAction } from "@/contexts/primary-action"
 import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import type { StatusPage } from "@/types"
@@ -42,6 +43,10 @@ export function SiteHeader({
     staleTime: 60_000,
   })
   const firstPage = pages.data?.pages[0]
+  // The lime action belongs to the current screen — Domains registers
+  // "Add domain", everything else falls back to "Add monitor".
+  const { action } = usePrimaryAction()
+  const primary = action ?? { label: "Add monitor", to: "/admin/monitors/new" }
 
   return (
     <header className="shell-topbar">
@@ -87,10 +92,21 @@ export function SiteHeader({
             Status page
           </span>
         ) : null}
-        <Link to="/admin/monitors/new" className="shell-btn shell-btn-lime">
-          <Icon icon={PlusCircle} weight="fill" size={24} />
-          Add monitor
-        </Link>
+        {primary.to ? (
+          <Link to={primary.to} className="shell-btn shell-btn-lime">
+            <Icon icon={PlusCircle} weight="fill" size={24} />
+            {primary.label}
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={primary.onClick}
+            className="shell-btn shell-btn-lime"
+          >
+            <Icon icon={PlusCircle} weight="fill" size={24} />
+            {primary.label}
+          </button>
+        )}
       </div>
     </header>
   )

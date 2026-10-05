@@ -3,11 +3,16 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { AppSidebar } from '@/components/app-sidebar'
 import { SiteHeader } from '@/components/site-header'
+import {
+  PrimaryActionContext,
+  type PrimaryAction,
+} from '@/contexts/primary-action'
 import { cn } from '@/lib/utils'
 import './shell.css'
 
@@ -53,6 +58,11 @@ export function AdminLayout() {
     () => localStorage.getItem(COLLAPSED_KEY) === '1',
   )
   const [navOpen, setNavOpen] = useState(false)
+  const [primaryAction, setPrimaryAction] = useState<PrimaryAction | null>(null)
+  const primaryActionState = useMemo(
+    () => ({ action: primaryAction, setAction: setPrimaryAction }),
+    [primaryAction],
+  )
 
   // Reflect the current section in the browser tab so admins juggling
   // multiple tabs can find PingBoard at a glance.
@@ -81,6 +91,7 @@ export function AdminLayout() {
 
   return (
     <PageTitleContext.Provider value={setOverride}>
+      <PrimaryActionContext.Provider value={primaryActionState}>
       <div className="shell-canvas">
         {/* Screen-reader / keyboard-only: jump past the sidebar+header to the
             main content. Visually hidden until focused. */}
@@ -102,6 +113,7 @@ export function AdminLayout() {
           </div>
         </div>
       </div>
+      </PrimaryActionContext.Provider>
     </PageTitleContext.Provider>
   )
 }
