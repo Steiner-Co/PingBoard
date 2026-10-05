@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PingBoard — Monitors concept</title>
+<!-- INJECT: copy the .panel children into app-shell.html .content (between SCREEN markers).
+     Values measured from the Figma frame (node 100:16); see /tmp/opencode notes. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&family=JetBrains+Mono:wght@400..700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    color-scheme: light;
+    --background: oklch(0.972 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --border: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --success: oklch(0.723 0.219 149.579);
+    --destructive: oklch(0.577 0.245 27.325);
+    --warn: #d97706;
+    /* Status green sampled from the frame (#00BC7C). Status semantics, not theme. */
+    --up: #00bc7c;
+    --nav-active: #003cff;
+    --lime: #b9ff00;
+    --lime-ink: #161a00;
+    --lime-hover: #a8ec00;
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  .dark {
+    color-scheme: dark;
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --border: oklch(1 0 0 / 10%);
+    --destructive: oklch(0.704 0.191 22.216);
+    --lime: #c6ff2e;
+    --lime-ink: #101300;
+    --lime-hover: #b9ff00;
+  }
+  * { box-sizing: border-box; }
+  html { font-family: 'Inter', system-ui, sans-serif; }
+  body {
+    margin: 0; background: var(--background); color: var(--foreground);
+    font-feature-settings: 'rlig' 1, 'calt' 1; -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 1120px; margin: 0 auto; padding: 24px; }
+  .panel {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 24px;
+  }
+  /* Mast — 28/600 title, 16/500 dark description. */
+  .mast { display: block; }
+  .mast h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+  .mast p { margin: 8px 0 0; font-size: 16px; font-weight: 500; color: var(--foreground); }
+  /* Controls — grey pill segments left, refresh + search right. */
+  .controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .segments { display: inline-flex; align-items: center; background: var(--muted); border-radius: 999px; }
+  .segments button {
+    border: none; background: transparent;
+    color: color-mix(in srgb, var(--foreground) 60%, transparent);
+    font-family: 'Inter', system-ui, sans-serif; font-size: 16px; font-weight: 500; line-height: 16px;
+    padding: 10px 18px; border-radius: 999px; cursor: pointer;
+    display: inline-flex; gap: 4px; align-items: center; white-space: nowrap;
+    transition: background 150ms ease-out, color 150ms ease-out, transform 150ms ease-out;
+  }
+  .segments button:hover { color: var(--foreground); }
+  .segments button:active { transform: scale(0.97); }
+  .segments button .n { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 400; opacity: 0.6; }
+  .segments button[aria-pressed="true"] { background: var(--foreground); color: var(--background); }
+  .segments button[aria-pressed="true"]:hover { color: var(--background); }
+  .controls-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .icon-circle {
+    width: 40px; height: 40px; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%; border: 1px solid var(--border);
+    background: var(--card); color: var(--foreground); cursor: pointer; font-size: 19px;
+    transition: transform 150ms ease-out, background 150ms ease-out;
+  }
+  .icon-circle:hover { background: var(--muted); }
+  .icon-circle:active { transform: scale(0.96); }
+  .search {
+    display: flex; align-items: center; gap: 8px; height: 40px; width: 153px; flex-shrink: 0;
+    padding: 0 12px; border: 1px solid var(--border); border-radius: 999px;
+    background: var(--card); font-size: 14px; font-weight: 500; color: var(--foreground);
+    cursor: text;
+  }
+  .search .mag { font-size: 19px; color: var(--foreground); line-height: 1; }
+  .search input { border: none; outline: none; background: transparent; color: var(--foreground); font: inherit; width: 100%; padding: 0; }
+  .search input::placeholder { color: var(--foreground); }
+  /* Table card — hairline border, 16px radius, tinted header. */
+  .table { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .trow {
+    display: grid; grid-template-columns: minmax(0, 2.8fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 3.5fr);
+    gap: 16px; align-items: center; padding: 22px 24px;
+  }
+  .trow.head { padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--muted); }
+  .trow.head span { font-size: 16px; font-weight: 500; color: var(--foreground); }
+  .trow.body { cursor: pointer; transition: background 150ms ease-out; }
+  .trow.body + .trow.body { border-top: 1px solid var(--border); }
+  .trow.body:hover { background: color-mix(in srgb, var(--foreground) 3%, transparent); }
+  .name { font-size: 18px; font-weight: 500; letter-spacing: -0.1px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .tag {
+    font-size: 8px; font-weight: 500; color: var(--foreground);
+    background: #e7e5e5; border-radius: 999px; padding: 4px 6px; white-space: nowrap; line-height: 1;
+  }
+  .dark .tag { background: var(--muted); color: var(--muted-foreground); }
+  .target { margin-top: 4px; font-size: 12px; font-weight: 500; color: var(--foreground); }
+  .status { display: inline-flex; align-items: center; gap: 7px; font-size: 18px; font-weight: 500; }
+  .status svg { width: 12px; height: 12px; flex-shrink: 0; }
+  .status.up { color: var(--foreground); }
+  .status.down { color: var(--destructive); }
+  .status.warn { color: var(--warn); }
+  .status.mut { color: var(--muted-foreground); }
+  .resp { display: inline-flex; align-items: center; gap: 5px; font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--foreground); }
+  .resp .arr { font-size: 12px; color: var(--up); line-height: 1; }
+  .resp.none { color: var(--muted-foreground); }
+  .bars { display: flex; gap: 2px; align-items: flex-end; height: 36px; }
+  .bars i { flex: 1 1 0; min-width: 0; max-width: 10px; border-radius: 4px; background: var(--up); min-height: 5px; }
+  .bars i.down { background: var(--destructive); }
+  .bars i.warn { background: var(--warn); }
+  .bars i.none { background: var(--border); }
+  .toolbar-note { font-size: 12px; color: var(--muted-foreground); }
+  .toolbar-note kbd { font-family: 'JetBrains Mono', monospace; font-size: 11px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--muted); }
+  @media (max-width: 900px) {
+    .trow { grid-template-columns: minmax(0, 1fr) auto; }
+    .resp-col, .bars-col, .trow.head .h-resp, .trow.head .h-up { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="panel">
+    <div class="mast">
+      <h1>Monitors</h1>
+      <p>Every check, it’s current state and thirty days of history</p>
+    </div>
+
+    <div class="controls">
+      <div class="segments" id="segments" role="group" aria-label="Status filter">
+        <button aria-pressed="true" data-f="all">All <span class="n">7</span></button>
+        <button aria-pressed="false" data-f="down">Down <span class="n">1</span></button>
+        <button aria-pressed="false" data-f="up">Up <span class="n">4</span></button>
+        <button aria-pressed="false" data-f="disabled">Disabled <span class="n">1</span></button>
+      </div>
+      <div class="controls-right">
+        <button class="icon-circle" type="button" aria-label="Refresh">↻</button>
+        <label class="search"><span class="mag">⌕</span><input id="q" type="search" placeholder="Search" aria-label="Search monitors" /></label>
+      </div>
+    </div>
+
+    <div class="table" id="rows">
+      <div class="trow head"><span>Name</span><span>Status</span><span class="h-resp">Response</span><span class="h-up">Uptime</span></div>
+    </div>
+
+    <div class="toolbar-note">Concept — press <kbd>T</kbd> for dark. Measured from Figma node 100:16; "Disabled" spelling corrected from the frame.</div>
+  </div>
+</div>
+<script>
+  const MONITORS = [
+    { name: 'api.pingboard.dev', target: 'https://api.pingboard.dev/health', tags: ['https', 'prod'], status: 'up', ms: 142, seed: 11 },
+    { name: 'checkout.acme.net', target: 'https://checkout.acme.net', tags: ['https', 'prod'], status: 'down', ms: null, seed: 42 },
+    { name: 'app.steinerandco.site', target: 'https://app.steinerandco.site', tags: ['https'], status: 'up', ms: 88, seed: 7 },
+    { name: 'status.cooldomain.so', target: 'https://status.cooldomain.so', tags: ['https', 'staging'], status: 'degraded', ms: 420, seed: 23 },
+    { name: 'cdn.something.ai', target: 'https://cdn.something.ai/ping', tags: ['https', 'cdn'], status: 'up', ms: 51, seed: 5 },
+    { name: 'db-primary.internal', target: 'tcp://10.0.0.4:5432', tags: ['tcp', 'infra'], status: 'up', ms: 3, seed: 31 },
+    { name: 'pg-replica.internal', target: 'tcp://10.0.0.6:5432', tags: ['tcp', 'infra'], status: 'paused', ms: null, seed: 17 },
+  ];
+  const DOT = (color, d) => `<svg viewBox="0 0 12 12" style="color:${color}" aria-hidden="true"><circle cx="6" cy="6" r="6" fill="currentColor"/><path d="${d}" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>`;
+  const CHECK = DOT('#00bc7c', 'm3.7 6.2 1.6 1.6 3-3.6');
+  const CHECK_WARN = DOT('var(--warn)', 'm3.7 6.2 1.6 1.6 3-3.6');
+  const CHECK_MUT = DOT('var(--muted-foreground)', 'm3.7 6.2 1.6 1.6 3-3.6');
+  const XCIRCLE = DOT('var(--destructive)', 'm4.2 4.2 3.6 3.6m0-3.6-3.6 3.6');
+  function bars(seed, status) {
+    let s = seed, out = '';
+    for (let i = 0; i < 38; i++) {
+      s = (s * 9301 + 49297) % 233280;
+      const r = s / 233280;
+      let cls = '', h = 24 + Math.round(r * 12);
+      if ((status === 'down' || status === 'paused') && i > 32) { cls = status === 'down' ? 'down' : 'none'; h = 36; }
+      else if (r > 0.93) { cls = 'warn'; }
+      else if (r > 0.985) { cls = 'down'; h = 36; }
+      out += `<i class="${cls}" style="height:${h}px"></i>`;
+    }
+    return out;
+  }
+  function statusCell(m) {
+    if (m.status === 'up') return `<span class="status up">${CHECK}Up</span>`;
+    if (m.status === 'down') return `<span class="status down">${XCIRCLE}Down</span>`;
+    if (m.status === 'degraded') return `<span class="status warn">${CHECK_WARN}Degraded</span>`;
+    return `<span class="status mut">${CHECK_MUT}Disabled</span>`;
+  }
+  const rowsEl = document.getElementById('rows');
+  const headHTML = rowsEl.innerHTML;
+  let dFilter = 'all', dQuery = '';
+  function match(m) {
+    if (dFilter === 'down') return m.status === 'down';
+    if (dFilter === 'up') return m.status === 'up';
+    if (dFilter === 'disabled') return m.status === 'paused';
+    return true;
+  }
+  function renderRows() {
+    const counts = {
+      all: MONITORS.length,
+      down: MONITORS.filter(m => m.status === 'down').length,
+      up: MONITORS.filter(m => m.status === 'up').length,
+      disabled: MONITORS.filter(m => m.status === 'paused').length,
+    };
+    document.querySelectorAll('#segments button').forEach(b => {
+      b.querySelector('.n').textContent = counts[b.dataset.f];
+    });
+    rowsEl.innerHTML = headHTML + MONITORS
+      .filter(match)
+      .filter(m => (m.name + m.target).toLowerCase().includes(dQuery))
+      .map(m => `
+      <div class="trow body">
+        <div><div class="name">${m.name}${m.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+        <div class="target">${m.target}</div></div>
+        <div>${statusCell(m)}</div>
+        <div class="resp-col">${m.ms == null
+          ? '<span class="resp none">—</span>'
+          : `<span class="resp"><span class="arr">↓</span>${m.ms}ms</span>`}</div>
+        <div class="bars bars-col" title="30-day uptime">${bars(m.seed, m.status)}</div>
+      </div>`).join('') || (headHTML + '<div class="trow body"><div class="name">No monitors match.</div><div></div><div></div><div></div></div>');
+  }
+  document.getElementById('segments').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    document.querySelectorAll('#segments button').forEach(x => x.setAttribute('aria-pressed', 'false'));
+    b.setAttribute('aria-pressed', 'true');
+    dFilter = b.dataset.f; renderRows();
+  });
+  document.getElementById('q').addEventListener('input', e => { dQuery = e.target.value.trim().toLowerCase(); renderRows(); });
+  renderRows();
+</script>
+</body>
+</html>

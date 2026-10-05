@@ -13,7 +13,7 @@ interface InstanceUpdate {
 }
 
 /**
- * Version + update nudge above NavUser in the sidebar footer. Shares the
+ * Version + update nudge in the sidebar footer. Shares the
  * ['instance'] query key with the Settings Instance card, so react-query
  * dedupes the fetch. Renders nothing until loaded — the footer shouldn't
  * shift under the user's cursor.

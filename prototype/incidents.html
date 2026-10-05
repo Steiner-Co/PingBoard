@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PingBoard — Incidents concept</title>
+<!-- INJECT: copy the .panel children into app-shell.html .content (between SCREEN markers). -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&family=JetBrains+Mono:wght@400..700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    color-scheme: light;
+    --background: oklch(0.972 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --border: oklch(0.922 0 0);
+    --success: oklch(0.723 0.219 149.579);
+    --success-ink: oklch(0.5 0.16 149.579);
+    --destructive: oklch(0.577 0.245 27.325);
+    --warn: #d97706;
+  }
+  .dark {
+    color-scheme: dark;
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --border: oklch(1 0 0 / 10%);
+    --success-ink: oklch(0.8 0.2 149.579);
+    --destructive: oklch(0.704 0.191 22.216);
+  }
+  * { box-sizing: border-box; }
+  html { font-family: 'Inter', system-ui, sans-serif; }
+  body { margin: 0; background: var(--background); color: var(--foreground); font-feature-settings: 'rlig' 1, 'calt' 1; -webkit-font-smoothing: antialiased; }
+  .page { max-width: 1120px; margin: 0 auto; padding: 24px; }
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+  .mast { display: block; }
+  .mast h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+  .mast h1 .count { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: var(--muted-foreground); vertical-align: middle; margin-left: 10px; }
+  .mast p { margin: 6px 0 0; font-size: 13.5px; color: var(--muted-foreground); }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .stat { padding: 16px 20px 14px; }
+  .stat + .stat { border-left: 1px solid var(--border); }
+  .stat small { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+  .stat b { display: block; margin-top: 2px; font-size: 30px; font-weight: 550; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .stat .subline { display: block; margin-top: 4px; font-size: 12px; color: var(--muted-foreground); }
+  .stat.bad b { color: var(--destructive); }
+  .stat.warn b { color: var(--warn); }
+  .stat.ok b { color: var(--success-ink); }
+  .grid2 { display: grid; grid-template-columns: 3fr 2fr; gap: 24px; }
+  .card { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 13.5px; font-weight: 600; }
+  .card-head span { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+  .chart { display: flex; gap: 5px; align-items: flex-end; height: 150px; padding: 16px 20px 8px; }
+  .chart i { flex: 1; border-radius: 3px 3px 0 0; background: color-mix(in srgb, var(--destructive) 75%, transparent); min-height: 3px; }
+  .chart i.zero { background: var(--border); }
+  .chart-axis { display: flex; justify-content: space-between; padding: 0 20px 14px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-foreground); }
+  .off { padding: 12px 20px; }
+  .off + .off { border-top: 1px solid var(--border); }
+  .off-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .off-top b { font-size: 13.5px; font-weight: 600; }
+  .off-top .c { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .bar { height: 4px; background: var(--muted); border-radius: 2px; margin: 8px 0 6px; }
+  .bar i { display: block; height: 100%; border-radius: 2px; background: color-mix(in srgb, var(--destructive) 70%, transparent); }
+  .off-meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); }
+  .badge { display: inline-block; border-radius: 999px; padding: 1px 8px; font-size: 10.5px; font-weight: 600; }
+  .badge.open { background: color-mix(in srgb, var(--destructive) 12%, transparent); color: var(--destructive); }
+  .badge.flap { background: color-mix(in srgb, var(--warn) 12%, transparent); color: var(--warn); }
+  table.inc { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.inc th { text-align: left; font-size: 11px; font-weight: 600; color: var(--muted-foreground); padding: 10px 20px; border-bottom: 1px solid var(--border); }
+  table.inc td { padding: 11px 20px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  table.inc tr:last-child td { border-bottom: none; }
+  .mono { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--muted-foreground); }
+  .note { color: var(--muted-foreground); font-style: italic; }
+  .toolbar-note { font-size: 12px; color: var(--muted-foreground); }
+  .toolbar-note kbd { font-family: 'JetBrains Mono', monospace; font-size: 11px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--muted); }
+  @media (max-width: 800px) {
+    .stats { grid-template-columns: 1fr 1fr; }
+    .stat:nth-child(3) { border-left: none; border-top: 1px solid var(--border); }
+    .stat:nth-child(4) { border-top: 1px solid var(--border); }
+    .stat b { font-size: 32px; }
+    .grid2 { grid-template-columns: 1fr; }
+    table.inc th:nth-child(4), table.inc td:nth-child(4) { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="panel">
+    <div class="mast">
+      <h1>Incidents<span class="count">1 open · 18 total</span></h1>
+      <p>Every down → up transition across all monitors.</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat bad"><small>Open now</small><b>1</b><span class="subline">Filter the table →</span></div>
+      <div class="stat"><small>Incidents</small><b>18</b><span class="subline">In the last 30 days</span></div>
+      <div class="stat"><small>Median recovery</small><b>4m</b><span class="subline">Mean 11m · 17 resolved</span></div>
+      <div class="stat warn"><small>Longest outage</small><b>52m</b><span class="subline">checkout.acme.net</span></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head">Incident frequency <span>Per day · 30d</span></div>
+        <div class="chart">
+          <i class="zero" style="height:4%"></i><i class="zero" style="height:4%"></i><i style="height:12%"></i><i class="zero" style="height:4%"></i><i class="zero" style="height:4%"></i><i style="height:22%"></i><i class="zero" style="height:4%"></i><i class="zero" style="height:4%"></i><i style="height:34%"></i><i style="height:18%"></i><i class="zero" style="height:4%"></i><i class="zero" style="height:4%"></i><i style="height:62%"></i><i style="height:100%"></i><i style="height:28%"></i>
+        </div>
+        <div class="chart-axis"><span>Sep 6</span><span>Sep 13</span><span>Sep 20</span><span>Sep 27</span><span>Oct 5</span></div>
+      </div>
+      <div class="card">
+        <div class="card-head">Most affected <span>By incidents</span></div>
+        <div class="off">
+          <div class="off-top"><b>checkout.acme.net</b><span class="c">7</span></div>
+          <div class="bar"><i style="width:100%"></i></div>
+          <div class="off-meta">https · 1h 48m down · med 6m <span class="badge open">Open</span></div>
+        </div>
+        <div class="off">
+          <div class="off-top"><b>status.cooldomain.so</b><span class="c">5</span></div>
+          <div class="bar"><i style="width:71%"></i></div>
+          <div class="off-meta">https · 9m down · med 1m <span class="badge flap">Flapping</span></div>
+        </div>
+        <div class="off">
+          <div class="off-top"><b>api.pingboard.dev</b><span class="c">3</span></div>
+          <div class="bar"><i style="width:43%"></i></div>
+          <div class="off-meta">https · 8m down · med 2m</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">Incidents <span>1 open · 18 total · All ▾</span></div>
+      <table class="inc">
+        <thead><tr><th>Monitor</th><th>Status</th><th>Started</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td><b>checkout.acme.net</b><div class="mono">HTTPS</div></td><td><span class="badge open">Open</span></td><td class="mono">Oct 5, 14:32</td><td class="note">Add a note… ✎</td></tr>
+          <tr><td><b>status.cooldomain.so</b><div class="mono">HTTPS</div></td><td><span class="mono">Resolved</span></td><td class="mono">Oct 4, 22:10</td><td>Cloudflare outage, not our fault</td></tr>
+          <tr><td><b>api.pingboard.dev</b><div class="mono">HTTPS</div></td><td><span class="mono">Resolved</span></td><td class="mono">Oct 3, 09:41</td><td class="note">Add a note… ✎</td></tr>
+          <tr><td><b>cdn.something.ai</b><div class="mono">HTTPS</div></td><td><span class="mono">Resolved (manual)</span></td><td class="mono">Oct 1, 18:02</td><td>Deploys during migration</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="toolbar-note">Concept — press <kbd>T</kbd> for dark. Chart is CSS bars; offender rows carry downtime + flapping flags.</div>
+  </div>
+</div>
+<script>
+  document.addEventListener('keydown', e => {
+    if (e.key === 't' || e.key === 'T') document.documentElement.classList.toggle('dark');
+  });
+</script>
+</body>
+</html>

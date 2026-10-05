@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PingBoard — Add monitor concept</title>
+<!-- INJECT: copy the .panel children into app-shell.html .content (between SCREEN markers).
+     Covers the wizard (Target → Schedule → Notify); the Edit form reuses the same
+     mast + card + field language with section cards instead of steps. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&family=JetBrains+Mono:wght@400..700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    color-scheme: light;
+    --background: oklch(0.972 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --border: oklch(0.922 0 0);
+    --success: oklch(0.723 0.219 149.579);
+    --success-ink: oklch(0.5 0.16 149.579);
+    --destructive: oklch(0.577 0.245 27.325);
+    --warn: #d97706;
+    --lime: #b9ff00;
+    --lime-ink: #161a00;
+    --lime-hover: #a8ec00;
+  }
+  .dark {
+    color-scheme: dark;
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --border: oklch(1 0 0 / 10%);
+    --success-ink: oklch(0.8 0.2 149.579);
+    --destructive: oklch(0.704 0.191 22.216);
+    --lime: #c6ff2e;
+    --lime-ink: #101300;
+    --lime-hover: #b9ff00;
+  }
+  * { box-sizing: border-box; }
+  html { font-family: 'Inter', system-ui, sans-serif; }
+  body { margin: 0; background: var(--background); color: var(--foreground); font-feature-settings: 'rlig' 1, 'calt' 1; -webkit-font-smoothing: antialiased; }
+  .page { max-width: 1120px; margin: 0 auto; padding: 24px; }
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+  .mast { display: block; }
+  .mast h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+  .mast h1 .count { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: var(--muted-foreground); vertical-align: middle; margin-left: 10px; }
+  .mast p { margin: 6px 0 0; font-size: 13.5px; color: var(--muted-foreground); }
+  .steps { display: flex; gap: 8px; align-items: center; }
+  .step { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 550; color: var(--muted-foreground); }
+  .step .n { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .step.done { color: var(--foreground); }
+  .step.done .n { background: var(--success); border-color: transparent; color: #fff; }
+  .step.now { color: var(--foreground); }
+  .step.now .n { background: var(--foreground); color: var(--background); border-color: transparent; }
+  .step .bar { width: 32px; height: 1px; background: var(--border); }
+  .formwrap { max-width: 720px; display: flex; flex-direction: column; gap: 16px; }
+  .card { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .card-head { display: block; padding: 14px 20px 0; }
+  .card-head b { font-size: 15px; font-weight: 600; }
+  .card-head p { margin: 4px 0 0; font-size: 13px; color: var(--muted-foreground); }
+  .card-body { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 14px; }
+  label.fl { font-size: 13px; font-weight: 550; display: block; margin-bottom: 6px; }
+  .in { height: 44px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); padding: 0 14px; font-size: 14px; width: 100%; color: var(--foreground); }
+  .in:focus { outline: 2px solid color-mix(in srgb, var(--foreground) 25%, transparent); outline-offset: 1px; }
+  .in.mono { font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+  .detect { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted-foreground); }
+  .detect .auto { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px; color: var(--success-ink); border-color: color-mix(in srgb, var(--success) 45%, transparent); }
+  .testok { display: flex; gap: 10px; align-items: center; border: 1px solid color-mix(in srgb, var(--success) 40%, transparent); background: color-mix(in srgb, var(--success) 7%, transparent); border-radius: 12px; padding: 10px 14px; font-size: 13px; }
+  .testok b { color: var(--success-ink); }
+  .testok .ms { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted-foreground); }
+  .segs { display: inline-flex; background: var(--muted); border-radius: 999px; padding: 3px; gap: 2px; }
+  .segs button { border: none; background: transparent; color: var(--muted-foreground); font: inherit; font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 999px; cursor: pointer; }
+  .segs button[aria-pressed="true"] { background: var(--card); color: var(--foreground); box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
+  .chns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 999px; padding: 7px 12px 7px 8px; font-size: 13px; cursor: pointer; }
+  .chn .box { width: 22px; height: 22px; border-radius: 7px; border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+  .chn.on { border-color: var(--foreground); }
+  .chn.on .box { background: var(--foreground); color: var(--background); border-color: transparent; }
+  .foot { display: flex; gap: 10px; align-items: center; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 20px; border-radius: 999px; font-size: 14px; font-weight: 550; border: 1px solid var(--border); background: var(--card); color: var(--foreground); cursor: pointer; }
+  .btn:hover { background: var(--muted); }
+  .btn:active { transform: scale(0.97); }
+  .btn-solid { background: var(--foreground); border-color: transparent; color: var(--background); }
+  .btn-solid:hover { background: var(--foreground); opacity: 0.85; }
+  .btn-ghost { border-color: transparent; color: var(--muted-foreground); }
+  .edit-note { border: 1px dashed var(--border); border-radius: 16px; padding: 14px 20px; font-size: 13px; color: var(--muted-foreground); }
+  .toolbar-note { font-size: 12px; color: var(--muted-foreground); }
+  .toolbar-note kbd { font-family: 'JetBrains Mono', monospace; font-size: 11px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--muted); }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="panel">
+    <div class="mast">
+      <h1>Add monitor<span class="count">step 1 of 3</span></h1>
+      <p>Paste a URL or host:port — the type is inferred, the first check fires on submit.</p>
+    </div>
+
+    <div class="steps">
+      <span class="step now"><span class="n">1</span>Target</span><span class="step"><span class="bar"></span></span>
+      <span class="step"><span class="n">2</span>Schedule</span><span class="step"><span class="bar"></span></span>
+      <span class="step"><span class="n">3</span>Notify</span>
+    </div>
+
+    <div class="formwrap">
+      <div class="card">
+        <div class="card-head"><b>What to check?</b><p>Smart input infers the type — https → HTTP, host:5432 → TCP, 1.1.1.1 → ping.</p></div>
+        <div class="card-body">
+          <div><label class="fl" for="t">Target</label><input class="in mono" id="t" value="https://api.pingboard.dev/health" /></div>
+          <div class="detect"><span class="auto">✓ HTTP detected</span><span>GET · expect 2xx · 10s timeout · follow redirects</span><span style="margin-left:auto;text-decoration:underline">Override</span></div>
+          <div><label class="fl" for="n">Name</label><input class="in" id="n" value="api.pingboard.dev" /></div>
+          <div class="testok"><b>✓ 200</b><span>OK in 142 ms — ready to create.</span><span class="ms">just now</span></div>
+        </div>
+      </div>
+      <div class="foot">
+        <button class="btn btn-ghost" type="button">← Back</button>
+        <span style="flex:1"></span>
+        <button class="btn" type="button">Test again</button>
+        <button class="btn btn-solid" type="button">Continue →</button>
+      </div>
+      <div class="edit-note"><b style="color:var(--foreground)">Edit variant:</b> same mast (“Edit monitor · api.pingboard.dev”) + stacked section cards — General / HTTP options / Schedule / Alerts — with Save / Discard in the footer. Dirty state confirms on Back via the data-router blocker.</div>
+    </div>
+
+    <div class="toolbar-note">Concept — press <kbd>T</kbd> for dark. Steps 2–3 (interval segs + channel chips) reuse dashboard tokens.</div>
+  </div>
+</div>
+<script>
+  document.addEventListener('keydown', e => {
+    if (e.key === 't' || e.key === 'T') document.documentElement.classList.toggle('dark');
+  });
+</script>
+</body>
+</html>

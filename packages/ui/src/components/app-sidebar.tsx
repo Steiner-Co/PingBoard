@@ -11,7 +11,6 @@ import {
 } from "@phosphor-icons/react"
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react"
 import { Icon } from "@/components/ui/icon"
-import { NavUser } from "@/components/nav-user"
 import { api } from "@/lib/api"
 
 interface NavItem {
@@ -24,7 +23,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Monitor",
     items: [
-      { title: "Dashboard", url: "/admin", icon: House },
+      { title: "Monitors", url: "/admin", icon: House },
       { title: "Domains", url: "/admin/domains", icon: Planet },
       { title: "Incidents", url: "/admin/incidents", icon: Warning },
       { title: "Maintenance", url: "/admin/maintenance", icon: Briefcase },
@@ -75,12 +74,7 @@ function VersionCard() {
   )
 }
 
-interface AppSidebarProps {
-  user: { name: string; email: string }
-  onLogout: () => void | Promise<void>
-}
-
-export function AppSidebar({ user, onLogout }: AppSidebarProps) {
+export function AppSidebar() {
   const { pathname } = useLocation()
 
   return (
@@ -103,7 +97,6 @@ export function AppSidebar({ user, onLogout }: AppSidebarProps) {
         </div>
       ))}
       <div className="shell-footer">
-        <NavUser user={user} onLogout={onLogout} />
         <VersionCard />
       </div>
     </aside>

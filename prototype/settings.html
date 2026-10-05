@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PingBoard — Settings concept</title>
+<!-- INJECT: copy the .panel children into app-shell.html .content (between SCREEN markers). -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&family=JetBrains+Mono:wght@400..700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    color-scheme: light;
+    --background: oklch(0.972 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --border: oklch(0.922 0 0);
+    --success: oklch(0.723 0.219 149.579);
+    --success-ink: oklch(0.5 0.16 149.579);
+  }
+  .dark {
+    color-scheme: dark;
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --border: oklch(1 0 0 / 10%);
+    --success-ink: oklch(0.8 0.2 149.579);
+  }
+  * { box-sizing: border-box; }
+  html { font-family: 'Inter', system-ui, sans-serif; }
+  body { margin: 0; background: var(--background); color: var(--foreground); font-feature-settings: 'rlig' 1, 'calt' 1; -webkit-font-smoothing: antialiased; }
+  .page { max-width: 1120px; margin: 0 auto; padding: 24px; }
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+  .mast { display: block; }
+  .mast h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+  .mast p { margin: 6px 0 0; font-size: 13.5px; color: var(--muted-foreground); }
+  .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start; }
+  .stack { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+  .card { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .card-head { display: block; padding: 12px 20px; border-bottom: 1px solid var(--border); }
+  .card-head b { font-size: 13.5px; font-weight: 600; }
+  .card-head p { margin: 2px 0 0; font-size: 12px; color: var(--muted-foreground); }
+  .card-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  label.fl { font-size: 12.5px; font-weight: 550; display: block; margin-bottom: 6px; }
+  .in { height: 40px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); padding: 0 12px; font-size: 13.5px; width: 100%; color: var(--foreground); }
+  .in.mono { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
+  .email-line { font-size: 13.5px; }
+  .email-line .k { color: var(--muted-foreground); }
+  .email-line .v { font-family: 'JetBrains Mono', monospace; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 550; border: 1px solid var(--border); background: var(--card); color: var(--foreground); cursor: pointer; }
+  .btn:hover { background: var(--muted); }
+  .btn:active { transform: scale(0.97); }
+  .btn-solid { background: var(--foreground); color: var(--background); border-color: transparent; }
+  .btn-solid:hover { background: var(--foreground); opacity: 0.85; }
+  .btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
+  .hint { font-size: 12px; color: var(--muted-foreground); }
+  .hint code { background: var(--muted); border-radius: 6px; padding: 1px 6px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--foreground); }
+  .kv { display: flex; justify-content: space-between; gap: 12px; padding: 8px 20px; font-size: 12px; }
+  .kv + .kv { border-top: 1px solid var(--border); }
+  .kv dt { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); }
+  .kv dd { margin: 0; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55%; }
+  .secret { border: 1px solid color-mix(in srgb, var(--success) 40%, transparent); background: color-mix(in srgb, var(--success) 6%, transparent); border-radius: 12px; padding: 12px 14px; font-size: 12.5px; }
+  .secret b { color: var(--success-ink); }
+  .secret code { display: block; margin-top: 8px; background: var(--muted); border-radius: 8px; padding: 8px 10px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tok { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border); font-size: 13px; }
+  .tok small { display: block; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted-foreground); }
+  .toolbar-note { font-size: 12px; color: var(--muted-foreground); }
+  .toolbar-note kbd { font-family: 'JetBrains Mono', monospace; font-size: 11px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--muted); }
+  @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } .row3 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="panel">
+    <div class="mast">
+      <h1>Settings</h1>
+      <p>Instance-wide preferences.</p>
+    </div>
+    <div class="grid2">
+      <div class="stack">
+        <div class="card">
+          <div class="card-head"><b>Account</b><p>You're signed in as the admin.</p></div>
+          <div class="card-body">
+            <div class="email-line"><span class="k">Email:</span> <span class="v">admin@acme.net</span></div>
+            <div class="row3">
+              <div><label class="fl">Current password</label><input class="in" type="password" value="••••••••••" /></div>
+              <div><label class="fl">New password</label><input class="in" type="password" placeholder="≥ 8 characters" /></div>
+              <div><label class="fl">Confirm</label><input class="in" type="password" /></div>
+            </div>
+            <div><button class="btn btn-solid btn-sm" style="height:40px;padding:0 16px;font-size:14px">Change password</button>
+            <span class="hint">Forgot it? Run <code>docker exec pingboard pingboard reset-password admin@acme.net</code> from the host.</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><b>Retention</b><p>Heartbeats older than this are aggregated into daily stats; raw rows are deleted.</p></div>
+          <div class="card-body"><div style="display:flex;gap:12px;align-items:center"><span style="font-size:13px">Keep raw heartbeats for</span><button class="btn btn-sm">30 days ▾</button></div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><b>API tokens</b><p>Authenticate scripts with <span style="font-family:'JetBrains Mono',monospace">Authorization: Bearer &lt;token&gt;</span>. Same access as this admin account.</p></div>
+          <div class="card-body">
+            <div class="secret"><b>Copy this now — it can't be shown again.</b><code>pb_live_9f31c4…e2 · Copy · Done</code></div>
+            <div style="display:flex;gap:8px"><input class="in" placeholder="deploy bot, uptime script…" style="flex:1" /><button class="btn btn-solid">Create token</button></div>
+            <div class="tok"><div style="flex:1"><b>deploy bot</b><small>pb_live_9f31… · last used 2h ago</small></div><button class="btn btn-sm">Revoke</button></div>
+            <div class="tok"><div style="flex:1"><b>uptime script</b><small>pb_live_77ab… · never used</small></div><button class="btn btn-sm">Revoke</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><b>Email defaults (SMTP)</b><p>Used when an email channel doesn't specify its own credentials.</p></div>
+          <div class="card-body">
+            <div class="row3" style="grid-template-columns:1fr 1fr">
+              <div><label class="fl">Host</label><input class="in mono" value="smtp.acme.net" /></div>
+              <div><label class="fl">Port</label><input class="in mono" value="587" /></div>
+              <div><label class="fl">Username</label><input class="in" value="alerts" /></div>
+              <div><label class="fl">From address</label><input class="in mono" value="alerts@acme.net" /></div>
+            </div>
+            <div><button class="btn btn-solid">Save defaults</button></div>
+          </div>
+        </div>
+      </div>
+      <aside class="card" style="align-self:start">
+        <div class="card-head"><b>Instance</b></div>
+        <dl style="margin:0">
+          <div class="kv"><dt>Version</dt><dd>v0.99.1 · <u>v0.99.2 available →</u></dd></div>
+          <div class="kv"><dt>Edition</dt><dd>Self-hosted · unlimited</dd></div>
+          <div class="kv"><dt>Database</dt><dd>4.2 MB</dd></div>
+          <div class="kv"><dt>Heartbeats</dt><dd>1,204,318</dd></div>
+          <div class="kv"><dt>Monitors</dt><dd>24</dd></div>
+          <div class="kv"><dt>Channels</dt><dd>5</dd></div>
+          <div class="kv"><dt>Status pages</dt><dd>2</dd></div>
+          <div class="kv"><dt>Uptime</dt><dd>6d 4h</dd></div>
+        </dl>
+      </aside>
+    </div>
+    <div class="toolbar-note">Concept — press <kbd>T</kbd> for dark. Lowest priority in the overhaul order.</div>
+  </div>
+</div>
+<script>
+  document.addEventListener('keydown', e => {
+    if (e.key === 't' || e.key === 'T') document.documentElement.classList.toggle('dark');
+  });
+</script>
+</body>
+</html>

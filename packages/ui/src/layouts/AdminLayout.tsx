@@ -5,10 +5,9 @@ import {
   useEffect,
   useState,
 } from 'react'
-import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { AppSidebar } from '@/components/app-sidebar'
 import { SiteHeader } from '@/components/site-header'
-import { useAuth } from '@/contexts/auth'
 import { cn } from '@/lib/utils'
 import './shell.css'
 
@@ -47,8 +46,6 @@ function titleForPath(pathname: string): string {
 const COLLAPSED_KEY = 'pb-shell-collapsed'
 
 export function AdminLayout() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
   const { pathname } = useLocation()
   const [override, setOverride] = useState<string | null>(null)
   const title = override ?? titleForPath(pathname)
@@ -82,16 +79,6 @@ export function AdminLayout() {
     })
   }, [])
 
-  const handleLogout = async () => {
-    await logout()
-    navigate('/login')
-  }
-
-  const sidebarUser = {
-    name: user?.email?.split('@')[0] ?? 'User',
-    email: user?.email ?? '',
-  }
-
   return (
     <PageTitleContext.Provider value={setOverride}>
       <div className="shell-canvas">
@@ -106,7 +93,7 @@ export function AdminLayout() {
         <div
           className={cn('shell', collapsed && 'shell-collapsed', navOpen && 'shell-nav-open')}
         >
-          <AppSidebar user={sidebarUser} onLogout={handleLogout} />
+          <AppSidebar />
           <div className="shell-panel">
             <SiteHeader title={title} onToggleSidebar={toggleSidebar} />
             <main id="main-content" tabIndex={-1} className="shell-body">

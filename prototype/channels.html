@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PingBoard — Channels concept</title>
+<!-- INJECT: copy the .panel children into app-shell.html .content (between SCREEN markers). -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&family=JetBrains+Mono:wght@400..700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    color-scheme: light;
+    --background: oklch(0.972 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --border: oklch(0.922 0 0);
+    --success: oklch(0.723 0.219 149.579);
+    --success-ink: oklch(0.5 0.16 149.579);
+    --destructive: oklch(0.577 0.245 27.325);
+    --warn: #d97706;
+    --lime: #b9ff00;
+    --lime-ink: #161a00;
+    --lime-hover: #a8ec00;
+  }
+  .dark {
+    color-scheme: dark;
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --border: oklch(1 0 0 / 10%);
+    --success-ink: oklch(0.8 0.2 149.579);
+    --destructive: oklch(0.704 0.191 22.216);
+    --lime: #c6ff2e;
+    --lime-ink: #101300;
+    --lime-hover: #b9ff00;
+  }
+  * { box-sizing: border-box; }
+  html { font-family: 'Inter', system-ui, sans-serif; }
+  body { margin: 0; background: var(--background); color: var(--foreground); font-feature-settings: 'rlig' 1, 'calt' 1; -webkit-font-smoothing: antialiased; }
+  .page { max-width: 1120px; margin: 0 auto; padding: 24px; }
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+  .mast { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+  .mast h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+  .mast h1 .count { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: var(--muted-foreground); vertical-align: middle; margin-left: 10px; }
+  .mast p { margin: 6px 0 0; font-size: 13.5px; color: var(--muted-foreground); }
+  .mast-actions { margin-left: auto; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 550; border: 1px solid var(--border); background: var(--card); color: var(--foreground); cursor: pointer; white-space: nowrap; transition: transform 150ms ease-out, background 150ms; }
+  .btn:hover { background: var(--muted); }
+  .btn:active { transform: scale(0.97); }
+  .btn-solid { background: var(--foreground); border-color: transparent; color: var(--background); }
+  .btn-solid:hover { background: var(--foreground); opacity: 0.85; }
+  .btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .stat { padding: 16px 20px 14px; }
+  .stat + .stat { border-left: 1px solid var(--border); }
+  .stat small { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+  .stat b { display: block; margin-top: 2px; font-size: 30px; font-weight: 550; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .stat b .suffix { font-size: 14px; font-weight: 500; color: var(--muted-foreground); }
+  .stat .subline { display: block; margin-top: 4px; font-size: 12px; color: var(--muted-foreground); }
+  .stat.warn b { color: var(--warn); }
+  .stat.ok b { color: var(--success-ink); }
+  .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start; }
+  .card { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 13.5px; font-weight: 600; }
+  .card-head span { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+  .ch { padding: 16px 20px; }
+  .ch + .ch { border-top: 1px solid var(--border); }
+  .ch-top { display: flex; align-items: center; gap: 10px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+  .dot.off { background: color-mix(in srgb, var(--foreground) 30%, transparent); }
+  .ch-top b { font-size: 14px; font-weight: 600; }
+  .ch-top .type { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); }
+  .ch-top .acts { margin-left: auto; display: flex; gap: 8px; }
+  .badge-off { border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); color: var(--warn); border-radius: 999px; padding: 1px 8px; font-size: 10.5px; font-weight: 600; }
+  .kv { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: 6px 12px; margin-top: 12px; font-size: 12px; }
+  .kv dt { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); }
+  .kv dd { margin: 0; min-width: 0; }
+  .kv dd.mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 999px; padding: 1px 9px; font-size: 11px; margin: 0 6px 4px 0; }
+  .chip i { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+  .chip i.down { background: var(--destructive); }
+  .rail-warn { border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+  .rail-warn .card-head { color: var(--warn); }
+  .rail-warn .card-head span { color: var(--warn); }
+  .rail-hint { margin: 0; padding: 10px 20px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted-foreground); }
+  .gap { display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 12.5px; }
+  .gap + .gap { border-top: 1px solid var(--border); }
+  .gap .t { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--muted-foreground); }
+  .rail-ok { display: flex; gap: 10px; padding: 16px 20px; font-size: 12.5px; color: var(--muted-foreground); }
+  .toolbar-note { font-size: 12px; color: var(--muted-foreground); }
+  .toolbar-note kbd { font-family: 'JetBrains Mono', monospace; font-size: 11px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--muted); }
+  @media (max-width: 900px) {
+    .stats { grid-template-columns: 1fr 1fr; }
+    .stat:nth-child(3) { border-left: none; border-top: 1px solid var(--border); }
+    .stat:nth-child(4) { border-top: 1px solid var(--border); }
+    .stat b { font-size: 32px; }
+    .grid2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="panel">
+    <div class="mast">
+      <div>
+        <h1>Channels<span class="count">5 configured</span></h1>
+        <p>Where alerts go when monitors change state.</p>
+      </div>
+      <div class="mast-actions"><button class="btn btn-solid" type="button">⊕ Add channel</button></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><small>Channels</small><b>5</b><span class="subline">webhook · discord · slack · ntfy · email</span></div>
+      <div class="stat warn"><small>Enabled</small><b>4<span class="suffix">/ 5</span></b><span class="subline">1 switched off — alerts dropped</span></div>
+      <div class="stat ok"><small>Monitors covered</small><b>22<span class="suffix">/ 24</span></b><span class="subline">Active checks reaching a live channel</span></div>
+      <div class="stat warn"><small>Unrouted</small><b>2</b><span class="subline">These failures would page nobody</span></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head">Channels <span>5 configured</span></div>
+        <div class="ch">
+          <div class="ch-top"><span class="dot"></span><b>On-call Discord</b><span class="type">discord</span>
+            <span class="acts"><button class="btn btn-sm">Test</button><button class="btn btn-sm">Edit</button></span></div>
+          <dl class="kv"><dt>Delivers to</dt><dd class="mono">discord.com/api/webhooks/…9f31</dd>
+          <dt>Routes to</dt><dd><span style="color:var(--muted-foreground)">9 monitors</span> <span class="chip"><i></i>api.pingboard.dev</span><span class="chip"><i class="down"></i>checkout.acme.net</span><span class="chip"><i></i>cdn.something.ai</span><span style="font-size:11px;color:var(--muted-foreground)">+6 more</span></dd></dl>
+        </div>
+        <div class="ch">
+          <div class="ch-top"><span class="dot"></span><b>Deploy webhook</b><span class="type">webhook</span>
+            <span class="acts"><button class="btn btn-sm">Test</button><button class="btn btn-sm">Edit</button></span></div>
+          <dl class="kv"><dt>Delivers to</dt><dd class="mono">hooks.internal.acme.net/deploy</dd>
+          <dt>Routes to</dt><dd><span style="color:var(--muted-foreground)">6 monitors</span> <span class="chip"><i></i>app.steinerandco.site</span><span class="chip"><i></i>db-primary.internal</span></dd></dl>
+        </div>
+        <div class="ch">
+          <div class="ch-top"><span class="dot off"></span><b>Old ntfy topic</b><span class="type">ntfy</span><span class="badge-off">Disabled</span>
+            <span class="acts"><button class="btn btn-sm">Test</button><button class="btn btn-sm">Edit</button></span></div>
+          <dl class="kv"><dt>Delivers to</dt><dd class="mono">ntfy.sh/pingboard-old</dd>
+          <dt>Routes to</dt><dd style="color:var(--muted-foreground)">No monitors attached — configured, but nothing will ever fire it.</dd></dl>
+        </div>
+      </div>
+      <aside>
+        <div class="card rail-warn">
+          <div class="card-head">⚠ Unrouted monitors <span>2</span></div>
+          <p class="rail-hint">Checked on schedule, but a failure notifies nobody. Open one to attach a channel.</p>
+          <div class="gap"><span class="dot" style="background:var(--warn)"></span><b style="font-size:12.5px">staging.cooldomain.so</b><span class="t">https ›</span></div>
+          <div class="gap"><span class="dot" style="background:var(--warn)"></span><b style="font-size:12.5px">pg-replica.internal</b><span class="t">tcp ›</span></div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="toolbar-note">Concept — press <kbd>T</kbd> for dark. On narrow screens the routing rail leads.</div>
+  </div>
+</div>
+<script>
+  document.addEventListener('keydown', e => {
+    if (e.key === 't' || e.key === 'T') document.documentElement.classList.toggle('dark');
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PingBoard — Domains concept</title>
+<!-- INJECT: copy the .panel children into app-shell.html .content (between SCREEN markers). -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&family=JetBrains+Mono:wght@400..700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    color-scheme: light;
+    --background: oklch(0.972 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --border: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --success: oklch(0.723 0.219 149.579);
+    --success-ink: oklch(0.5 0.16 149.579);
+    --destructive: oklch(0.577 0.245 27.325);
+    --warn: #d97706;
+    --nav-active: #003cff;
+    --lime: #b9ff00;
+    --lime-ink: #161a00;
+    --lime-hover: #a8ec00;
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  .dark {
+    color-scheme: dark;
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --border: oklch(1 0 0 / 10%);
+    --success-ink: oklch(0.8 0.2 149.579);
+    --destructive: oklch(0.704 0.191 22.216);
+    --lime: #c6ff2e;
+    --lime-ink: #101300;
+    --lime-hover: #b9ff00;
+  }
+  * { box-sizing: border-box; }
+  html { font-family: 'Inter', system-ui, sans-serif; }
+  body {
+    margin: 0; background: var(--background); color: var(--foreground);
+    font-feature-settings: 'rlig' 1, 'calt' 1; -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .page { max-width: 1120px; margin: 0 auto; padding: 24px; }
+  .panel {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 24px;
+  }
+  .mast { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+  .mast h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+  .mast h1 .count {
+    font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500;
+    letter-spacing: 0; color: var(--muted-foreground); vertical-align: middle; margin-left: 10px;
+  }
+  .mast p { margin: 6px 0 0; font-size: 13.5px; color: var(--muted-foreground); }
+  .mast-actions { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+  .search {
+    display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 8px 0 14px;
+    border: 1px solid var(--border); border-radius: 999px; background: var(--card);
+    font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--muted-foreground);
+    cursor: text; min-width: 260px;
+  }
+  .search input { border: none; outline: none; background: transparent; color: var(--foreground); font: inherit; width: 100%; }
+  .search kbd {
+    font-family: inherit; font-size: 11px; border: 1px solid var(--border);
+    border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--muted);
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px;
+    border-radius: 999px; font-size: 14px; font-weight: 550;
+    border: 1px solid var(--border); background: var(--card); color: var(--foreground);
+    cursor: pointer; white-space: nowrap;
+    transition: transform 150ms ease-out, background 150ms;
+  }
+  .btn:hover { background: var(--muted); }
+  .btn:active { transform: scale(0.97); }
+  .btn-solid { background: var(--foreground); border-color: transparent; color: var(--background); }
+  .btn-solid:hover { background: var(--foreground); opacity: 0.85; }
+  .icon { font-size: 20px; line-height: 1; }
+  /* Stat band — shared language with dashboard */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .stat { padding: 16px 20px 14px; }
+  .stat + .stat { border-left: 1px solid var(--border); }
+  .stat small { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+  .stat b { display: block; margin-top: 2px; font-size: 30px; font-weight: 550; letter-spacing: 0; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .stat small.sub2, .stat .subline { display: block; margin-top: 4px; font-size: 12px; color: var(--muted-foreground); text-transform: none; letter-spacing: 0; }
+  .stat.warn b { color: var(--warn); }
+  .stat.ok b { color: var(--success-ink); }
+  /* Attention banner */
+  .warnband { border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); border-radius: 16px; overflow: hidden; }
+  .warnband-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 13.5px; font-weight: 600; color: var(--warn); }
+  .warnband-head .n { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .warnband p.hint { margin: 0; padding: 10px 20px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted-foreground); }
+  .warnband ul { list-style: none; margin: 0; padding: 0; }
+  .warnband li button {
+    width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 20px;
+    background: none; border: none; font: inherit; color: inherit; cursor: pointer; text-align: left;
+  }
+  .warnband li + li { border-top: 1px solid var(--border); }
+  .warnband li button:hover { background: color-mix(in srgb, var(--foreground) 3%, transparent); }
+  .warnband .dname { font-size: 12.5px; font-weight: 600; }
+  .warnband .exp { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; }
+  .warnband .exp b { font-weight: 600; }
+  .warnband .exp .k { color: var(--muted-foreground); font-size: 10.5px; margin-right: 6px; }
+  /* Domain list */
+  .list { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .list-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 13.5px; font-weight: 600; }
+  .list-head span { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+  .drow { padding: 16px 20px; }
+  .drow + .drow { border-top: 1px solid var(--border); }
+  .drow-top { display: flex; align-items: center; gap: 12px; }
+  .caret { color: var(--muted-foreground); font-size: 14px; }
+  .dname { font-size: 15px; font-weight: 550; }
+  .pill {
+    display: inline-block; border: 1px solid var(--border); border-radius: 999px;
+    padding: 1px 8px; font-size: 10.5px; font-weight: 600; color: var(--warn);
+    border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+  }
+  .dsub { margin-top: 3px; font-size: 12px; color: var(--muted-foreground); }
+  .dmetrics { margin-left: auto; display: flex; gap: 28px; text-align: right; }
+  .dmetrics small { display: block; font-size: 11px; color: var(--muted-foreground); }
+  .dmetrics b { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .dmetrics b.warn { color: var(--warn); }
+  .dmetrics b.bad { color: var(--destructive); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+  .dot.warn { background: var(--warn); }
+  .detail {
+    margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    background: color-mix(in srgb, var(--foreground) 2%, transparent);
+    margin-left: -20px; margin-right: -20px; margin-bottom: -16px; padding: 14px 20px 16px 44px;
+  }
+  .detail .f small { display: block; font-size: 11px; font-weight: 600; color: var(--muted-foreground); margin-bottom: 2px; }
+  .detail .f span { font-size: 13px; }
+  .detail .f code { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; }
+  .toolbar-note { font-size: 12px; color: var(--muted-foreground); }
+  .toolbar-note kbd { font-family: 'JetBrains Mono', monospace; font-size: 11px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--muted); }
+  @media (max-width: 800px) {
+    .stats { grid-template-columns: 1fr 1fr; }
+    .stat:nth-child(3) { border-left: none; border-top: 1px solid var(--border); }
+    .stat:nth-child(4) { border-top: 1px solid var(--border); }
+    .stat b { font-size: 32px; }
+    .dmetrics { display: none; }
+    .detail { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="panel">
+    <div class="mast">
+      <div>
+        <h1>Domains<span class="count">8 total</span></h1>
+        <p>Track expiry, registrar, nameservers and SSL certificates across the whole portfolio.</p>
+      </div>
+      <div class="mast-actions">
+        <label class="search"><span>⌕</span><input type="search" placeholder="Search by domain, registrar, tag…" aria-label="Search domains" /><kbd>⌘K</kbd></label>
+        <button class="btn btn-solid" type="button"><span class="icon">⊕</span>Add domain</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><small>Domains</small><b>8</b><span class="subline">Tracked in this instance</span></div>
+      <div class="stat warn"><small>Expiring ≤ 30d</small><b>2</b><span class="subline">Renew before they lapse</span></div>
+      <div class="stat warn"><small>SSL ≤ 14d</small><b>1</b><span class="subline">Certificates near expiry</span></div>
+      <div class="stat ok"><small>Not alerting</small><b>0</b><span class="subline">All routed</span></div>
+    </div>
+
+    <div class="warnband">
+      <div class="warnband-head">⚠ Expiring soon <span class="n">3</span></div>
+      <p class="hint">Renew before they lapse — the soonest expiry is listed first.</p>
+      <ul>
+        <li><button type="button"><span class="dname">cooldomain.so</span><span class="exp"><span class="k">Domain</span><b style="color:var(--destructive)">Expired 2d ago</b></span><span class="exp"><span class="k">SSL</span><b>41 days</b></span><span style="color:var(--muted-foreground)">›</span></button></li>
+        <li><button type="button"><span class="dname">checkout.acme.net</span><span class="exp"><span class="k">Domain</span><b style="color:var(--warn)">6 days</b></span><span class="exp"><span class="k">SSL</span><b>88 days</b></span><span style="color:var(--muted-foreground)">›</span></button></li>
+        <li><button type="button"><span class="dname">shop.example.io</span><span class="exp"><span class="k">SSL</span><b style="color:var(--warn)">9 days</b></span><span style="color:var(--muted-foreground)">›</span></button></li>
+      </ul>
+    </div>
+
+    <div class="list">
+      <div class="list-head">Domains <span>8 shown</span></div>
+      <div class="drow">
+        <div class="drow-top">
+          <span class="caret">▾</span>
+          <div><div class="dname">cooldomain.so <span class="pill">Not alerting</span></div>
+          <div class="dsub">Namecheap · Cloudflare · Checked 12m ago</div></div>
+          <div class="dmetrics">
+            <div><small>Domain</small><b class="bad">Expired 2d ago</b></div>
+            <div><small>SSL</small><b>41 days</b></div>
+          </div>
+          <span class="dot"></span>
+        </div>
+        <div class="detail">
+          <div class="f"><small>Registered</small><span>Mar 4, 2023</span></div>
+          <div class="f"><small>Expires</small><span>Oct 3, 2026 <span class="pill">manual</span></span></div>
+          <div class="f"><small>SSL issuer</small><span>Let's Encrypt</span></div>
+          <div class="f"><small>Nameservers</small><code>elliott.ns.cloudflare.com<br />olga.ns.cloudflare.com</code></div>
+          <div class="f"><small>DNS records</small><code>A 76.76.21.21<br />MX aspmx.l.google.com</code></div>
+          <div class="f"><small>Alert channels</small><span style="color:var(--warn)">No channels attached</span> · <u>Attach</u></div>
+        </div>
+      </div>
+      <div class="drow">
+        <div class="drow-top">
+          <span class="caret">▸</span>
+          <div><div class="dname">api.pingboard.dev</div>
+          <div class="dsub">Cloudflare Registrar · Cloudflare · Checked 4m ago</div></div>
+          <div class="dmetrics">
+            <div><small>Domain</small><b>312 days</b></div>
+            <div><small>SSL</small><b>61 days</b></div>
+          </div>
+          <span class="dot"></span>
+        </div>
+      </div>
+      <div class="drow">
+        <div class="drow-top">
+          <span class="caret">▸</span>
+          <div><div class="dname">checkout.acme.net</div>
+          <div class="dsub">GoDaddy · AWS Route 53 · Checked 9m ago</div></div>
+          <div class="dmetrics">
+            <div><small>Domain</small><b class="warn">6 days</b></div>
+            <div><small>SSL</small><b>88 days</b></div>
+          </div>
+          <span class="dot warn"></span>
+        </div>
+      </div>
+      <div class="drow">
+        <div class="drow-top">
+          <span class="caret">▸</span>
+          <div><div class="dname">app.steinerandco.site</div>
+          <div class="dsub">Porkbun · Vercel · Checked 22m ago</div></div>
+          <div class="dmetrics">
+            <div><small>Domain</small><b>201 days</b></div>
+            <div><small>SSL</small><b>74 days</b></div>
+          </div>
+          <span class="dot"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar-note">Concept — press <kbd>T</kbd> for dark. Expanded row shows the detail grid (facts + alert routing).</div>
+  </div>
+</div>
+<script>
+  document.addEventListener('keydown', e => {
+    if (e.key === 't' || e.key === 'T') document.documentElement.classList.toggle('dark');
+  });
+</script>
+</body>
+</html>

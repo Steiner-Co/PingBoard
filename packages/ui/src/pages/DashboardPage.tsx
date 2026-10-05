@@ -1,75 +1,62 @@
-import { useMemo, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
-import { z } from 'zod'
+import { useEffect, useMemo, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link, useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
+import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
 import { Pulse } from "@phosphor-icons/react/dist/icons/Pulse"
 import { PlusCircle } from "@phosphor-icons/react/dist/icons/PlusCircle"
 import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass"
 import { ArrowClockwise } from "@phosphor-icons/react/dist/icons/ArrowClockwise"
-import { Info } from "@phosphor-icons/react/dist/icons/Info"
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
 import { XCircle } from "@phosphor-icons/react/dist/icons/XCircle"
+import { PauseCircle } from "@phosphor-icons/react/dist/icons/PauseCircle"
+import { MinusCircle } from "@phosphor-icons/react/dist/icons/MinusCircle"
+import { ArrowDown } from "@phosphor-icons/react/dist/icons/ArrowDown"
+import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft"
+import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight"
+import { DotsThreeOutlineVertical } from "@phosphor-icons/react/dist/icons/DotsThreeOutlineVertical"
+import { Pause } from "@phosphor-icons/react/dist/icons/Pause"
+import { Play } from "@phosphor-icons/react/dist/icons/Play"
+import { Trash } from "@phosphor-icons/react/dist/icons/Trash"
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { DataTable, schema as monitorRowSchema } from '@/components/data-table'
+import { Panel } from '@/components/panel'
 import { QueryError } from '@/components/QueryError'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Panel } from '@/components/panel'
-import { cn, formatDuration, formatInterval, formatRelative } from '@/lib/utils'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { useConfirm } from '@/components/confirm-provider'
+import { UptimeBars } from '@/components/uptime-bars'
+import { cn } from '@/lib/utils'
 import { api } from '@/lib/api'
-import { useSSE, type HeartbeatPayload } from '@/lib/sse'
-import { useNow } from '@/hooks/use-now'
+import { useSSE } from '@/lib/sse'
 import type { MonitorUptime, MonitorWithLatest } from '@/types'
 
-type MonitorRow = z.infer<typeof monitorRowSchema>
-
-function rowStatus(monitor: MonitorWithLatest): string {
-  if (monitor.paused) return 'PAUSED'
-  if (!monitor.latest) return 'PENDING'
-  return monitor.latest.status.toUpperCase()
-}
-
-function toRows(monitors: MonitorWithLatest[]): MonitorRow[] {
-  return monitors.map((m) => ({
-    id: m.id,
-    name: m.name,
-    type: m.type.toUpperCase(),
-    status: rowStatus(m),
-    target: m.target,
-    interval: formatInterval(m.intervalSeconds),
-    responseMs: m.latest?.responseTimeMs ?? null,
-    lastCheck: m.latest ? formatRelative(m.latest.checkedAt) : null,
-    tags: m.tags,
-  }))
-}
-
-type StatusFilter = 'all' | 'down' | 'up' | 'paused' | 'pending'
+type StatusFilter = 'all' | 'down' | 'up' | 'disabled'
 
 const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'down', label: 'Down' },
   { id: 'up', label: 'Up' },
-  { id: 'pending', label: 'Pending' },
-  { id: 'paused', label: 'Paused' },
+  { id: 'disabled', label: 'Disabled' },
 ]
 
-interface FeedItem {
-  key: string
-  monitorId: string
-  status: 'up' | 'down' | 'degraded'
-  responseTimeMs: number | null
-  at: number
-}
+const PAGE_SIZE = 10
 
-interface IncidentRow {
-  id: string
-  monitorId: string
-  monitorName: string
-  startedAt: string
-  resolvedAt: string | null
-  cause: 'auto' | 'manual'
-  note: string | null
+// Degraded reads as disabled on this screen — one vocabulary for anything
+// that isn't cleanly up or down.
+function statusOf(monitor: MonitorWithLatest): 'up' | 'down' | 'disabled' | 'pending' {
+  if (monitor.paused) return 'disabled'
+  if (!monitor.latest) return 'pending'
+  if (monitor.latest.status === 'up') return 'up'
+  if (monitor.latest.status === 'down') return 'down'
+  return 'disabled'
 }
 
 export function DashboardPage() {
@@ -92,66 +79,68 @@ export function DashboardPage() {
     [uptimeQuery.data],
   )
 
-  const [feed, setFeed] = useState<FeedItem[]>([])
-
-  // Live updates: any heartbeat/incident event invalidates the list; heartbeats
-  // additionally stream into the activity rail.
+  // Live updates: any heartbeat/incident event refreshes the list.
   useSSE('/api/admin/sse', {
-    heartbeat: (payload: HeartbeatPayload) => {
-      setFeed((prev) =>
-        [
-          {
-            key: `${payload.monitorId}-${payload.result.checkedAt}-${prev.length}`,
-            monitorId: payload.monitorId,
-            status: payload.result.status,
-            responseTimeMs: payload.result.responseTimeMs,
-            at: Date.now(),
-          },
-          ...prev,
-        ].slice(0, 8),
-      )
+    heartbeat: () => {
       void queryClient.invalidateQueries({ queryKey: ['monitors'] })
       void queryClient.invalidateQueries({ queryKey: ['monitors-uptime'] })
     },
     'incident.opened': () => {
       void queryClient.invalidateQueries({ queryKey: ['monitors'] })
-      void queryClient.invalidateQueries({ queryKey: ['incidents'] })
     },
     'incident.resolved': () => {
       void queryClient.invalidateQueries({ queryKey: ['monitors'] })
-      void queryClient.invalidateQueries({ queryKey: ['incidents'] })
     },
   })
 
-  // Domains have their own portfolio screen — the uptime dashboard is about
+  // Domains have their own portfolio screen — the monitors table is about
   // up/down checks, and a domain's expiry isn't that signal.
   const monitors = (query.data?.monitors ?? []).filter((m) => m.type !== 'domain')
-  // Re-derive on the shared clock so "last check" keeps counting between
-  // heartbeats instead of freezing at first render.
-  const now = useNow()
-  const allRows = useMemo(() => toRows(monitors), [monitors, now])
-  const nameById = useMemo(
-    () => new Map(monitors.map((m) => [m.id, m.name])),
-    [monitors],
-  )
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [page, setPage] = useState(0)
+  const reduceMotion = useReducedMotion() ?? false
+
+  const counts = useMemo(() => {
+    let down = 0
+    let up = 0
+    let disabled = 0
+    for (const m of monitors) {
+      const s = statusOf(m)
+      if (s === 'down') down++
+      else if (s === 'up') up++
+      else if (s === 'disabled') disabled++
+    }
+    return { all: monitors.length, down, up, disabled }
+  }, [monitors])
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return allRows.filter((r) => {
-      if (statusFilter !== 'all' && r.status.toLowerCase() !== statusFilter) {
-        return false
-      }
+    return monitors.filter((m) => {
+      const s = statusOf(m)
+      if (statusFilter === 'down' && s !== 'down') return false
+      if (statusFilter === 'up' && s !== 'up') return false
+      if (statusFilter === 'disabled' && s !== 'disabled') return false
       if (!q) return true
       return (
-        r.name.toLowerCase().includes(q) ||
-        r.target.toLowerCase().includes(q) ||
-        r.tags.some((t) => t.toLowerCase().includes(q))
+        m.name.toLowerCase().includes(q) ||
+        m.target.toLowerCase().includes(q) ||
+        m.tags.some((t) => t.toLowerCase().includes(q))
       )
     })
-  }, [allRows, search, statusFilter])
+  }, [monitors, search, statusFilter])
+
+  // A new filter/search starts back on the first page; deleting the last row
+  // of a page steps back into range.
+  useEffect(() => {
+    setPage(0)
+  }, [search, statusFilter])
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
+  useEffect(() => {
+    setPage((p) => Math.min(p, pageCount - 1))
+  }, [pageCount])
+  const pageRows = rows.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE)
 
   if (query.isPending) return <DashboardSkeleton />
   if (query.isError) {
@@ -173,250 +162,336 @@ export function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6 px-4 lg:px-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Monitors</h1>
-        <p className="text-sm text-muted-foreground">
-          Create and manage checks that are continuously monitored for uptime
+      <header className="space-y-2">
+        <h1 className="text-[28px] font-semibold tracking-tight">Monitors</h1>
+        <p className="text-base font-medium">
+          Every check, it&rsquo;s current state and thirty days of history
         </p>
       </header>
-      <LiveBanner />
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full sm:max-w-xs">
+
+      <div className="flex flex-wrap items-center gap-3">
+        <div
+          role="group"
+          aria-label="Status filter"
+          className="inline-flex items-center rounded-full bg-muted"
+        >
+          {STATUS_FILTERS.map((f) => {
+            const active = statusFilter === f.id
+            return (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setStatusFilter(f.id)}
+                aria-pressed={active}
+                className={cn(
+                  'relative inline-flex items-center gap-1 rounded-full px-[18px] py-[10px] text-base font-medium leading-4 outline-none transition-[color,transform] duration-150 ease-out',
+                  'focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.97]',
+                  active ? 'text-background' : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {active && (
+                  <motion.span
+                    layoutId="monitors-segment-pill"
+                    aria-hidden
+                    className="absolute inset-0 rounded-full bg-foreground"
+                    transition={
+                      reduceMotion
+                        ? { duration: 0 }
+                        : { type: 'spring', stiffness: 550, damping: 40 }
+                    }
+                  />
+                )}
+                <span className="relative">{f.label}</span>
+                <span className="relative font-mono text-[10px] opacity-60 tabular-nums">
+                  {counts[f.id]}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+        <div className="ml-auto flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={refreshing}
+            aria-label="Refresh"
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground transition-[background-color,transform] duration-150 ease-out hover:bg-muted active:scale-[0.96] disabled:opacity-60"
+          >
             <Icon
-              icon={MagnifyingGlass}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
+              icon={ArrowClockwise}
+              className={cn('size-[19px]', refreshing && 'animate-spin')}
             />
-            <Input
+          </button>
+          <label className="flex h-10 w-full items-center gap-2 rounded-full border border-border bg-card px-3 text-sm font-medium sm:w-[153px]">
+            <Icon icon={MagnifyingGlass} className="size-[19px] shrink-0" />
+            <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search monitors…"
-              className="pl-7"
+              placeholder="Search"
               aria-label="Search monitors"
+              className="w-full bg-transparent outline-none placeholder:text-foreground"
             />
+          </label>
+        </div>
+      </div>
+
+      <Panel className="overflow-hidden rounded-2xl">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px] table-fixed border-collapse">
+            <thead>
+              <tr className="border-b border-border bg-muted">
+                <th scope="col" className="px-6 py-4 text-left text-base font-medium">
+                  Name
+                </th>
+                <th scope="col" className="w-[12%] px-6 py-4 text-left text-base font-medium">
+                  Status
+                </th>
+                <th scope="col" className="hidden w-[12%] px-6 py-4 text-left text-base font-medium md:table-cell">
+                  Response
+                </th>
+                <th scope="col" className="hidden px-6 py-4 text-left text-base font-medium lg:table-cell">
+                  Uptime
+                </th>
+                <th scope="col" className="w-12 px-2 py-4">
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-sm text-muted-foreground">
+                    No monitors match this filter.
+                  </td>
+                </tr>
+              ) : (
+                <AnimatePresence initial={false}>
+                  {pageRows.map((m, i) => (
+                    <MonitorRow
+                      key={m.id}
+                      monitor={m}
+                      uptime={uptimeById.get(m.id)}
+                      index={i}
+                      reduceMotion={reduceMotion}
+                    />
+                  ))}
+                </AnimatePresence>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
+
+      {pageCount > 1 && (
+        <div className="flex items-center justify-between">
+          <div className="text-xs tabular-nums text-muted-foreground">
+            {rows.length} {rows.length === 1 ? 'monitor' : 'monitors'}
           </div>
           <div className="flex items-center gap-2">
+            <span className="text-xs tabular-nums text-muted-foreground">
+              Page {page + 1} of {pageCount}
+            </span>
             <Button
               variant="outline"
-              onClick={refresh}
-              disabled={refreshing}
-              className="gap-2"
+              className="size-7"
+              size="icon"
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
             >
-              <Icon
-                icon={ArrowClockwise}
-                className={cn('h-4 w-4', refreshing && 'animate-spin')}
-              />
-              Refresh
+              <span className="sr-only">Go to previous page</span>
+              <Icon icon={ArrowLeft} />
             </Button>
-            <Button asChild className="gap-2">
-              <Link to="/admin/monitors/new">
-                <Icon icon={PlusCircle} className="h-4 w-4" />
-                Add monitor
-              </Link>
+            <Button
+              variant="outline"
+              className="size-7"
+              size="icon"
+              onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+              disabled={page >= pageCount - 1}
+            >
+              <span className="sr-only">Go to next page</span>
+              <Icon icon={ArrowRight} />
             </Button>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {STATUS_FILTERS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setStatusFilter(f.id)}
-              className={cn(
-                'rounded-full border px-2.5 py-0.5 text-xs font-medium outline-none',
-                'transition-[color,background-color,border-color,transform] duration-150 ease-out',
-                'focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.97]',
-                statusFilter === f.id
-                  ? 'border-foreground/20 bg-foreground text-background'
-                  : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground',
-              )}
-              aria-pressed={statusFilter === f.id}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <DataTable data={rows} uptimeById={uptimeById} />
-      <div className="grid gap-6 xl:grid-cols-2">
-        <LiveActivity feed={feed} nameById={nameById} />
-        <RecentIncidents nameById={nameById} />
-      </div>
+      )}
     </div>
   )
 }
 
-const BANNER_KEY = 'pb-dash-banner-dismissed'
-
-function LiveBanner() {
-  const [dismissed, setDismissed] = useState(
-    () => localStorage.getItem(BANNER_KEY) === '1',
-  )
-  if (dismissed) return null
-  return (
-    <Panel className="flex items-start gap-3 px-4 py-3">
-      <Icon
-        icon={Info}
-        className="mt-0.5 size-4 shrink-0 text-primary-text"
-      />
-      <div className="min-w-0 flex-1 space-y-0.5">
-        <p className="text-sm font-medium">Live by default</p>
-        <p className="text-xs text-muted-foreground">
-          Checks stream in over SSE — the table and activity feed update the
-          moment a heartbeat lands, no refresh needed.
-        </p>
-      </div>
-      <button
-        type="button"
-        aria-label="Dismiss"
-        onClick={() => {
-          localStorage.setItem(BANNER_KEY, '1')
-          setDismissed(true)
-        }}
-        className="shrink-0 rounded-md p-0.5 text-muted-foreground transition-[color,background-color] duration-150 ease-out hover:bg-accent hover:text-foreground"
-      >
-        <Icon icon={XCircle} className="size-4" />
-      </button>
-    </Panel>
-  )
-}
-
-function LiveActivity({
-  feed,
-  nameById,
+function MonitorRow({
+  monitor,
+  uptime,
+  index,
+  reduceMotion,
 }: {
-  feed: FeedItem[]
-  nameById: Map<string, string>
+  monitor: MonitorWithLatest
+  uptime: MonitorUptime | undefined
+  index: number
+  reduceMotion: boolean
 }) {
+  const status = statusOf(monitor)
   return (
-    <Panel>
-      <header className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
-        <h2 className="text-sm font-medium">Activity</h2>
-        <span className="flex items-center gap-1.5 font-mono text-[10px] font-medium uppercase tracking-widest text-success-text">
-          {/* The dot is the steady signal — its color carries the state, so a
-              ping-per-heartbeat ring would restate "I'm here" on top of a
-              already-lit indicator. Per Emil: pulse must encode new state,
-              not restate the resting state. */}
-          <span aria-hidden className="inline-block size-1.5 rounded-full bg-success" />
-          Live
-        </span>
-      </header>
-      {feed.length === 0 ? (
-        <p className="px-4 py-5 text-xs text-muted-foreground">
-          Waiting for the next heartbeat — checks stream in here as they land.
-        </p>
-      ) : (
-        <ul aria-live="polite" aria-atomic="false" className="divide-y divide-border/60">
-          {feed.map((item) => (
-            <li
-              key={item.key}
-              className="opacity-100 transition-[opacity,transform] duration-200 ease-out motion-safe:starting:opacity-0 motion-safe:starting:-translate-y-1"
+    <motion.tr
+      initial={reduceMotion ? false : { opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
+      transition={{
+        duration: reduceMotion ? 0 : 0.18,
+        ease: [0.25, 1, 0.5, 1],
+        delay: reduceMotion ? 0 : Math.min(index * 0.02, 0.12),
+      }}
+      className="relative border-b border-border transition-colors last:border-b-0 hover:bg-muted/40"
+    >
+      <td className="px-6 py-5">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+          <Link
+            to={`/admin/monitors/${monitor.id}`}
+            className="inline-block max-w-full truncate text-lg font-medium tracking-tight outline-none after:absolute after:inset-0 after:content-[''] focus-visible:ring-2 focus-visible:ring-ring/30"
+          >
+            {monitor.name}
+          </Link>
+          {monitor.tags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-foreground"
             >
-              <div className="flex items-center gap-2.5 overflow-hidden px-4 py-2">
-              <span
-                className={cn(
-                  'size-1.5 shrink-0 rounded-full',
-                  item.status === 'up'
-                    ? 'bg-success'
-                    : item.status === 'down'
-                      ? 'bg-destructive'
-                      : 'bg-warning',
-                )}
-              />
-              <span className="min-w-0 flex-1 truncate text-xs">
-                {nameById.get(item.monitorId) ?? 'Monitor'}
-              </span>
-              <span
-                className={cn(
-                  'shrink-0 font-mono text-[11px] tabular-nums',
-                  item.status === 'up'
-                    ? 'text-muted-foreground'
-                    : item.status === 'down'
-                      ? 'text-destructive'
-                      : 'text-warning',
-                )}
-              >
-                {item.responseTimeMs == null
-                  ? item.status.toUpperCase()
-                  : `${item.responseTimeMs} ms`}
-              </span>
-              </div>
-            </li>
+              {tag}
+            </span>
           ))}
-        </ul>
-      )}
-    </Panel>
+        </div>
+        <div className="mt-1 max-w-full truncate text-xs font-medium" title={monitor.target}>
+          {monitor.target}
+        </div>
+      </td>
+      <td className="px-6 py-5">
+        <StatusCell status={status} />
+      </td>
+      <td className="hidden px-6 py-5 md:table-cell">
+        {status === 'up' ? (
+          monitor.latest?.responseTimeMs == null ? (
+            <span className="text-lg text-muted-foreground">—</span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-lg font-medium tabular-nums">
+              <Icon icon={ArrowDown} className="size-3.5 text-success" />
+              {monitor.latest.responseTimeMs}ms
+            </span>
+          )
+        ) : (
+          <span className="text-lg text-muted-foreground">—</span>
+        )}
+      </td>
+      <td className="hidden px-6 py-5 lg:table-cell">
+        <UptimeBars variant="chunky" uptime={uptime} />
+      </td>
+      <td className="w-12 px-2 py-5 text-right">
+        <RowActions monitor={monitor} />
+      </td>
+    </motion.tr>
   )
 }
 
-function RecentIncidents({ nameById }: { nameById: Map<string, string> }) {
-  const query = useQuery({
-    queryKey: ['incidents'],
-    queryFn: () => api.get<{ incidents: IncidentRow[] }>('/api/admin/incidents'),
+function RowActions({ monitor }: { monitor: MonitorWithLatest }) {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const confirm = useConfirm()
+  const isPaused = monitor.paused
+
+  const togglePause = useMutation({
+    mutationFn: (paused: boolean) =>
+      api.patch(`/api/admin/monitors/${monitor.id}`, { paused }),
+    onSuccess: (_data, paused) => {
+      void queryClient.invalidateQueries({ queryKey: ['monitors'] })
+      toast.success(paused ? `Paused "${monitor.name}"` : `Resumed "${monitor.name}"`)
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : 'Failed to update'),
   })
-  const incidents = (query.data?.incidents ?? []).slice(0, 4)
-  const now = useNow()
+
+  const remove = useMutation({
+    mutationFn: () => api.delete(`/api/admin/monitors/${monitor.id}`),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['monitors'] })
+      toast.success(`Deleted "${monitor.name}"`)
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : 'Failed to delete'),
+  })
 
   return (
-    <Panel>
-      <header className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
-        <h2 className="text-sm font-medium">Recent incidents</h2>
-        <Link
-          to="/admin/incidents"
-          className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label={`Actions for ${monitor.name}`}
+          // Above the row's stretched name link.
+          className="relative z-10 inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-[color,background-color] duration-150 ease-out hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30 data-[state=open]:bg-muted"
         >
-          View all →
-        </Link>
-      </header>
-      {query.isError ? (
-        <p className="px-4 py-5 text-xs text-destructive">
-          Couldn't load incidents.{' '}
-          <button
-            type="button"
-            onClick={() => void query.refetch()}
-            className="underline underline-offset-4"
-          >
-            Retry
-          </button>
-        </p>
-      ) : incidents.length === 0 ? (
-        <p className="px-4 py-5 text-xs text-muted-foreground">
-          No incidents on record. Quiet is good.
-        </p>
-      ) : (
-        <ul className="divide-y divide-border/60">
-          {incidents.map((i) => {
-            const open = !i.resolvedAt
-            const started = new Date(i.startedAt)
-            const durationMs = open
-              ? now - started.getTime()
-              : new Date(i.resolvedAt!).getTime() - started.getTime()
-            return (
-              <li key={i.id} className="space-y-0.5 px-4 py-2.5">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      'size-1.5 shrink-0 rounded-full',
-                      open ? 'bg-destructive' : 'bg-muted-foreground/50',
-                    )}
-                  />
-                  <span className="min-w-0 flex-1 truncate text-xs font-medium">
-                    {i.monitorName || nameById.get(i.monitorId) || 'Monitor'}
-                  </span>
-                  <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
-                    {formatRelative(i.startedAt)}
-                  </span>
-                </div>
-                <div className="pl-3.5 text-[11px] text-muted-foreground">
-                  {open ? 'Ongoing' : `Lasted ${formatDuration(durationMs)}`}
-                  {i.note ? ` — ${i.note}` : ''}
-                </div>
-              </li>
-            )
-          })}
-        </ul>
-      )}
-    </Panel>
+          <Icon icon={DotsThreeOutlineVertical} className="size-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuItem onSelect={() => navigate(`/admin/monitors/${monitor.id}`)}>
+          Open detail
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => togglePause.mutate(!isPaused)}
+          disabled={togglePause.isPending}
+        >
+          <Icon icon={isPaused ? Play : Pause} className="size-3.5" />
+          {isPaused ? 'Resume' : 'Pause'}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          variant="destructive"
+          onSelect={async () => {
+            const ok = await confirm({
+              title: `Delete "${monitor.name}"?`,
+              description:
+                'All heartbeats, incidents, and links to status pages will be removed. This cannot be undone.',
+              confirmLabel: 'Delete monitor',
+              destructive: true,
+            })
+            if (ok) remove.mutate()
+          }}
+        >
+          <Icon icon={Trash} className="size-3.5" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function StatusCell({ status }: { status: ReturnType<typeof statusOf> }) {
+  if (status === 'up') {
+    return (
+      <span className="inline-flex items-center gap-[7px] text-lg font-medium">
+        <Icon icon={CheckCircle} weight="fill" className="size-5 shrink-0 text-success" />
+        Up
+      </span>
+    )
+  }
+  if (status === 'down') {
+    return (
+      <span className="inline-flex items-center gap-[7px] text-lg font-medium text-destructive">
+        <Icon icon={XCircle} weight="fill" className="size-5 shrink-0" />
+        Down
+      </span>
+    )
+  }
+  if (status === 'disabled') {
+    return (
+      <span className="inline-flex items-center gap-[7px] text-lg font-medium text-muted-foreground">
+        <Icon icon={PauseCircle} weight="fill" className="size-5 shrink-0" />
+        Disabled
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-[7px] text-lg font-medium text-muted-foreground">
+      <Icon icon={MinusCircle} weight="fill" className="size-5 shrink-0" />
+      Pending
+    </span>
   )
 }
 
@@ -424,34 +499,29 @@ function DashboardSkeleton() {
   return (
     <div className="flex flex-col gap-6 px-4 lg:px-6">
       <div className="space-y-2">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-4 w-96 max-w-full" />
+        <Skeleton className="h-9 w-44" />
+        <Skeleton className="h-5 w-96 max-w-full" />
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Skeleton className="h-9 w-full sm:max-w-xs" />
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-9 w-24" />
-          <Skeleton className="h-9 w-32" />
+      <div className="flex flex-wrap items-center gap-3">
+        <Skeleton className="h-12 w-80 rounded-full" />
+        <div className="ml-auto flex items-center gap-2.5">
+          <Skeleton className="size-10 rounded-full" />
+          <Skeleton className="h-10 w-[153px] rounded-full" />
         </div>
       </div>
-      <Panel className="divide-y divide-border/60">
+      <Panel className="overflow-hidden rounded-2xl">
         {[0, 1, 2, 3, 4].map((i) => (
-          <div key={i} className="flex items-center gap-4 p-3">
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-4 w-16" />
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="ml-auto h-4 w-24" />
+          <div key={i} className="flex items-center gap-4 border-b border-border/60 p-6 last:border-b-0">
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-5 w-48" />
+              <Skeleton className="h-3 w-64" />
+            </div>
+            <Skeleton className="h-5 w-20" />
+            <Skeleton className="h-5 w-20" />
+            <Skeleton className="h-9 w-64" />
           </div>
         ))}
       </Panel>
-      <div className="grid gap-6 xl:grid-cols-2">
-        <Panel className="p-4">
-          <Skeleton className="h-24 w-full" />
-        </Panel>
-        <Panel className="p-4">
-          <Skeleton className="h-24 w-full" />
-        </Panel>
-      </div>
     </div>
   )
 }
@@ -466,7 +536,7 @@ function EmptyDashboard() {
         <div className="space-y-2 max-w-md">
           <h2 className="text-2xl font-semibold tracking-tight">No monitors yet</h2>
           <p className="text-muted-foreground text-sm">
-            Add your first check to start tracking uptime. The dashboard will
+            Add your first check to start tracking uptime. The table will
             light up as soon as the first heartbeat lands — usually within a
             couple of seconds.
           </p>

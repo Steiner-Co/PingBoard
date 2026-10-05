@@ -271,6 +271,523 @@
     .btn .btn-text { display: none; }
     .btn { padding: 0 12px; }
   }
+
+  /* ---- shared screen tokens (generated) ---- */
+  :root { --warn: #d97706; --success-ink: oklch(0.5 0.16 149.579); --up: #00bc7c; }
+  .dark { --warn: #d97706; --success-ink: oklch(0.8 0.2 149.579); --up: #00bc7c; }
+
+  /* ---- dashboard (base, generated) ---- */
+.mast { display: block; }
+.mast h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+.mast p { margin: 8px 0 0; font-size: 16px; font-weight: 500; color: var(--foreground); }
+.controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.segments { display: inline-flex; align-items: center; background: var(--muted); border-radius: 999px; }
+.segments button {
+    border: none; background: transparent;
+    color: color-mix(in srgb, var(--foreground) 60%, transparent);
+    font-family: 'Inter', system-ui, sans-serif; font-size: 16px; font-weight: 500; line-height: 16px;
+    padding: 10px 18px; border-radius: 999px; cursor: pointer;
+    display: inline-flex; gap: 4px; align-items: center; white-space: nowrap;
+    transition: background 150ms ease-out, color 150ms ease-out, transform 150ms ease-out;
+  }
+.segments button:hover { color: var(--foreground); }
+.segments button:active { transform: scale(0.97); }
+.segments button .n { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 400; opacity: 0.6; }
+.segments button[aria-pressed="true"] { background: var(--foreground); color: var(--background); }
+.segments button[aria-pressed="true"]:hover { color: var(--background); }
+.controls-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.icon-circle {
+    width: 40px; height: 40px; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%; border: 1px solid var(--border);
+    background: var(--card); color: var(--foreground); cursor: pointer; font-size: 19px;
+    transition: transform 150ms ease-out, background 150ms ease-out;
+  }
+.icon-circle:hover { background: var(--muted); }
+.icon-circle:active { transform: scale(0.96); }
+.search {
+    display: flex; align-items: center; gap: 8px; height: 40px; width: 153px; flex-shrink: 0;
+    padding: 0 12px; border: 1px solid var(--border); border-radius: 999px;
+    background: var(--card); font-size: 14px; font-weight: 500; color: var(--foreground);
+    cursor: text;
+  }
+.search .mag { font-size: 19px; color: var(--foreground); line-height: 1; }
+.search input { border: none; outline: none; background: transparent; color: var(--foreground); font: inherit; width: 100%; padding: 0; }
+.search input::placeholder { color: var(--foreground); }
+.table { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.trow {
+    display: grid; grid-template-columns: minmax(0, 2.8fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 3.5fr);
+    gap: 16px; align-items: center; padding: 22px 24px;
+  }
+.trow.head { padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--muted); }
+.trow.head span { font-size: 16px; font-weight: 500; color: var(--foreground); }
+.trow.body { cursor: pointer; transition: background 150ms ease-out; }
+.trow.body + .trow.body { border-top: 1px solid var(--border); }
+.trow.body:hover { background: color-mix(in srgb, var(--foreground) 3%, transparent); }
+.name { font-size: 18px; font-weight: 500; letter-spacing: -0.1px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tag {
+    font-size: 8px; font-weight: 500; color: var(--foreground);
+    background: #e7e5e5; border-radius: 999px; padding: 4px 6px; white-space: nowrap; line-height: 1;
+  }
+.dark .tag { background: var(--muted); color: var(--muted-foreground); }
+.target { margin-top: 4px; font-size: 12px; font-weight: 500; color: var(--foreground); }
+.status { display: inline-flex; align-items: center; gap: 7px; font-size: 18px; font-weight: 500; }
+.status svg { width: 12px; height: 12px; flex-shrink: 0; }
+.status.up { color: var(--foreground); }
+.status.down { color: var(--destructive); }
+.status.warn { color: var(--warn); }
+.status.mut { color: var(--muted-foreground); }
+.resp { display: inline-flex; align-items: center; gap: 5px; font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--foreground); }
+.resp .arr { font-size: 12px; color: var(--up); line-height: 1; }
+.resp.none { color: var(--muted-foreground); }
+.bars { display: flex; gap: 2px; align-items: flex-end; height: 36px; }
+.bars i { flex: 1 1 0; min-width: 0; max-width: 10px; border-radius: 4px; background: var(--up); min-height: 5px; }
+.bars i.down { background: var(--destructive); }
+.bars i.warn { background: var(--warn); }
+.bars i.none { background: var(--border); }
+.toolbar-note { font-size: 12px; color: var(--muted-foreground); }
+.toolbar-note kbd { font-family: 'JetBrains Mono', monospace; font-size: 11px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--muted); }
+@media (max-width: 900px) {
+
+    .trow { grid-template-columns: minmax(0, 1fr) auto; }
+    .resp-col, .bars-col, .trow.head .h-resp, .trow.head .h-up { display: none; }
+  
+}
+.content { padding: 0 24px 40px; display: flex; flex-direction: column; gap: 24px; }
+  /* ---- domains (scoped, generated) ---- */
+.screen-domains .mono { font-family: 'JetBrains Mono', monospace; }
+.screen-domains .mast { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.screen-domains .mast h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+.screen-domains .mast h1 .count {
+    font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500;
+    letter-spacing: 0; color: var(--muted-foreground); vertical-align: middle; margin-left: 10px;
+  }
+.screen-domains .mast p { margin: 6px 0 0; font-size: 13.5px; color: var(--muted-foreground); }
+.screen-domains .mast-actions { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+.screen-domains .search {
+    display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 8px 0 14px;
+    border: 1px solid var(--border); border-radius: 999px; background: var(--card);
+    font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--muted-foreground);
+    cursor: text; min-width: 260px;
+  }
+.screen-domains .search input { border: none; outline: none; background: transparent; color: var(--foreground); font: inherit; width: 100%; }
+.screen-domains .search kbd {
+    font-family: inherit; font-size: 11px; border: 1px solid var(--border);
+    border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--muted);
+  }
+.screen-domains .btn {
+    display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px;
+    border-radius: 999px; font-size: 14px; font-weight: 550;
+    border: 1px solid var(--border); background: var(--card); color: var(--foreground);
+    cursor: pointer; white-space: nowrap;
+    transition: transform 150ms ease-out, background 150ms;
+  }
+.screen-domains .btn:hover { background: var(--muted); }
+.screen-domains .btn:active { transform: scale(0.97); }
+.screen-domains .btn-solid { background: var(--foreground); border-color: transparent; color: var(--background); }
+.screen-domains .btn-solid:hover { background: var(--foreground); opacity: 0.85; }
+.screen-domains .icon { font-size: 20px; line-height: 1; }
+.screen-domains .stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.screen-domains .stat { padding: 16px 20px 14px; }
+.screen-domains .stat + .stat { border-left: 1px solid var(--border); }
+.screen-domains .stat small { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+.screen-domains .stat b { display: block; margin-top: 2px; font-size: 30px; font-weight: 550; letter-spacing: 0; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.screen-domains .stat small.sub2, .screen-domains .stat .subline { display: block; margin-top: 4px; font-size: 12px; color: var(--muted-foreground); text-transform: none; letter-spacing: 0; }
+.screen-domains .stat.warn b { color: var(--warn); }
+.screen-domains .stat.ok b { color: var(--success-ink); }
+.screen-domains .warnband { border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); border-radius: 16px; overflow: hidden; }
+.screen-domains .warnband-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 13.5px; font-weight: 600; color: var(--warn); }
+.screen-domains .warnband-head .n { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+.screen-domains .warnband p.hint { margin: 0; padding: 10px 20px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted-foreground); }
+.screen-domains .warnband ul { list-style: none; margin: 0; padding: 0; }
+.screen-domains .warnband li button {
+    width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 20px;
+    background: none; border: none; font: inherit; color: inherit; cursor: pointer; text-align: left;
+  }
+.screen-domains .warnband li + li { border-top: 1px solid var(--border); }
+.screen-domains .warnband li button:hover { background: color-mix(in srgb, var(--foreground) 3%, transparent); }
+.screen-domains .warnband .dname { font-size: 12.5px; font-weight: 600; }
+.screen-domains .warnband .exp { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; }
+.screen-domains .warnband .exp b { font-weight: 600; }
+.screen-domains .warnband .exp .k { color: var(--muted-foreground); font-size: 10.5px; margin-right: 6px; }
+.screen-domains .list { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.screen-domains .list-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 13.5px; font-weight: 600; }
+.screen-domains .list-head span { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+.screen-domains .drow { padding: 16px 20px; }
+.screen-domains .drow + .drow { border-top: 1px solid var(--border); }
+.screen-domains .drow-top { display: flex; align-items: center; gap: 12px; }
+.screen-domains .caret { color: var(--muted-foreground); font-size: 14px; }
+.screen-domains .dname { font-size: 15px; font-weight: 550; }
+.screen-domains .pill {
+    display: inline-block; border: 1px solid var(--border); border-radius: 999px;
+    padding: 1px 8px; font-size: 10.5px; font-weight: 600; color: var(--warn);
+    border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+  }
+.screen-domains .dsub { margin-top: 3px; font-size: 12px; color: var(--muted-foreground); }
+.screen-domains .dmetrics { margin-left: auto; display: flex; gap: 28px; text-align: right; }
+.screen-domains .dmetrics small { display: block; font-size: 11px; color: var(--muted-foreground); }
+.screen-domains .dmetrics b { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.screen-domains .dmetrics b.warn { color: var(--warn); }
+.screen-domains .dmetrics b.bad { color: var(--destructive); }
+.screen-domains .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+.screen-domains .dot.warn { background: var(--warn); }
+.screen-domains .detail {
+    margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    background: color-mix(in srgb, var(--foreground) 2%, transparent);
+    margin-left: -20px; margin-right: -20px; margin-bottom: -16px; padding: 14px 20px 16px 44px;
+  }
+.screen-domains .detail .f small { display: block; font-size: 11px; font-weight: 600; color: var(--muted-foreground); margin-bottom: 2px; }
+.screen-domains .detail .f span { font-size: 13px; }
+.screen-domains .detail .f code { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; }
+.screen-domains .toolbar-note { font-size: 12px; color: var(--muted-foreground); }
+.screen-domains .toolbar-note kbd { font-family: 'JetBrains Mono', monospace; font-size: 11px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--muted); }
+@media (max-width: 800px) {
+.screen-domains .stats { grid-template-columns: 1fr 1fr; }
+.screen-domains .stat:nth-child(3) { border-left: none; border-top: 1px solid var(--border); }
+.screen-domains .stat:nth-child(4) { border-top: 1px solid var(--border); }
+.screen-domains .stat b { font-size: 32px; }
+.screen-domains .dmetrics { display: none; }
+.screen-domains .detail { grid-template-columns: 1fr 1fr; }
+}
+  /* ---- incidents (scoped, generated) ---- */
+.screen-incidents .mast { display: block; }
+.screen-incidents .mast h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+.screen-incidents .mast h1 .count { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: var(--muted-foreground); vertical-align: middle; margin-left: 10px; }
+.screen-incidents .mast p { margin: 6px 0 0; font-size: 13.5px; color: var(--muted-foreground); }
+.screen-incidents .stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.screen-incidents .stat { padding: 16px 20px 14px; }
+.screen-incidents .stat + .stat { border-left: 1px solid var(--border); }
+.screen-incidents .stat small { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+.screen-incidents .stat b { display: block; margin-top: 2px; font-size: 30px; font-weight: 550; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.screen-incidents .stat .subline { display: block; margin-top: 4px; font-size: 12px; color: var(--muted-foreground); }
+.screen-incidents .stat.bad b { color: var(--destructive); }
+.screen-incidents .stat.warn b { color: var(--warn); }
+.screen-incidents .stat.ok b { color: var(--success-ink); }
+.screen-incidents .grid2 { display: grid; grid-template-columns: 3fr 2fr; gap: 24px; }
+.screen-incidents .card { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.screen-incidents .card-head { display: flex; align-items: baseline; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 13.5px; font-weight: 600; }
+.screen-incidents .card-head span { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+.screen-incidents .chart { display: flex; gap: 5px; align-items: flex-end; height: 150px; padding: 16px 20px 8px; }
+.screen-incidents .chart i { flex: 1; border-radius: 3px 3px 0 0; background: color-mix(in srgb, var(--destructive) 75%, transparent); min-height: 3px; }
+.screen-incidents .chart i.zero { background: var(--border); }
+.screen-incidents .chart-axis { display: flex; justify-content: space-between; padding: 0 20px 14px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-foreground); }
+.screen-incidents .off { padding: 12px 20px; }
+.screen-incidents .off + .off { border-top: 1px solid var(--border); }
+.screen-incidents .off-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.screen-incidents .off-top b { font-size: 13.5px; font-weight: 600; }
+.screen-incidents .off-top .c { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.screen-incidents .bar { height: 4px; background: var(--muted); border-radius: 2px; margin: 8px 0 6px; }
+.screen-incidents .bar i { display: block; height: 100%; border-radius: 2px; background: color-mix(in srgb, var(--destructive) 70%, transparent); }
+.screen-incidents .off-meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); }
+.screen-incidents .badge { display: inline-block; border-radius: 999px; padding: 1px 8px; font-size: 10.5px; font-weight: 600; }
+.screen-incidents .badge.open { background: color-mix(in srgb, var(--destructive) 12%, transparent); color: var(--destructive); }
+.screen-incidents .badge.flap { background: color-mix(in srgb, var(--warn) 12%, transparent); color: var(--warn); }
+.screen-incidents table.inc { width: 100%; border-collapse: collapse; font-size: 13px; }
+.screen-incidents table.inc th { text-align: left; font-size: 11px; font-weight: 600; color: var(--muted-foreground); padding: 10px 20px; border-bottom: 1px solid var(--border); }
+.screen-incidents table.inc td { padding: 11px 20px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.screen-incidents table.inc tr:last-child td { border-bottom: none; }
+.screen-incidents .mono { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--muted-foreground); }
+.screen-incidents .note { color: var(--muted-foreground); font-style: italic; }
+.screen-incidents .toolbar-note { font-size: 12px; color: var(--muted-foreground); }
+.screen-incidents .toolbar-note kbd { font-family: 'JetBrains Mono', monospace; font-size: 11px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--muted); }
+@media (max-width: 800px) {
+.screen-incidents .stats { grid-template-columns: 1fr 1fr; }
+.screen-incidents .stat:nth-child(3) { border-left: none; border-top: 1px solid var(--border); }
+.screen-incidents .stat:nth-child(4) { border-top: 1px solid var(--border); }
+.screen-incidents .stat b { font-size: 32px; }
+.screen-incidents .grid2 { grid-template-columns: 1fr; }
+.screen-incidents table.inc th:nth-child(4), .screen-incidents table.inc td:nth-child(4) { display: none; }
+}
+  /* ---- maintenance (scoped, generated) ---- */
+.screen-maintenance .mast { display: block; }
+.screen-maintenance .mast h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+.screen-maintenance .mast h1 .count { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: var(--muted-foreground); vertical-align: middle; margin-left: 10px; }
+.screen-maintenance .mast p { margin: 6px 0 0; font-size: 13.5px; color: var(--muted-foreground); max-width: 640px; }
+.screen-maintenance .stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.screen-maintenance .stat { padding: 16px 20px 14px; }
+.screen-maintenance .stat + .stat { border-left: 1px solid var(--border); }
+.screen-maintenance .stat small { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+.screen-maintenance .stat b { display: block; margin-top: 2px; font-size: 30px; font-weight: 550; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.screen-maintenance .stat .subline { display: block; margin-top: 4px; font-size: 12px; color: var(--muted-foreground); }
+.screen-maintenance .stat.warn b { color: var(--warn); }
+.screen-maintenance .stat.mut b { color: var(--muted-foreground); }
+.screen-maintenance .card { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.screen-maintenance .card-head { display: flex; align-items: baseline; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 13.5px; font-weight: 600; }
+.screen-maintenance .card-head span { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+.screen-maintenance .track { position: relative; height: 84px; margin: 16px 20px 4px; }
+.screen-maintenance .grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(14, 1fr); }
+.screen-maintenance .grid div { border-left: 1px solid color-mix(in srgb, var(--border) 45%, transparent); }
+.screen-maintenance .grid div:first-child { border-left: none; }
+.screen-maintenance .grid div.we { background: color-mix(in srgb, var(--foreground) 3%, transparent); }
+.screen-maintenance .winbar { position: absolute; height: 18px; border-radius: 4px; border: 1px solid color-mix(in srgb, var(--warn) 55%, transparent); background: color-mix(in srgb, var(--warn) 16%, transparent); font-size: 10px; font-weight: 600; color: var(--warn); line-height: 16px; padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.screen-maintenance .winbar.active { background: color-mix(in srgb, var(--warn) 35%, transparent); }
+.screen-maintenance .now { position: absolute; top: -4px; bottom: 0; width: 2px; background: var(--success); }
+.screen-maintenance .now::before { content: ''; position: absolute; top: -4px; left: -2px; width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+.screen-maintenance .days { display: grid; grid-template-columns: repeat(14, 1fr); margin: 6px 20px 14px; border-top: 1px solid color-mix(in srgb, var(--border) 45%, transparent); padding-top: 6px; }
+.screen-maintenance .days span { text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-foreground); }
+.screen-maintenance .days span.today { color: var(--foreground); font-weight: 700; }
+.screen-maintenance .wrow { display: flex; gap: 12px; padding: 14px 20px; align-items: flex-start; }
+.screen-maintenance .wrow + .wrow { border-top: 1px solid var(--border); }
+.screen-maintenance .wrow.active { border-left: 2px solid var(--warn); background: color-mix(in srgb, var(--warn) 5%, transparent); }
+.screen-maintenance .wrow .t { font-size: 14px; font-weight: 600; }
+.screen-maintenance .wrow .m { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); margin-top: 4px; }
+.screen-maintenance .wrow .m b { color: var(--warn); font-weight: 600; }
+.screen-maintenance .wrow .link { font-size: 12px; color: var(--muted-foreground); margin-top: 4px; }
+.screen-maintenance .wrow .del { margin-left: auto; border: none; background: none; color: var(--muted-foreground); cursor: pointer; font-size: 16px; padding: 4px; }
+.screen-maintenance .badge { display: inline-block; border-radius: 999px; padding: 1px 8px; font-size: 10.5px; font-weight: 600; background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); margin-left: 8px; vertical-align: 1px; }
+.screen-maintenance .toolbar-note { font-size: 12px; color: var(--muted-foreground); }
+.screen-maintenance .toolbar-note kbd { font-family: 'JetBrains Mono', monospace; font-size: 11px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--muted); }
+@media (max-width: 800px) {
+.screen-maintenance .stats { grid-template-columns: 1fr 1fr; }
+.screen-maintenance .stat:nth-child(3) { border-left: none; border-top: 1px solid var(--border); }
+.screen-maintenance .stat:nth-child(4) { border-top: 1px solid var(--border); }
+.screen-maintenance .stat b { font-size: 32px; }
+}
+  /* ---- channels (scoped, generated) ---- */
+.screen-channels .mast { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.screen-channels .mast h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+.screen-channels .mast h1 .count { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: var(--muted-foreground); vertical-align: middle; margin-left: 10px; }
+.screen-channels .mast p { margin: 6px 0 0; font-size: 13.5px; color: var(--muted-foreground); }
+.screen-channels .mast-actions { margin-left: auto; }
+.screen-channels .btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 550; border: 1px solid var(--border); background: var(--card); color: var(--foreground); cursor: pointer; white-space: nowrap; transition: transform 150ms ease-out, background 150ms; }
+.screen-channels .btn:hover { background: var(--muted); }
+.screen-channels .btn:active { transform: scale(0.97); }
+.screen-channels .btn-solid { background: var(--foreground); border-color: transparent; color: var(--background); }
+.screen-channels .btn-solid:hover { background: var(--foreground); opacity: 0.85; }
+.screen-channels .btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
+.screen-channels .stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.screen-channels .stat { padding: 16px 20px 14px; }
+.screen-channels .stat + .stat { border-left: 1px solid var(--border); }
+.screen-channels .stat small { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+.screen-channels .stat b { display: block; margin-top: 2px; font-size: 30px; font-weight: 550; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.screen-channels .stat b .suffix { font-size: 14px; font-weight: 500; color: var(--muted-foreground); }
+.screen-channels .stat .subline { display: block; margin-top: 4px; font-size: 12px; color: var(--muted-foreground); }
+.screen-channels .stat.warn b { color: var(--warn); }
+.screen-channels .stat.ok b { color: var(--success-ink); }
+.screen-channels .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start; }
+.screen-channels .card { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.screen-channels .card-head { display: flex; align-items: baseline; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 13.5px; font-weight: 600; }
+.screen-channels .card-head span { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+.screen-channels .ch { padding: 16px 20px; }
+.screen-channels .ch + .ch { border-top: 1px solid var(--border); }
+.screen-channels .ch-top { display: flex; align-items: center; gap: 10px; }
+.screen-channels .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+.screen-channels .dot.off { background: color-mix(in srgb, var(--foreground) 30%, transparent); }
+.screen-channels .ch-top b { font-size: 14px; font-weight: 600; }
+.screen-channels .ch-top .type { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); }
+.screen-channels .ch-top .acts { margin-left: auto; display: flex; gap: 8px; }
+.screen-channels .badge-off { border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); color: var(--warn); border-radius: 999px; padding: 1px 8px; font-size: 10.5px; font-weight: 600; }
+.screen-channels .kv { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: 6px 12px; margin-top: 12px; font-size: 12px; }
+.screen-channels .kv dt { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); }
+.screen-channels .kv dd { margin: 0; min-width: 0; }
+.screen-channels .kv dd.mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.screen-channels .chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 999px; padding: 1px 9px; font-size: 11px; margin: 0 6px 4px 0; }
+.screen-channels .chip i { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+.screen-channels .chip i.down { background: var(--destructive); }
+.screen-channels .rail-warn { border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+.screen-channels .rail-warn .card-head { color: var(--warn); }
+.screen-channels .rail-warn .card-head span { color: var(--warn); }
+.screen-channels .rail-hint { margin: 0; padding: 10px 20px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted-foreground); }
+.screen-channels .gap { display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 12.5px; }
+.screen-channels .gap + .gap { border-top: 1px solid var(--border); }
+.screen-channels .gap .t { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--muted-foreground); }
+.screen-channels .rail-ok { display: flex; gap: 10px; padding: 16px 20px; font-size: 12.5px; color: var(--muted-foreground); }
+.screen-channels .toolbar-note { font-size: 12px; color: var(--muted-foreground); }
+.screen-channels .toolbar-note kbd { font-family: 'JetBrains Mono', monospace; font-size: 11px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--muted); }
+@media (max-width: 900px) {
+.screen-channels .stats { grid-template-columns: 1fr 1fr; }
+.screen-channels .stat:nth-child(3) { border-left: none; border-top: 1px solid var(--border); }
+.screen-channels .stat:nth-child(4) { border-top: 1px solid var(--border); }
+.screen-channels .stat b { font-size: 32px; }
+.screen-channels .grid2 { grid-template-columns: 1fr; }
+}
+  /* ---- status-pages (scoped, generated) ---- */
+.screen-status-pages .mast { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.screen-status-pages .mast h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+.screen-status-pages .mast h1 .count { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: var(--muted-foreground); vertical-align: middle; margin-left: 10px; }
+.screen-status-pages .mast p { margin: 6px 0 0; font-size: 13.5px; color: var(--muted-foreground); }
+.screen-status-pages .mast-actions { margin-left: auto; }
+.screen-status-pages .btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 550; border: 1px solid var(--border); background: var(--card); color: var(--foreground); cursor: pointer; white-space: nowrap; transition: transform 150ms ease-out, background 150ms; }
+.screen-status-pages .btn:hover { background: var(--muted); }
+.screen-status-pages .btn:active { transform: scale(0.97); }
+.screen-status-pages .btn-solid { background: var(--foreground); border-color: transparent; color: var(--background); }
+.screen-status-pages .btn-solid:hover { background: var(--foreground); opacity: 0.85; }
+.screen-status-pages .btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
+.screen-status-pages .stats { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.screen-status-pages .stat { padding: 16px 20px 14px; }
+.screen-status-pages .stat + .stat { border-left: 1px solid var(--border); }
+.screen-status-pages .stat small { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+.screen-status-pages .stat b { display: block; margin-top: 2px; font-size: 30px; font-weight: 550; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.screen-status-pages .stat b .suffix { font-size: 14px; font-weight: 500; color: var(--muted-foreground); }
+.screen-status-pages .stat .subline { display: block; margin-top: 4px; font-size: 12px; color: var(--muted-foreground); }
+.screen-status-pages .card { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.screen-status-pages .card-head { display: flex; align-items: baseline; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 13.5px; font-weight: 600; }
+.screen-status-pages .card-head span { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+.screen-status-pages .card-head.warn { color: var(--warn); }
+.screen-status-pages .card-head.warn span { color: var(--warn); }
+.screen-status-pages .card.warn { border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+.screen-status-pages .hint { margin: 0; padding: 10px 20px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted-foreground); }
+.screen-status-pages .prow { display: flex; gap: 12px; padding: 16px 20px; align-items: flex-start; }
+.screen-status-pages .prow + .prow { border-top: 1px solid var(--border); }
+.screen-status-pages .prow .title { font-size: 15px; font-weight: 600; }
+.screen-status-pages .badge-pw { border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); color: var(--warn); border-radius: 999px; padding: 1px 8px; font-size: 10.5px; font-weight: 600; margin-left: 8px; }
+.screen-status-pages .urlpill { display: inline-flex; align-items: center; gap: 8px; margin-top: 8px; border: 1px solid color-mix(in srgb, var(--border) 80%, transparent); background: color-mix(in srgb, var(--foreground) 3%, transparent); border-radius: 8px; padding: 4px 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.screen-status-pages .urlpill .host { color: var(--muted-foreground); }
+.screen-status-pages .urlpill .slug { font-weight: 600; }
+.screen-status-pages .pmeta { margin-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); }
+.screen-status-pages .pmeta .none { color: var(--warn); }
+.screen-status-pages .health { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.screen-status-pages .health i { width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
+.screen-status-pages .health i.bad { background: var(--destructive); }
+.screen-status-pages .health b.down { color: var(--destructive); font-weight: 600; }
+.screen-status-pages .prow .acts { margin-left: auto; display: flex; gap: 8px; flex-shrink: 0; }
+.screen-status-pages .hrow { display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 12.5px; }
+.screen-status-pages .hrow + .hrow { border-top: 1px solid var(--border); }
+.screen-status-pages .hrow .t { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--muted-foreground); }
+.screen-status-pages .toolbar-note { font-size: 12px; color: var(--muted-foreground); }
+.screen-status-pages .toolbar-note kbd { font-family: 'JetBrains Mono', monospace; font-size: 11px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--muted); }
+@media (max-width: 700px) {
+.screen-status-pages .prow { flex-direction: column; }
+.screen-status-pages .prow .acts { margin-left: 0; }
+}
+  /* ---- monitor-detail (scoped, generated) ---- */
+.screen-monitor-detail .back { font-size: 13px; color: var(--muted-foreground); text-decoration: none; }
+.screen-monitor-detail .back:hover { color: var(--foreground); }
+.screen-monitor-detail .dhead { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.screen-monitor-detail .dhead h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.5px; word-break: break-word; }
+.screen-monitor-detail .dhead .tline { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 13px; color: var(--muted-foreground); }
+.screen-monitor-detail .dhead .tline .ty { font-family: 'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+.screen-monitor-detail .dhead .tline .tg { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.screen-monitor-detail .tags { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.screen-monitor-detail .tag { border: 1px solid var(--border); border-radius: 999px; padding: 1px 9px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted-foreground); }
+.screen-monitor-detail .hact { display: flex; gap: 10px; flex-shrink: 0; }
+.screen-monitor-detail .btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 550; border: 1px solid var(--border); background: var(--card); color: var(--foreground); cursor: pointer; white-space: nowrap; transition: transform 150ms ease-out, background 150ms; }
+.screen-monitor-detail .btn:hover { background: var(--muted); }
+.screen-monitor-detail .btn:active { transform: scale(0.97); }
+.screen-monitor-detail .btn-solid { background: var(--foreground); color: var(--background); border-color: transparent; }
+.screen-monitor-detail .btn-solid:hover { background: var(--foreground); opacity: 0.85; }
+.screen-monitor-detail .btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
+.screen-monitor-detail .stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.screen-monitor-detail .stat { padding: 16px 20px 14px; }
+.screen-monitor-detail .stat + .stat { border-left: 1px solid var(--border); }
+.screen-monitor-detail .stat small { display: block; font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+.screen-monitor-detail .stat b { display: block; margin-top: 2px; font-size: 30px; font-weight: 550; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.screen-monitor-detail .stat .up { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; }
+.screen-monitor-detail .stat .up i { width: 9px; height: 9px; border-radius: 50%; background: var(--success); }
+.screen-monitor-detail .stat .up small { font-size: 13px; text-transform: none; letter-spacing: 0; color: var(--muted-foreground); font-weight: 500; }
+.screen-monitor-detail .card { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.screen-monitor-detail .card-head { display: flex; align-items: baseline; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 13.5px; font-weight: 600; }
+.screen-monitor-detail .card-head span { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted-foreground); }
+.screen-monitor-detail .timeline { display: flex; gap: 3px; padding: 16px 20px; }
+.screen-monitor-detail .timeline i { flex: 1; height: 28px; border-radius: 3px; background: var(--success); }
+.screen-monitor-detail .timeline i.warn { background: var(--warn); }
+.screen-monitor-detail .timeline i.down { background: var(--destructive); }
+.screen-monitor-detail .timeline i.none { background: var(--border); }
+.screen-monitor-detail .area { padding: 8px 20px 4px; }
+.screen-monitor-detail .area svg { width: 100%; height: 150px; display: block; }
+.screen-monitor-detail .inc { display: flex; align-items: center; gap: 12px; padding: 11px 20px; font-size: 13px; }
+.screen-monitor-detail .inc + .inc { border-top: 1px solid var(--border); }
+.screen-monitor-detail .inc .mono { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.screen-monitor-detail .inc .ongoing { color: var(--destructive); font-weight: 600; font-size: 12px; }
+.screen-monitor-detail .inc .note { color: var(--muted-foreground); font-style: italic; }
+.screen-monitor-detail .card-foot { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding: 10px 20px; font-size: 12px; color: var(--muted-foreground); }
+.screen-monitor-detail .toolbar-note { font-size: 12px; color: var(--muted-foreground); }
+.screen-monitor-detail .toolbar-note kbd { font-family: 'JetBrains Mono', monospace; font-size: 11px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--muted); }
+@media (max-width: 800px) {
+.screen-monitor-detail .stats { grid-template-columns: 1fr 1fr; }
+.screen-monitor-detail .stat:nth-child(3) { border-left: none; border-top: 1px solid var(--border); }
+.screen-monitor-detail .stat:nth-child(4) { border-top: 1px solid var(--border); }
+.screen-monitor-detail .stat b { font-size: 32px; }
+.screen-monitor-detail .timeline i:nth-child(n+46) { display: none; }
+}
+  /* ---- monitor-form (scoped, generated) ---- */
+.screen-monitor-form .mast { display: block; }
+.screen-monitor-form .mast h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+.screen-monitor-form .mast h1 .count { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: var(--muted-foreground); vertical-align: middle; margin-left: 10px; }
+.screen-monitor-form .mast p { margin: 6px 0 0; font-size: 13.5px; color: var(--muted-foreground); }
+.screen-monitor-form .steps { display: flex; gap: 8px; align-items: center; }
+.screen-monitor-form .step { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 550; color: var(--muted-foreground); }
+.screen-monitor-form .step .n { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.screen-monitor-form .step.done { color: var(--foreground); }
+.screen-monitor-form .step.done .n { background: var(--success); border-color: transparent; color: #fff; }
+.screen-monitor-form .step.now { color: var(--foreground); }
+.screen-monitor-form .step.now .n { background: var(--foreground); color: var(--background); border-color: transparent; }
+.screen-monitor-form .step .bar { width: 32px; height: 1px; background: var(--border); }
+.screen-monitor-form .formwrap { max-width: 720px; display: flex; flex-direction: column; gap: 16px; }
+.screen-monitor-form .card { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.screen-monitor-form .card-head { display: block; padding: 14px 20px 0; }
+.screen-monitor-form .card-head b { font-size: 15px; font-weight: 600; }
+.screen-monitor-form .card-head p { margin: 4px 0 0; font-size: 13px; color: var(--muted-foreground); }
+.screen-monitor-form .card-body { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 14px; }
+.screen-monitor-form label.fl { font-size: 13px; font-weight: 550; display: block; margin-bottom: 6px; }
+.screen-monitor-form .in { height: 44px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); padding: 0 14px; font-size: 14px; width: 100%; color: var(--foreground); }
+.screen-monitor-form .in:focus { outline: 2px solid color-mix(in srgb, var(--foreground) 25%, transparent); outline-offset: 1px; }
+.screen-monitor-form .in.mono { font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+.screen-monitor-form .detect { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted-foreground); }
+.screen-monitor-form .detect .auto { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px; color: var(--success-ink); border-color: color-mix(in srgb, var(--success) 45%, transparent); }
+.screen-monitor-form .testok { display: flex; gap: 10px; align-items: center; border: 1px solid color-mix(in srgb, var(--success) 40%, transparent); background: color-mix(in srgb, var(--success) 7%, transparent); border-radius: 12px; padding: 10px 14px; font-size: 13px; }
+.screen-monitor-form .testok b { color: var(--success-ink); }
+.screen-monitor-form .testok .ms { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted-foreground); }
+.screen-monitor-form .segs { display: inline-flex; background: var(--muted); border-radius: 999px; padding: 3px; gap: 2px; }
+.screen-monitor-form .segs button { border: none; background: transparent; color: var(--muted-foreground); font: inherit; font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 999px; cursor: pointer; }
+.screen-monitor-form .segs button[aria-pressed="true"] { background: var(--card); color: var(--foreground); box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
+.screen-monitor-form .chns { display: flex; gap: 8px; flex-wrap: wrap; }
+.screen-monitor-form .chn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 999px; padding: 7px 12px 7px 8px; font-size: 13px; cursor: pointer; }
+.screen-monitor-form .chn .box { width: 22px; height: 22px; border-radius: 7px; border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+.screen-monitor-form .chn.on { border-color: var(--foreground); }
+.screen-monitor-form .chn.on .box { background: var(--foreground); color: var(--background); border-color: transparent; }
+.screen-monitor-form .foot { display: flex; gap: 10px; align-items: center; }
+.screen-monitor-form .btn { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 20px; border-radius: 999px; font-size: 14px; font-weight: 550; border: 1px solid var(--border); background: var(--card); color: var(--foreground); cursor: pointer; }
+.screen-monitor-form .btn:hover { background: var(--muted); }
+.screen-monitor-form .btn:active { transform: scale(0.97); }
+.screen-monitor-form .btn-solid { background: var(--foreground); border-color: transparent; color: var(--background); }
+.screen-monitor-form .btn-solid:hover { background: var(--foreground); opacity: 0.85; }
+.screen-monitor-form .btn-ghost { border-color: transparent; color: var(--muted-foreground); }
+.screen-monitor-form .edit-note { border: 1px dashed var(--border); border-radius: 16px; padding: 14px 20px; font-size: 13px; color: var(--muted-foreground); }
+.screen-monitor-form .toolbar-note { font-size: 12px; color: var(--muted-foreground); }
+.screen-monitor-form .toolbar-note kbd { font-family: 'JetBrains Mono', monospace; font-size: 11px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--muted); }
+  /* ---- settings (scoped, generated) ---- */
+.screen-settings .mast { display: block; }
+.screen-settings .mast h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+.screen-settings .mast p { margin: 6px 0 0; font-size: 13.5px; color: var(--muted-foreground); }
+.screen-settings .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start; }
+.screen-settings .stack { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.screen-settings .card { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.screen-settings .card-head { display: block; padding: 12px 20px; border-bottom: 1px solid var(--border); }
+.screen-settings .card-head b { font-size: 13.5px; font-weight: 600; }
+.screen-settings .card-head p { margin: 2px 0 0; font-size: 12px; color: var(--muted-foreground); }
+.screen-settings .card-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+.screen-settings .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.screen-settings label.fl { font-size: 12.5px; font-weight: 550; display: block; margin-bottom: 6px; }
+.screen-settings .in { height: 40px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); padding: 0 12px; font-size: 13.5px; width: 100%; color: var(--foreground); }
+.screen-settings .in.mono { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
+.screen-settings .email-line { font-size: 13.5px; }
+.screen-settings .email-line .k { color: var(--muted-foreground); }
+.screen-settings .email-line .v { font-family: 'JetBrains Mono', monospace; }
+.screen-settings .btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 550; border: 1px solid var(--border); background: var(--card); color: var(--foreground); cursor: pointer; }
+.screen-settings .btn:hover { background: var(--muted); }
+.screen-settings .btn:active { transform: scale(0.97); }
+.screen-settings .btn-solid { background: var(--foreground); color: var(--background); border-color: transparent; }
+.screen-settings .btn-solid:hover { background: var(--foreground); opacity: 0.85; }
+.screen-settings .btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
+.screen-settings .hint { font-size: 12px; color: var(--muted-foreground); }
+.screen-settings .hint code { background: var(--muted); border-radius: 6px; padding: 1px 6px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--foreground); }
+.screen-settings .kv { display: flex; justify-content: space-between; gap: 12px; padding: 8px 20px; font-size: 12px; }
+.screen-settings .kv + .kv { border-top: 1px solid var(--border); }
+.screen-settings .kv dt { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); }
+.screen-settings .kv dd { margin: 0; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55%; }
+.screen-settings .secret { border: 1px solid color-mix(in srgb, var(--success) 40%, transparent); background: color-mix(in srgb, var(--success) 6%, transparent); border-radius: 12px; padding: 12px 14px; font-size: 12.5px; }
+.screen-settings .secret b { color: var(--success-ink); }
+.screen-settings .secret code { display: block; margin-top: 8px; background: var(--muted); border-radius: 8px; padding: 8px 10px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.screen-settings .tok { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border); font-size: 13px; }
+.screen-settings .tok small { display: block; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted-foreground); }
+.screen-settings .toolbar-note { font-size: 12px; color: var(--muted-foreground); }
+.screen-settings .toolbar-note kbd { font-family: 'JetBrains Mono', monospace; font-size: 11px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--muted); }
+@media (max-width: 900px) {
+.screen-settings .grid2 { grid-template-columns: 1fr; }
+.screen-settings .row3 { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
@@ -279,16 +796,16 @@
     <aside class="sidebar" aria-label="Primary">
       <div class="nav-section">Monitor</div>
       <nav class="nav">
-        <a href="#" aria-current="page"><i class="ph-fill ph-house"></i><span class="label">Dashboard</span></a>
-        <a href="#"><i class="ph-fill ph-planet"></i><span class="label">Domains</span></a>
-        <a href="#"><i class="ph-fill ph-warning"></i><span class="label">Incidents</span></a>
-        <a href="#"><i class="ph-fill ph-briefcase"></i><span class="label">Maintenance</span></a>
+        <a href="#" data-screen="dashboard" aria-current="page"><i class="ph-fill ph-house"></i><span class="label">Monitors</span></a>
+        <a href="#" data-screen="domains"><i class="ph-fill ph-planet"></i><span class="label">Domains</span></a>
+        <a href="#" data-screen="incidents"><i class="ph-fill ph-warning"></i><span class="label">Incidents</span></a>
+        <a href="#" data-screen="maintenance"><i class="ph-fill ph-briefcase"></i><span class="label">Maintenance</span></a>
       </nav>
       <div class="nav-section">Config</div>
       <nav class="nav">
-        <a href="#"><i class="ph-fill ph-bell"></i><span class="label">Channels</span></a>
-        <a href="#"><i class="ph-fill ph-cube"></i><span class="label">Status Page</span></a>
-        <a href="#"><i class="ph-fill ph-gear-six"></i><span class="label">Settings</span></a>
+        <a href="#" data-screen="channels"><i class="ph-fill ph-bell"></i><span class="label">Channels</span></a>
+        <a href="#" data-screen="status-pages"><i class="ph-fill ph-cube"></i><span class="label">Status Page</span></a>
+        <a href="#" data-screen="settings"><i class="ph-fill ph-gear-six"></i><span class="label">Settings</span></a>
       </nav>
       <div class="sidebar-footer">
         <div class="version-card"><div class="version-badge"></div><div><b>PingBoard · Selfhosted</b><span>v0.99.1</span></div></div>
@@ -302,36 +819,486 @@
         <div class="top-actions">
           <button class="icon-btn" id="themeBtn" aria-label="Toggle theme"><i class="ph-fill ph-sun"></i></button>
           <a class="icon-btn" href="https://github.com/steiner-co/pingboard" aria-label="GitHub"><svg viewBox="0 0 1024 1024" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M512 0C229.12 0 0 229.12 0 512c0 226.56 146.56 417.92 350.08 485.76 25.6 4.48 35.2-10.88 35.2-24.32 0-12.16-.64-52.48-.64-95.36-128.64 23.68-161.92-31.36-172.16-60.16-5.76-14.72-30.72-60.16-52.48-72.32-17.92-9.6-43.52-33.28-.64-33.92 40.32-.64 69.12 37.12 78.72 52.48 46.08 77.44 119.68 55.68 149.12 42.24 4.48-33.28 17.92-55.68 32.64-68.48-113.92-12.8-232.96-56.96-232.96-252.8 0-55.68 19.84-101.76 52.48-137.6-5.12-12.8-23.04-65.28 5.12-135.68 0 0 42.88-13.44 140.8 52.48 40.96-11.52 84.48-17.28 128-17.28s87.04 5.76 128 17.28c97.92-66.56 140.8-52.48 140.8-52.48 28.16 70.4 10.24 122.88 5.12 135.68 32.64 35.84 52.48 81.28 52.48 137.6 0 196.48-119.68 240-233.6 252.8 18.56 16 34.56 46.72 34.56 94.72 0 68.48-.64 123.52-.64 140.8 0 13.44 9.6 29.44 35.2 24.32C877.44 929.92 1024 737.92 1024 512 1024 229.12 794.88 0 512 0"/></svg></a>
-          <a class="btn" href="#"><i class="ph-fill ph-cube"></i><span class="btn-text">Status Page</span></a>
-          <a class="btn btn-lime" href="#"><i class="ph-fill ph-plus-circle"></i><span class="btn-text">Add Monitor</span></a>
+          <a class="btn" href="#" id="spBtn"><i class="ph-fill ph-cube"></i><span class="btn-text">Status Page</span></a>
+          <a class="btn btn-lime" href="#" id="addBtn"><i class="ph-fill ph-plus-circle"></i><span class="btn-text">Add Monitor</span></a>
         </div>
       </div>
       <div class="content">
-        <div class="content-head">
-          <h1>Monitors</h1>
-          <p>Create and manage checks that are continuously monitored for uptime.</p>
-        </div>
-        <div class="toolbar">
-          <span class="toolbar-note">Prototype shell — press <kbd>S</kbd> to collapse, <kbd>T</kbd> for dark, <kbd>M</kbd> mobile nav.</span>
-        </div>
-        <div class="stats">
-          <div class="stat"><small>Monitors</small><b>24</b></div>
-          <div class="stat"><small>Up</small><b>22</b></div>
-          <div class="stat"><small>Down</small><b>1</b></div>
-          <div class="stat"><small>Avg</small><b>131 ms</b></div>
-        </div>
-        <div class="panel">
-          <div class="panel-head">Activity <span class="live"><i></i>Live</span></div>
-          <div class="row"><span class="dot"></span>api.pingboard.dev <code>142 ms</code></div>
-          <div class="row"><span class="dot"></span>app.steinerandco.site <code>88 ms</code></div>
-          <div class="row"><span class="dot down"></span>checkout.acme.net <code>DOWN</code></div>
-          <div class="row"><span class="dot"></span>cdn.something.ai <code>51 ms</code></div>
-          <div class="row"><span class="dot warn"></span>status.cooldomain.so <code>420 ms</code></div>
-        </div>
+        <!-- SCREEN:START — inject a screen concept here (see prototype/*.html).
+             Dashboard is injected below as the reference pattern. -->
+
+    <div class="mast">
+      <h1>Monitors</h1>
+      <p>Every check, it’s current state and thirty days of history</p>
+    </div>
+
+    <div class="controls">
+      <div class="segments" id="segments" role="group" aria-label="Status filter">
+        <button aria-pressed="true" data-f="all">All <span class="n">7</span></button>
+        <button aria-pressed="false" data-f="down">Down <span class="n">1</span></button>
+        <button aria-pressed="false" data-f="up">Up <span class="n">4</span></button>
+        <button aria-pressed="false" data-f="disabled">Disabled <span class="n">1</span></button>
+      </div>
+      <div class="controls-right">
+        <button class="icon-circle" type="button" aria-label="Refresh">↻</button>
+        <label class="search"><span class="mag">⌕</span><input id="q" type="search" placeholder="Search" aria-label="Search monitors" /></label>
+      </div>
+    </div>
+
+    <div class="table" id="rows">
+      <div class="trow head"><span>Name</span><span>Status</span><span class="h-resp">Response</span><span class="h-up">Uptime</span></div>
+    </div>
+
+    <div class="toolbar-note">Concept — press <kbd>T</kbd> for dark. Measured from Figma node 100:16; "Disabled" spelling corrected from the frame.</div>
+        <!-- SCREEN:END -->
       </div>
     </main>
   </div>
 </div>
+<template id="screen-domains">
+
+    <div class="mast">
+      <div>
+        <h1>Domains<span class="count">8 total</span></h1>
+        <p>Track expiry, registrar, nameservers and SSL certificates across the whole portfolio.</p>
+      </div>
+      <div class="mast-actions">
+        <label class="search"><span>⌕</span><input type="search" placeholder="Search by domain, registrar, tag…" aria-label="Search domains" /><kbd>⌘K</kbd></label>
+        <button class="btn btn-solid" type="button"><span class="icon">⊕</span>Add domain</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><small>Domains</small><b>8</b><span class="subline">Tracked in this instance</span></div>
+      <div class="stat warn"><small>Expiring ≤ 30d</small><b>2</b><span class="subline">Renew before they lapse</span></div>
+      <div class="stat warn"><small>SSL ≤ 14d</small><b>1</b><span class="subline">Certificates near expiry</span></div>
+      <div class="stat ok"><small>Not alerting</small><b>0</b><span class="subline">All routed</span></div>
+    </div>
+
+    <div class="warnband">
+      <div class="warnband-head">⚠ Expiring soon <span class="n">3</span></div>
+      <p class="hint">Renew before they lapse — the soonest expiry is listed first.</p>
+      <ul>
+        <li><button type="button"><span class="dname">cooldomain.so</span><span class="exp"><span class="k">Domain</span><b style="color:var(--destructive)">Expired 2d ago</b></span><span class="exp"><span class="k">SSL</span><b>41 days</b></span><span style="color:var(--muted-foreground)">›</span></button></li>
+        <li><button type="button"><span class="dname">checkout.acme.net</span><span class="exp"><span class="k">Domain</span><b style="color:var(--warn)">6 days</b></span><span class="exp"><span class="k">SSL</span><b>88 days</b></span><span style="color:var(--muted-foreground)">›</span></button></li>
+        <li><button type="button"><span class="dname">shop.example.io</span><span class="exp"><span class="k">SSL</span><b style="color:var(--warn)">9 days</b></span><span style="color:var(--muted-foreground)">›</span></button></li>
+      </ul>
+    </div>
+
+    <div class="list">
+      <div class="list-head">Domains <span>8 shown</span></div>
+      <div class="drow">
+        <div class="drow-top">
+          <span class="caret">▾</span>
+          <div><div class="dname">cooldomain.so <span class="pill">Not alerting</span></div>
+          <div class="dsub">Namecheap · Cloudflare · Checked 12m ago</div></div>
+          <div class="dmetrics">
+            <div><small>Domain</small><b class="bad">Expired 2d ago</b></div>
+            <div><small>SSL</small><b>41 days</b></div>
+          </div>
+          <span class="dot"></span>
+        </div>
+        <div class="detail">
+          <div class="f"><small>Registered</small><span>Mar 4, 2023</span></div>
+          <div class="f"><small>Expires</small><span>Oct 3, 2026 <span class="pill">manual</span></span></div>
+          <div class="f"><small>SSL issuer</small><span>Let's Encrypt</span></div>
+          <div class="f"><small>Nameservers</small><code>elliott.ns.cloudflare.com<br />olga.ns.cloudflare.com</code></div>
+          <div class="f"><small>DNS records</small><code>A 76.76.21.21<br />MX aspmx.l.google.com</code></div>
+          <div class="f"><small>Alert channels</small><span style="color:var(--warn)">No channels attached</span> · <u>Attach</u></div>
+        </div>
+      </div>
+      <div class="drow">
+        <div class="drow-top">
+          <span class="caret">▸</span>
+          <div><div class="dname">api.pingboard.dev</div>
+          <div class="dsub">Cloudflare Registrar · Cloudflare · Checked 4m ago</div></div>
+          <div class="dmetrics">
+            <div><small>Domain</small><b>312 days</b></div>
+            <div><small>SSL</small><b>61 days</b></div>
+          </div>
+          <span class="dot"></span>
+        </div>
+      </div>
+      <div class="drow">
+        <div class="drow-top">
+          <span class="caret">▸</span>
+          <div><div class="dname">checkout.acme.net</div>
+          <div class="dsub">GoDaddy · AWS Route 53 · Checked 9m ago</div></div>
+          <div class="dmetrics">
+            <div><small>Domain</small><b class="warn">6 days</b></div>
+            <div><small>SSL</small><b>88 days</b></div>
+          </div>
+          <span class="dot warn"></span>
+        </div>
+      </div>
+      <div class="drow">
+        <div class="drow-top">
+          <span class="caret">▸</span>
+          <div><div class="dname">app.steinerandco.site</div>
+          <div class="dsub">Porkbun · Vercel · Checked 22m ago</div></div>
+          <div class="dmetrics">
+            <div><small>Domain</small><b>201 days</b></div>
+            <div><small>SSL</small><b>74 days</b></div>
+          </div>
+          <span class="dot"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar-note">Concept — press <kbd>T</kbd> for dark. Expanded row shows the detail grid (facts + alert routing).</div>
+</template>
+<template id="screen-incidents">
+
+    <div class="mast">
+      <h1>Incidents<span class="count">1 open · 18 total</span></h1>
+      <p>Every down → up transition across all monitors.</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat bad"><small>Open now</small><b>1</b><span class="subline">Filter the table →</span></div>
+      <div class="stat"><small>Incidents</small><b>18</b><span class="subline">In the last 30 days</span></div>
+      <div class="stat"><small>Median recovery</small><b>4m</b><span class="subline">Mean 11m · 17 resolved</span></div>
+      <div class="stat warn"><small>Longest outage</small><b>52m</b><span class="subline">checkout.acme.net</span></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head">Incident frequency <span>Per day · 30d</span></div>
+        <div class="chart">
+          <i class="zero" style="height:4%"></i><i class="zero" style="height:4%"></i><i style="height:12%"></i><i class="zero" style="height:4%"></i><i class="zero" style="height:4%"></i><i style="height:22%"></i><i class="zero" style="height:4%"></i><i class="zero" style="height:4%"></i><i style="height:34%"></i><i style="height:18%"></i><i class="zero" style="height:4%"></i><i class="zero" style="height:4%"></i><i style="height:62%"></i><i style="height:100%"></i><i style="height:28%"></i>
+        </div>
+        <div class="chart-axis"><span>Sep 6</span><span>Sep 13</span><span>Sep 20</span><span>Sep 27</span><span>Oct 5</span></div>
+      </div>
+      <div class="card">
+        <div class="card-head">Most affected <span>By incidents</span></div>
+        <div class="off">
+          <div class="off-top"><b>checkout.acme.net</b><span class="c">7</span></div>
+          <div class="bar"><i style="width:100%"></i></div>
+          <div class="off-meta">https · 1h 48m down · med 6m <span class="badge open">Open</span></div>
+        </div>
+        <div class="off">
+          <div class="off-top"><b>status.cooldomain.so</b><span class="c">5</span></div>
+          <div class="bar"><i style="width:71%"></i></div>
+          <div class="off-meta">https · 9m down · med 1m <span class="badge flap">Flapping</span></div>
+        </div>
+        <div class="off">
+          <div class="off-top"><b>api.pingboard.dev</b><span class="c">3</span></div>
+          <div class="bar"><i style="width:43%"></i></div>
+          <div class="off-meta">https · 8m down · med 2m</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">Incidents <span>1 open · 18 total · All ▾</span></div>
+      <table class="inc">
+        <thead><tr><th>Monitor</th><th>Status</th><th>Started</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td><b>checkout.acme.net</b><div class="mono">HTTPS</div></td><td><span class="badge open">Open</span></td><td class="mono">Oct 5, 14:32</td><td class="note">Add a note… ✎</td></tr>
+          <tr><td><b>status.cooldomain.so</b><div class="mono">HTTPS</div></td><td><span class="mono">Resolved</span></td><td class="mono">Oct 4, 22:10</td><td>Cloudflare outage, not our fault</td></tr>
+          <tr><td><b>api.pingboard.dev</b><div class="mono">HTTPS</div></td><td><span class="mono">Resolved</span></td><td class="mono">Oct 3, 09:41</td><td class="note">Add a note… ✎</td></tr>
+          <tr><td><b>cdn.something.ai</b><div class="mono">HTTPS</div></td><td><span class="mono">Resolved (manual)</span></td><td class="mono">Oct 1, 18:02</td><td>Deploys during migration</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="toolbar-note">Concept — press <kbd>T</kbd> for dark. Chart is CSS bars; offender rows carry downtime + flapping flags.</div>
+</template>
+<template id="screen-maintenance">
+
+    <div class="mast">
+      <h1>Maintenance<span class="count">1 active · 3 upcoming</span></h1>
+      <p>Suppress alerts during scheduled downtime. Windows still record real heartbeats — they just don't page you.</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat warn"><small>Active now</small><b>1</b><span class="subline">db-primary — alerts muted</span></div>
+      <div class="stat"><small>Scheduled ahead</small><b>3</b><span class="subline">Next: Oct 8, 02:00</span></div>
+      <div class="stat"><small>Planned downtime</small><b>9h</b><span class="subline">Across the next 14 days</span></div>
+      <div class="stat mut"><small>Completed</small><b>12</b><span class="subline">Last ended Oct 1, 04:00</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">Next 14 days <span>2 windows</span></div>
+      <div class="track">
+        <div class="grid"><div></div><div></div><div></div><div></div><div></div><div class="we"></div><div class="we"></div><div></div><div></div><div></div><div></div><div></div><div class="we"></div><div class="we"></div></div>
+        <div class="winbar active" style="left:4%;width:9%;top:8px">DB failover drill</div>
+        <div class="winbar" style="left:34%;width:14%;top:36px">K8s upgrade</div>
+        <div class="now" style="left:9%"></div>
+      </div>
+      <div class="days"><span class="today">5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">In progress <span>1 active</span></div>
+      <div class="wrow active">
+        <div><div class="t">DB failover drill <span class="badge">In progress</span></div>
+        <div class="m">Oct 5, 01:00 → Oct 5, 03:00 · 2h · <b>Ends in 1h 12m</b></div>
+        <div class="link">⌁ db-primary.internal</div></div>
+        <button class="del" aria-label="Delete">🗑</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">Upcoming <span>3 scheduled</span></div>
+      <div class="wrow">
+        <div><div class="t">K8s upgrade</div>
+        <div class="m">Oct 8, 02:00 → Oct 8, 06:00 · 4h · Starts in 2d</div>
+        <div class="link">⌁ api.pingboard.dev</div></div>
+        <button class="del" aria-label="Delete">🗑</button>
+      </div>
+      <div class="wrow">
+        <div><div class="t">CDN cert rotation</div>
+        <div class="m">Oct 11, 23:00 → Oct 12, 02:00 · 3h · Starts in 6d</div>
+        <div class="link">⌁ cdn.something.ai</div></div>
+        <button class="del" aria-label="Delete">🗑</button>
+      </div>
+    </div>
+
+    <div class="toolbar-note">Concept — press <kbd>T</kbd> for dark. Bars pack into lanes; the hairline is now.</div>
+</template>
+<template id="screen-channels">
+
+    <div class="mast">
+      <div>
+        <h1>Channels<span class="count">5 configured</span></h1>
+        <p>Where alerts go when monitors change state.</p>
+      </div>
+      <div class="mast-actions"><button class="btn btn-solid" type="button">⊕ Add channel</button></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><small>Channels</small><b>5</b><span class="subline">webhook · discord · slack · ntfy · email</span></div>
+      <div class="stat warn"><small>Enabled</small><b>4<span class="suffix">/ 5</span></b><span class="subline">1 switched off — alerts dropped</span></div>
+      <div class="stat ok"><small>Monitors covered</small><b>22<span class="suffix">/ 24</span></b><span class="subline">Active checks reaching a live channel</span></div>
+      <div class="stat warn"><small>Unrouted</small><b>2</b><span class="subline">These failures would page nobody</span></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head">Channels <span>5 configured</span></div>
+        <div class="ch">
+          <div class="ch-top"><span class="dot"></span><b>On-call Discord</b><span class="type">discord</span>
+            <span class="acts"><button class="btn btn-sm">Test</button><button class="btn btn-sm">Edit</button></span></div>
+          <dl class="kv"><dt>Delivers to</dt><dd class="mono">discord.com/api/webhooks/…9f31</dd>
+          <dt>Routes to</dt><dd><span style="color:var(--muted-foreground)">9 monitors</span> <span class="chip"><i></i>api.pingboard.dev</span><span class="chip"><i class="down"></i>checkout.acme.net</span><span class="chip"><i></i>cdn.something.ai</span><span style="font-size:11px;color:var(--muted-foreground)">+6 more</span></dd></dl>
+        </div>
+        <div class="ch">
+          <div class="ch-top"><span class="dot"></span><b>Deploy webhook</b><span class="type">webhook</span>
+            <span class="acts"><button class="btn btn-sm">Test</button><button class="btn btn-sm">Edit</button></span></div>
+          <dl class="kv"><dt>Delivers to</dt><dd class="mono">hooks.internal.acme.net/deploy</dd>
+          <dt>Routes to</dt><dd><span style="color:var(--muted-foreground)">6 monitors</span> <span class="chip"><i></i>app.steinerandco.site</span><span class="chip"><i></i>db-primary.internal</span></dd></dl>
+        </div>
+        <div class="ch">
+          <div class="ch-top"><span class="dot off"></span><b>Old ntfy topic</b><span class="type">ntfy</span><span class="badge-off">Disabled</span>
+            <span class="acts"><button class="btn btn-sm">Test</button><button class="btn btn-sm">Edit</button></span></div>
+          <dl class="kv"><dt>Delivers to</dt><dd class="mono">ntfy.sh/pingboard-old</dd>
+          <dt>Routes to</dt><dd style="color:var(--muted-foreground)">No monitors attached — configured, but nothing will ever fire it.</dd></dl>
+        </div>
+      </div>
+      <aside>
+        <div class="card rail-warn">
+          <div class="card-head">⚠ Unrouted monitors <span>2</span></div>
+          <p class="rail-hint">Checked on schedule, but a failure notifies nobody. Open one to attach a channel.</p>
+          <div class="gap"><span class="dot" style="background:var(--warn)"></span><b style="font-size:12.5px">staging.cooldomain.so</b><span class="t">https ›</span></div>
+          <div class="gap"><span class="dot" style="background:var(--warn)"></span><b style="font-size:12.5px">pg-replica.internal</b><span class="t">tcp ›</span></div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="toolbar-note">Concept — press <kbd>T</kbd> for dark. On narrow screens the routing rail leads.</div>
+</template>
+<template id="screen-status-pages">
+
+    <div class="mast">
+      <div>
+        <h1>Status pages<span class="count">2 total</span></h1>
+        <p>Public dashboards you can share with users.</p>
+      </div>
+      <div class="mast-actions"><button class="btn btn-solid" type="button">⊕ Create page</button></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><small>Status pages</small><b>2</b><span class="subline">1 public · 1 protected</span></div>
+      <div class="stat"><small>Monitors published</small><b>19<span class="suffix">/ 24</span></b><span class="subline">Listed on at least one page</span></div>
+    </div>
+
+    <div class="card warn">
+      <div class="card-head warn">⚠ Hidden monitors <span>5 not on any page</span></div>
+      <p class="hint">Customers can't see their status. Add them to a page:</p>
+      <div class="hrow"><b style="font-size:12.5px">staging.cooldomain.so</b><span class="t">https</span><button class="btn btn-sm">⊕ Add to page ▾</button></div>
+      <div class="hrow"><b style="font-size:12.5px">pg-replica.internal</b><span class="t">tcp</span><button class="btn btn-sm">⊕ Add to page ▾</button></div>
+      <div class="hrow"><b style="font-size:12.5px">+3 more</b></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">Pages <span>2 total</span></div>
+      <div class="prow">
+        <div>
+          <div class="title">Acme Status</div>
+          <div><span class="urlpill"><span class="host">status.acme.net</span><span class="slug">/main</span><span>⧉</span></span></div>
+          <div class="pmeta">12 monitors · Theme auto · Public</div>
+          <div class="health"><i class="bad"></i>11 up <b class="down">· 1 down</b></div>
+        </div>
+        <div class="acts"><button class="btn btn-sm">↗ View</button><button class="btn btn-sm">✎ Edit</button><button class="btn btn-sm">···</button></div>
+      </div>
+      <div class="prow">
+        <div>
+          <div class="title">Internal infra <span class="badge-pw">🔒 Password</span></div>
+          <div><span class="urlpill"><span class="host">status.acme.net</span><span class="slug">/internal</span><span>⧉</span></span></div>
+          <div class="pmeta">7 monitors · Theme dark · Protected</div>
+          <div class="health"><i></i>7 up</div>
+        </div>
+        <div class="acts"><button class="btn btn-sm">↗ View</button><button class="btn btn-sm">✎ Edit</button><button class="btn btn-sm">···</button></div>
+      </div>
+    </div>
+
+    <div class="toolbar-note">Concept — press <kbd>T</kbd> for dark. The public URL copies on click; health aggregates live status.</div>
+</template>
+<template id="screen-monitor-detail">
+
+    <a class="back" href="#" data-go="dashboard">← Back to dashboard</a>
+    <div class="dhead">
+      <div>
+        <h1>api.pingboard.dev</h1>
+        <div class="tline"><span class="ty">https</span><span>·</span><span class="tg">https://api.pingboard.dev/health</span></div>
+        <div class="tags"><span class="tag">prod</span><span class="tag">api</span><span class="tag" style="border-style:dashed">+ Add tags</span></div>
+      </div>
+      <div class="hact"><button class="btn btn-solid btn-sm" style="height:40px;padding:0 16px;font-size:14px">✎ Edit</button><button class="btn">⏸ Pause</button><button class="btn" aria-label="More actions">···</button></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><small>Current status</small><span class="up"><i></i>Up <small>142 ms</small></span></div>
+      <div class="stat"><small>Uptime · 24h</small><b>100%</b></div>
+      <div class="stat"><small>Avg response · 24h</small><b>138 ms</b></div>
+      <div class="stat"><small>Last check</small><b>12s ago</b></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">Uptime <span>Last 90 days</span></div>
+      <div class="timeline" aria-label="90-day uptime">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="warn"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="down"></i><i class="down"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">Response time <span>Last 24h · 41–420 ms</span></div>
+      <div class="area">
+        <svg viewBox="0 0 600 150" preserveAspectRatio="none" aria-hidden="true">
+          <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16a34a" stop-opacity="0.35"/><stop offset="1" stop-color="#16a34a" stop-opacity="0.02"/></linearGradient></defs>
+          <path d="M0,110 C40,105 70,95 110,98 C150,101 170,80 210,84 C250,88 270,60 310,66 C350,72 370,90 410,86 C450,82 480,50 520,58 C560,66 580,70 600,64 L600,150 L0,150 Z" fill="url(#g)"/>
+          <path d="M0,110 C40,105 70,95 110,98 C150,101 170,80 210,84 C250,88 270,60 310,66 C350,72 370,90 410,86 C450,82 480,50 520,58 C560,66 580,70 600,64" fill="none" stroke="#16a34a" stroke-width="2.5"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">Incidents <span>4 recent</span></div>
+      <div class="inc"><span class="mono">Oct 3, 09:41</span><span class="mono">09:43 · 2m</span><span>Deploy regression</span></div>
+      <div class="inc"><span class="mono">Sep 28, 22:10</span><span class="mono">22:16 · 6m</span><span class="note">Add a note… ✎</span></div>
+      <div class="inc"><span class="mono">Sep 19, 04:02</span><span class="ongoing">Ongoing</span><span class="note">Add a note… ✎</span></div>
+      <div class="card-foot"><span>Showing latest 10 of 14</span><span>View all incidents →</span></div>
+    </div>
+
+    <div class="toolbar-note">Concept — press <kbd>T</kbd> for dark. Maintenance windows + push-endpoint cards stack below incidents in the app.</div>
+</template>
+<template id="screen-monitor-form">
+
+    <div class="mast">
+      <h1>Add monitor<span class="count">step 1 of 3</span></h1>
+      <p>Paste a URL or host:port — the type is inferred, the first check fires on submit.</p>
+    </div>
+
+    <div class="steps">
+      <span class="step now"><span class="n">1</span>Target</span><span class="step"><span class="bar"></span></span>
+      <span class="step"><span class="n">2</span>Schedule</span><span class="step"><span class="bar"></span></span>
+      <span class="step"><span class="n">3</span>Notify</span>
+    </div>
+
+    <div class="formwrap">
+      <div class="card">
+        <div class="card-head"><b>What to check?</b><p>Smart input infers the type — https → HTTP, host:5432 → TCP, 1.1.1.1 → ping.</p></div>
+        <div class="card-body">
+          <div><label class="fl" for="t">Target</label><input class="in mono" id="t" value="https://api.pingboard.dev/health" /></div>
+          <div class="detect"><span class="auto">✓ HTTP detected</span><span>GET · expect 2xx · 10s timeout · follow redirects</span><span style="margin-left:auto;text-decoration:underline">Override</span></div>
+          <div><label class="fl" for="n">Name</label><input class="in" id="n" value="api.pingboard.dev" /></div>
+          <div class="testok"><b>✓ 200</b><span>OK in 142 ms — ready to create.</span><span class="ms">just now</span></div>
+        </div>
+      </div>
+      <div class="foot">
+        <button class="btn btn-ghost" type="button" data-go="dashboard">← Back</button>
+        <span style="flex:1"></span>
+        <button class="btn" type="button">Test again</button>
+        <button class="btn btn-solid" type="button">Continue →</button>
+      </div>
+      <div class="edit-note"><b style="color:var(--foreground)">Edit variant:</b> same mast (“Edit monitor · api.pingboard.dev”) + stacked section cards — General / HTTP options / Schedule / Alerts — with Save / Discard in the footer. Dirty state confirms on Back via the data-router blocker.</div>
+    </div>
+
+    <div class="toolbar-note">Concept — press <kbd>T</kbd> for dark. Steps 2–3 (interval segs + channel chips) reuse dashboard tokens.</div>
+</template>
+<template id="screen-settings">
+
+    <div class="mast">
+      <h1>Settings</h1>
+      <p>Instance-wide preferences.</p>
+    </div>
+    <div class="grid2">
+      <div class="stack">
+        <div class="card">
+          <div class="card-head"><b>Account</b><p>You're signed in as the admin.</p></div>
+          <div class="card-body">
+            <div class="email-line"><span class="k">Email:</span> <span class="v">admin@acme.net</span></div>
+            <div class="row3">
+              <div><label class="fl">Current password</label><input class="in" type="password" value="••••••••••" /></div>
+              <div><label class="fl">New password</label><input class="in" type="password" placeholder="≥ 8 characters" /></div>
+              <div><label class="fl">Confirm</label><input class="in" type="password" /></div>
+            </div>
+            <div><button class="btn btn-solid btn-sm" style="height:40px;padding:0 16px;font-size:14px">Change password</button>
+            <span class="hint">Forgot it? Run <code>docker exec pingboard pingboard reset-password admin@acme.net</code> from the host.</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><b>Retention</b><p>Heartbeats older than this are aggregated into daily stats; raw rows are deleted.</p></div>
+          <div class="card-body"><div style="display:flex;gap:12px;align-items:center"><span style="font-size:13px">Keep raw heartbeats for</span><button class="btn btn-sm">30 days ▾</button></div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><b>API tokens</b><p>Authenticate scripts with <span style="font-family:'JetBrains Mono',monospace">Authorization: Bearer &lt;token&gt;</span>. Same access as this admin account.</p></div>
+          <div class="card-body">
+            <div class="secret"><b>Copy this now — it can't be shown again.</b><code>pb_live_9f31c4…e2 · Copy · Done</code></div>
+            <div style="display:flex;gap:8px"><input class="in" placeholder="deploy bot, uptime script…" style="flex:1" /><button class="btn btn-solid">Create token</button></div>
+            <div class="tok"><div style="flex:1"><b>deploy bot</b><small>pb_live_9f31… · last used 2h ago</small></div><button class="btn btn-sm">Revoke</button></div>
+            <div class="tok"><div style="flex:1"><b>uptime script</b><small>pb_live_77ab… · never used</small></div><button class="btn btn-sm">Revoke</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><b>Email defaults (SMTP)</b><p>Used when an email channel doesn't specify its own credentials.</p></div>
+          <div class="card-body">
+            <div class="row3" style="grid-template-columns:1fr 1fr">
+              <div><label class="fl">Host</label><input class="in mono" value="smtp.acme.net" /></div>
+              <div><label class="fl">Port</label><input class="in mono" value="587" /></div>
+              <div><label class="fl">Username</label><input class="in" value="alerts" /></div>
+              <div><label class="fl">From address</label><input class="in mono" value="alerts@acme.net" /></div>
+            </div>
+            <div><button class="btn btn-solid">Save defaults</button></div>
+          </div>
+        </div>
+      </div>
+      <aside class="card" style="align-self:start">
+        <div class="card-head"><b>Instance</b></div>
+        <dl style="margin:0">
+          <div class="kv"><dt>Version</dt><dd>v0.99.1 · <u>v0.99.2 available →</u></dd></div>
+          <div class="kv"><dt>Edition</dt><dd>Self-hosted · unlimited</dd></div>
+          <div class="kv"><dt>Database</dt><dd>4.2 MB</dd></div>
+          <div class="kv"><dt>Heartbeats</dt><dd>1,204,318</dd></div>
+          <div class="kv"><dt>Monitors</dt><dd>24</dd></div>
+          <div class="kv"><dt>Channels</dt><dd>5</dd></div>
+          <div class="kv"><dt>Status pages</dt><dd>2</dd></div>
+          <div class="kv"><dt>Uptime</dt><dd>6d 4h</dd></div>
+        </dl>
+      </aside>
+    </div>
+    <div class="toolbar-note">Concept — press <kbd>T</kbd> for dark. Lowest priority in the overhaul order.</div>
+</template>
 <script>
   const shell = document.getElementById('shell');
   const navToggle = document.getElementById('navToggle');
@@ -349,11 +1316,144 @@
   });
   document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', (e) => {
     e.preventDefault();
-    document.querySelectorAll('.nav a').forEach(x => x.removeAttribute('aria-current'));
-    a.setAttribute('aria-current', 'page');
-    document.querySelector('.page-title').lastChild.textContent = a.querySelector('.label').textContent;
+    const key = a.dataset.screen || 'dashboard';
+    setNav(key);
+    showScreen(key);
     if (window.innerWidth <= 900) shell.classList.remove('nav-open');
   }));
-</script>
+  /* Screen router — every concept in prototype/*.html is injectable here. */
+  const contentEl = document.querySelector('.content');
+  const TITLES = {
+    dashboard: 'Dashboard', domains: 'Domains', incidents: 'Incidents',
+    maintenance: 'Maintenance', channels: 'Channels', 'status-pages': 'Status pages',
+    settings: 'Settings', 'monitor-detail': 'Monitor', 'monitor-form': 'Add monitor',
+  };
+  let current = 'dashboard';
+  const dashCache = contentEl.innerHTML;
+  function setNav(key) {
+    document.querySelectorAll('.nav a').forEach(x => x.removeAttribute('aria-current'));
+    const link = document.querySelector('.nav a[data-screen="' + key + '"]');
+    if (link) link.setAttribute('aria-current', 'page');
+  }
+  function setTitle(t) { document.querySelector('.page-title').textContent = t; }
+  function showScreen(name) {
+    current = name;
+    if (name === 'dashboard') {
+      contentEl.className = 'content';
+      contentEl.innerHTML = dashCache;
+      initDashboard();
+    } else {
+      const tpl = document.getElementById('screen-' + name);
+      if (!tpl) return;
+      contentEl.className = 'content screen-' + name;
+      contentEl.innerHTML = tpl.innerHTML;
+    }
+    setTitle(TITLES[name] || name);
+    window.scrollTo(0, 0);
+  }
+  document.getElementById('addBtn').addEventListener('click', (e) => {
+    e.preventDefault();
+    showScreen('monitor-form');
+  });
+  document.getElementById('spBtn').addEventListener('click', (e) => {
+    e.preventDefault();
+    setNav('status-pages');
+    showScreen('status-pages');
+  });
+  contentEl.addEventListener('click', (e) => {
+    const go = e.target.closest('[data-go]');
+    if (go) {
+      e.preventDefault();
+      const k = go.dataset.go;
+      if (!TITLES[k]) return;
+      if (document.querySelector('.nav a[data-screen="' + k + '"]')) setNav(k);
+      showScreen(k);
+      return;
+    }
+    if (current !== 'dashboard') return;
+    const row = e.target.closest('.trow.body');
+    if (row) { showScreen('monitor-detail'); return; }
+  });
+  /* Dashboard logic — prototype/dashboard.html script, wrapped to re-run
+     after every injection (fresh nodes need fresh listeners). */
+  function initDashboard() {
+
+  const MONITORS = [
+    { name: 'api.pingboard.dev', target: 'https://api.pingboard.dev/health', tags: ['https', 'prod'], status: 'up', ms: 142, seed: 11 },
+    { name: 'checkout.acme.net', target: 'https://checkout.acme.net', tags: ['https', 'prod'], status: 'down', ms: null, seed: 42 },
+    { name: 'app.steinerandco.site', target: 'https://app.steinerandco.site', tags: ['https'], status: 'up', ms: 88, seed: 7 },
+    { name: 'status.cooldomain.so', target: 'https://status.cooldomain.so', tags: ['https', 'staging'], status: 'degraded', ms: 420, seed: 23 },
+    { name: 'cdn.something.ai', target: 'https://cdn.something.ai/ping', tags: ['https', 'cdn'], status: 'up', ms: 51, seed: 5 },
+    { name: 'db-primary.internal', target: 'tcp://10.0.0.4:5432', tags: ['tcp', 'infra'], status: 'up', ms: 3, seed: 31 },
+    { name: 'pg-replica.internal', target: 'tcp://10.0.0.6:5432', tags: ['tcp', 'infra'], status: 'paused', ms: null, seed: 17 },
+  ];
+  const DOT = (color, d) => `<svg viewBox="0 0 12 12" style="color:${color}" aria-hidden="true"><circle cx="6" cy="6" r="6" fill="currentColor"/><path d="${d}" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>`;
+  const CHECK = DOT('#00bc7c', 'm3.7 6.2 1.6 1.6 3-3.6');
+  const CHECK_WARN = DOT('var(--warn)', 'm3.7 6.2 1.6 1.6 3-3.6');
+  const CHECK_MUT = DOT('var(--muted-foreground)', 'm3.7 6.2 1.6 1.6 3-3.6');
+  const XCIRCLE = DOT('var(--destructive)', 'm4.2 4.2 3.6 3.6m0-3.6-3.6 3.6');
+  function bars(seed, status) {
+    let s = seed, out = '';
+    for (let i = 0; i < 38; i++) {
+      s = (s * 9301 + 49297) % 233280;
+      const r = s / 233280;
+      let cls = '', h = 24 + Math.round(r * 12);
+      if ((status === 'down' || status === 'paused') && i > 32) { cls = status === 'down' ? 'down' : 'none'; h = 36; }
+      else if (r > 0.93) { cls = 'warn'; }
+      else if (r > 0.985) { cls = 'down'; h = 36; }
+      out += `<i class="${cls}" style="height:${h}px"></i>`;
+    }
+    return out;
+  }
+  function statusCell(m) {
+    if (m.status === 'up') return `<span class="status up">${CHECK}Up</span>`;
+    if (m.status === 'down') return `<span class="status down">${XCIRCLE}Down</span>`;
+    if (m.status === 'degraded') return `<span class="status warn">${CHECK_WARN}Degraded</span>`;
+    return `<span class="status mut">${CHECK_MUT}Disabled</span>`;
+  }
+  const rowsEl = document.getElementById('rows');
+  const headHTML = rowsEl.innerHTML;
+  let dFilter = 'all', dQuery = '';
+  function match(m) {
+    if (dFilter === 'down') return m.status === 'down';
+    if (dFilter === 'up') return m.status === 'up';
+    if (dFilter === 'disabled') return m.status === 'paused';
+    return true;
+  }
+  function renderRows() {
+    const counts = {
+      all: MONITORS.length,
+      down: MONITORS.filter(m => m.status === 'down').length,
+      up: MONITORS.filter(m => m.status === 'up').length,
+      disabled: MONITORS.filter(m => m.status === 'paused').length,
+    };
+    document.querySelectorAll('#segments button').forEach(b => {
+      b.querySelector('.n').textContent = counts[b.dataset.f];
+    });
+    rowsEl.innerHTML = headHTML + MONITORS
+      .filter(match)
+      .filter(m => (m.name + m.target).toLowerCase().includes(dQuery))
+      .map(m => `
+      <div class="trow body">
+        <div><div class="name">${m.name}${m.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+        <div class="target">${m.target}</div></div>
+        <div>${statusCell(m)}</div>
+        <div class="resp-col">${m.ms == null
+          ? '<span class="resp none">—</span>'
+          : `<span class="resp"><span class="arr">↓</span>${m.ms}ms</span>`}</div>
+        <div class="bars bars-col" title="30-day uptime">${bars(m.seed, m.status)}</div>
+      </div>`).join('') || (headHTML + '<div class="trow body"><div class="name">No monitors match.</div><div></div><div></div><div></div></div>');
+  }
+  document.getElementById('segments').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    document.querySelectorAll('#segments button').forEach(x => x.setAttribute('aria-pressed', 'false'));
+    b.setAttribute('aria-pressed', 'true');
+    dFilter = b.dataset.f; renderRows();
+  });
+  document.getElementById('q').addEventListener('input', e => { dQuery = e.target.value.trim().toLowerCase(); renderRows(); });
+  renderRows();
+
+  }
+  initDashboard();</script>
 </body>
 </html>

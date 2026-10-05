@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ALLOWED_RETENTION_DAYS } from '@pingboard/shared'
 import { Button } from '@/components/ui/button'
+import { Icon } from '@/components/ui/icon'
+import { SignOut } from "@phosphor-icons/react/dist/icons/SignOut"
 import { FieldInput } from '@/components/ui/field'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -183,6 +186,8 @@ function InstanceCard() {
 // ─────────────────────────── Account ───────────────────────────
 
 function AccountCard({ email }: { email: string }) {
+  const { logout } = useAuth()
+  const navigate = useNavigate()
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -281,6 +286,20 @@ function AccountCard({ email }: { email: string }) {
             </p>
           </div>
         </form>
+        <div className="mt-4 border-t border-border/60 pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={async () => {
+              await logout()
+              navigate('/login')
+            }}
+            className="gap-2"
+          >
+            <Icon icon={SignOut} className="size-4" />
+            Sign out
+          </Button>
+        </div>
       </div>
     </Panel>
   )
