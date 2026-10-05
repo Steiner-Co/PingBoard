@@ -29,6 +29,9 @@ export function Prose({ children, className, variant = 'default' }: { children: 
             ]
           : [
               'prose-headings:scroll-mt-24 prose-headings:font-medium prose-headings:tracking-[-0.35px]',
+              // Subsections get a ruled top: whitespace + hairline so each
+              // h3 reads as its own section instead of blurring into the last.
+              'prose-h3:mt-12 prose-h3:border-t prose-h3:border-border prose-h3:pt-8 prose-h3:text-[17px]',
               'prose-a:font-medium prose-a:text-foreground prose-a:decoration-primary/50 prose-a:underline-offset-4 hover:prose-a:decoration-primary',
               'prose-strong:text-foreground',
               'prose-code:before:content-none prose-code:after:content-none prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:font-normal',

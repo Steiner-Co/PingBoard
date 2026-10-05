@@ -13,23 +13,41 @@ export function Toc({ items }: { items: TocItem[] }) {
   useEffect(() => {
     if (items.length === 0) return
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.filter((e) => e.isIntersecting)
-        if (visible.length > 0) {
-          // Pick the topmost visible heading
-          visible.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
-          setActiveId(visible[0]!.target.id)
-        }
-      },
-      { rootMargin: '-80px 0px -70% 0px', threshold: 0 },
-    )
+    const lastId = items[items.length - 1]!.id
+    let raf = 0
 
-    for (const item of items) {
-      const el = document.getElementById(item.id)
-      if (el) observer.observe(el)
+    const update = () => {
+      raf = 0
+      // Deepest heading the reader has scrolled past the activation line.
+      // Every section owns the highlight in turn — none can be skipped.
+      const line = window.innerHeight * 0.35
+      let current: string | null = null
+      for (const item of items) {
+        const el = document.getElementById(item.id)
+        if (el && el.getBoundingClientRect().top <= line) current = item.id
+      }
+      // Fallback: a short trailing section may never cross the line, so pin
+      // it once the page bottom is reached.
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 48) {
+        current = lastId
+      }
+      setActiveId(current)
     }
-    return () => observer.disconnect()
+
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(update)
+    }
+
+    update()
+    window.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule)
+    window.addEventListener('load', schedule)
+    return () => {
+      window.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', schedule)
+      window.removeEventListener('load', schedule)
+      if (raf) cancelAnimationFrame(raf)
+    }
   }, [items])
 
   if (items.length === 0) return null

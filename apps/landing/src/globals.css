@@ -156,14 +156,18 @@
   --motion-overlay-out: 120ms;
 }
 
-/* ── Docs: heading anchor links (Fumadocs-style hover reveal) ── */
+/* ── Docs + blog: heading anchor links (Fumadocs-style hover reveal) ── */
 [data-docs-article] h2 a,
-[data-docs-article] h3 a {
+[data-docs-article] h3 a,
+[data-blog-article] h2 a,
+[data-blog-article] h3 a {
   text-decoration: none;
   color: inherit;
 }
 [data-docs-article] h2 a::after,
-[data-docs-article] h3 a::after {
+[data-docs-article] h3 a::after,
+[data-blog-article] h2 a::after,
+[data-blog-article] h3 a::after {
   content: '#';
   margin-left: 0.35em;
   font-weight: 400;
@@ -172,7 +176,9 @@
   transition: opacity 150ms ease;
 }
 [data-docs-article] h2:hover a::after,
-[data-docs-article] h3:hover a::after {
+[data-docs-article] h3:hover a::after,
+[data-blog-article] h2:hover a::after,
+[data-blog-article] h3:hover a::after {
   opacity: 0.5;
 }
 /* Code blocks: shiki copy affordance is added by JS — keep pre relative */

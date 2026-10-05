@@ -1,0 +1,28 @@
+---
+title: Maintenance windows, done right
+description: Deploys shouldn't page anyone. How to mark planned downtime so history stays honest and alerts stay quiet.
+date: 2026-07-12
+author: Steiner & Co.
+category: Guide
+---
+
+Every team has a deploy ritual, and most of them involve someone saying "ignore the alerts for the next twenty minutes." That works until the deploy overlaps a real failure — then the ignored alert was the important one, and nobody can tell afterward which downtime was planned and which wasn't.
+
+## The deploy problem
+
+Monitors can't distinguish a restart from an outage. A rolling deploy that drops a check for ninety seconds looks exactly like a ninety-second outage, so it pages whoever's on call, opens an incident, and paints a red bar on the status page. Multiply by weekly deploys and your incident history becomes noise: customers learn to ignore the status page, and the team learns to ignore the alerts. Both lessons are expensive the one time they shouldn't apply.
+
+## Pause lies, windows tell the truth
+
+The instinct is to pause the monitor during the deploy. Don't — pausing stops the checks, so the gap in history is indistinguishable from missing data. A maintenance window keeps the checks running and marks the span as planned instead:
+
+- Checks continue, so you still see response times through the deploy.
+- Incidents and notifications stay quiet for the window's duration.
+- The status page shows the window as the reason, not a mysterious gap.
+- When the window ends, everything resumes automatically — nothing to unpause.
+
+Honest history compounds. Six months later, "planned window for the Postgres 16 upgrade" next to a yellow bar is an explanation; a gray gap is a question nobody remembers the answer to.
+
+## Setting one up
+
+Pick the monitors the deploy touches, set a start and end with a little buffer on both sides, and write the reason the way you'd explain it to a customer — because the status page will show exactly that. If the deploy runs long, extend the window rather than letting it lapse; a window that expires mid-deploy pages someone for doing their job.

@@ -27,6 +27,8 @@ export interface PostFrontmatter {
   /** ISO date string, e.g. "2026-07-29". */
   date: string
   author: string
+  /** Optional section label shown on cards and the reader breadcrumb. Defaults to "News". */
+  category?: string
 }
 
 interface DocModule {

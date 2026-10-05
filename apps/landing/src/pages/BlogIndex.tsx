@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Seo } from '@/components/Seo'
+import { BlogCardArt } from '@/components/blog/BlogChrome'
 import { formatDate, posts, type PostEntry } from '@/lib/content'
 
 function RssIcon({ className }: { className?: string }) {
@@ -12,71 +13,28 @@ function RssIcon({ className }: { className?: string }) {
   )
 }
 
-function ArrowIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
-      <path d="M5 12h14" />
-      <path d="m13 6 6 6-6 6" />
-    </svg>
-  )
-}
-
-function PostMeta({ post, className }: { post: PostEntry; className?: string }) {
-  return (
-    <p className={className ?? 'text-[12px] leading-[1.35] text-muted-foreground'}>
-      <time dateTime={post.date}>{formatDate(post.date)}</time>
-      {' · '}
-      {post.author}
-    </p>
-  )
-}
-
-/** Latest post gets the full-width feature treatment. */
-function FeaturedPost({ post }: { post: PostEntry }) {
+function PostCard({ post }: { post: PostEntry }) {
   return (
     <Link
       to={`/blog/${post.slug}`}
-      className="group flex flex-col gap-3 rounded-2xl border border-border bg-background p-6 outline-none transition-colors duration-150 ease-out hover:border-foreground/20 focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.97]"
+      className="group flex flex-col gap-4 rounded-[4px] outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
     >
-      <PostMeta post={post} />
-      <h2 className="text-[22px] font-medium leading-[1.15] tracking-[-0.55px] text-balance text-foreground">
-        {post.title}
-      </h2>
-      <p className="text-[14px] leading-[1.5] tracking-[-0.35px] text-foreground/60">
-        {post.description}
-      </p>
-      <span className="mt-1 inline-flex items-center gap-1.5 text-[13px] font-medium text-foreground/80">
-        Read post
-        <ArrowIcon className="size-3.5 transition-transform duration-150 ease-out motion-safe:group-hover:translate-x-0.5" />
-      </span>
-    </Link>
-  )
-}
-
-/** Older posts: quiet, divided rows. */
-function PostRow({ post }: { post: PostEntry }) {
-  return (
-    <Link
-      to={`/blog/${post.slug}`}
-      className="group flex items-baseline justify-between gap-6 border-t border-border py-5 outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
-    >
-      <span className="flex min-w-0 flex-col gap-1.5">
-        <PostMeta post={post} className="text-[12px] leading-[1.35] text-muted-foreground" />
-        <span className="text-[16px] font-medium leading-[1.25] tracking-[-0.4px] text-foreground transition-colors duration-150 group-hover:text-primary">
+      <BlogCardArt seed={post.slug} />
+      <span className="flex flex-col gap-1.5">
+        <span className="text-[17px] font-semibold leading-[1.3] tracking-[-0.4px] text-balance text-foreground transition-colors duration-150 group-hover:text-foreground/70">
           {post.title}
         </span>
-        <span className="line-clamp-2 text-[13px] leading-[1.45] tracking-[-0.3px] text-foreground/60">
-          {post.description}
+        <span className="text-[12.5px] text-muted-foreground">
+          {post.category ?? 'News'}
+          {' · '}
+          <time dateTime={post.date}>{formatDate(post.date)}</time>
         </span>
       </span>
-      <ArrowIcon className="size-4 shrink-0 self-center text-foreground/30 transition-[color,translate] duration-150 ease-out group-hover:text-foreground motion-safe:group-hover:translate-x-0.5" />
     </Link>
   )
 }
 
 export function BlogIndex() {
-  const [featured, ...rest] = posts
-
   return (
     <>
       <Seo
@@ -112,15 +70,10 @@ export function BlogIndex() {
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
-            {featured && <FeaturedPost post={featured} />}
-            {rest.length > 0 && (
-              <div className="mt-4 flex flex-col">
-                {rest.map((post) => (
-                  <PostRow key={post.slug} post={post} />
-                ))}
-              </div>
-            )}
+          <div className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+            {posts.map((post) => (
+              <PostCard key={post.slug} post={post} />
+            ))}
           </div>
         )}
       </div>

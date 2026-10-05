@@ -39,9 +39,10 @@ export const routes: RouteRecord[] = [
       },
       {
         path: 'blog',
-        element: <SiteLayout />,
         children: [
-          { index: true, element: <BlogIndex /> },
+          { index: true, element: <SiteLayout width="wide"><BlogIndex /></SiteLayout> },
+          // Reader has its own wide shell (sticky rail outside the card),
+          // so it must not inherit the narrow SiteLayout wrapper.
           { path: ':slug', element: <BlogPost /> },
         ],
       },

@@ -1,0 +1,30 @@
+---
+title: Why your status page disagrees with your monitoring
+description: A green dashboard and a red status page can't both be right. Usually it's a second source of truth — here's where to look.
+date: 2026-06-30
+author: Steiner & Co.
+category: Insights
+---
+
+You've seen it: the dashboard says everything is up, a customer sends a screenshot of your status page saying the API is down, and both sides are technically telling the truth about different things. The disagreement is never the checker's fault. It's architecture.
+
+## Two sources of truth
+
+Most setups grow a gap between what's measured and what's displayed. The monitor writes to one store; the status page reads from another — a cache in front of it, a replica behind it, a static export from last night's deploy. Each layer is reasonable on its own and each one can serve a stale fact with total confidence. Add a CDN caching the status page "for performance" and the page can disagree with reality for the full TTL while the dashboard underneath has already recovered.
+
+The symptom is always the same: the two surfaces converge eventually, so it looks like a glitch. Glitches that happen during outages are the ones your customers screenshot.
+
+## One database instead
+
+The fix is structural, not faster caches: serve the status page from the same database the checks write to. One place where the fact "the API is down" can live means the dashboard and the page cannot disagree — they are two views over the same rows. There is no sync job to lag, no TTL to expire, no replica to fall behind, because there is nothing to sync.
+
+That's how PingBoard is built: the admin dashboard and every public page read the same heartbeats. If they ever disagree, it's a bug, not a topology.
+
+## What to check first
+
+If your pages already disagree and a rebuild isn't on the table this week:
+
+- Purge or bypass any cache in front of the status page during incidents.
+- Confirm the page reads the primary store, not a replica.
+- Shorten status-page TTLs before you need them, not during.
+- Compare timestamps, not colors — a green page showing data from an hour ago is worse than a red one showing now.
