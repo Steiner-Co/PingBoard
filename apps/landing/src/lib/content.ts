@@ -26,6 +26,7 @@ export interface PostFrontmatter {
   description: string
   /** ISO date string, e.g. "2026-07-29". */
   date: string
+  /** Display name — resolved to a photo/role via `authorMeta`. */
   author: string
   /** Optional section label shown on cards and the reader breadcrumb. Defaults to "News". */
   category?: string
@@ -77,6 +78,20 @@ export function getDoc(slug: string | undefined): DocEntry | undefined {
 
 export function getPost(slug: string | undefined): PostEntry | undefined {
   return posts.find((p) => p.slug === slug)
+}
+
+export interface AuthorMeta {
+  role: string
+  image?: string
+}
+
+/** Known authors — photo + byline role. Unknown names get initials + "PingBoard". */
+const AUTHORS: Record<string, AuthorMeta> = {
+  Arunava: { role: 'Steiner & Co.', image: '/profile-pic-arunava.webp' },
+}
+
+export function authorMeta(name: string): AuthorMeta {
+  return AUTHORS[name] ?? { role: 'PingBoard' }
 }
 
 /** Docs grouped for the sidebar, preserving DOC_GROUPS order. */

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
 export interface BlogTocItem {
@@ -269,74 +268,39 @@ export function BlogShare({ title }: { title: string }) {
 }
 
 /**
- * Promo card for the left rail — green mesh like the reference, copy adapted
- * to PingBoard (self-hosted, no signup funnel).
- */
-export function BlogPromo() {
-  return (
-    <div className="relative overflow-hidden rounded-[24px] p-6 pt-16 text-white">
-      {/* Mesh background */}
-      <div
-        aria-hidden
-        className="absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(120% 90% at 15% 10%, #9dc98f 0%, transparent 55%), radial-gradient(110% 100% at 90% 20%, #b8d97a 0%, transparent 55%), radial-gradient(130% 110% at 50% 100%, #3f7d5d 0%, transparent 60%), linear-gradient(160deg, #7ba889 0%, #6a9a5b 45%, #4a7a5c 100%)',
-        }}
-      />
-      <div aria-hidden className="absolute inset-0 opacity-30" style={{ background: 'radial-gradient(60% 40% at 80% 85%, rgba(255,255,255,0.5) 0%, transparent 70%)' }} />
-      <div className="relative flex flex-col gap-3">
-        <p className="text-[20px] font-semibold leading-[1.2] tracking-[-0.4px] text-balance">
-          Status pages your customers will trust
-        </p>
-        <p className="text-[13.5px] leading-[1.55] text-white/85">
-          One container, unlimited monitors and pages. Self-hosted in under a minute.
-        </p>
-        <Link
-          to="/docs/getting-started"
-          className="mt-4 inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 text-[13.5px] font-semibold text-foreground outline-none transition-transform duration-150 hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-white/60 active:scale-[0.98]"
-        >
-          Get started
-        </Link>
-      </div>
-    </div>
-  )
-}
-
-/**
- * Gradient hero art — we have no per-post images, so render a mesh in the
- * reference's spirit with an abstract uptime mark. Pure CSS, theme-agnostic.
+ * Gradient hero art — same per-post preset as the index card, so the two
+ * stay visually linked. Pure CSS, theme-agnostic.
  */
 export function BlogHero({ seed }: { seed: string }) {
-  // Rotate the hue slightly per post so each article feels distinct.
-  let hash = 0
-  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0
-  const hue = ((hash % 40) + 40) % 40 - 20
+  const preset = blogArtPreset(seed)
 
   return (
     <div
       role="img"
       aria-label="Abstract cover art"
-      className="relative aspect-[16/8] w-full overflow-hidden rounded-[20px] dark:brightness-90"
-      style={{
-        filter: `hue-rotate(${hue}deg)`,
-        background:
-          'radial-gradient(70% 90% at 12% 20%, rgba(125,211,252,0.95) 0%, transparent 55%), radial-gradient(60% 80% at 85% 15%, rgba(165,243,252,0.9) 0%, transparent 55%), radial-gradient(75% 95% at 78% 88%, rgba(251,191,36,0.95) 0%, transparent 58%), radial-gradient(55% 70% at 30% 90%, rgba(253,224,71,0.7) 0%, transparent 60%), linear-gradient(115deg, #bae6fd 0%, #fce7f3 38%, #fde68a 68%, #f59e0b 100%)',
-      }}
+      className="relative grid aspect-[16/8] w-full place-items-center overflow-hidden rounded-[20px] dark:brightness-90"
+      style={{ background: preset.bg }}
     >
-      {/* Abstract uptime mark — thin white linework, centered */}
-      <svg viewBox="0 0 120 72" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" className="absolute inset-0 m-auto h-1/2 w-auto opacity-90" aria-hidden>
-        <path d="M14 58 V14 M14 36 H44 M44 14 V58 M30 14 L14 36 L30 58" />
-        <ellipse cx="72" cy="36" rx="16" ry="22" />
-        <path d="M100 14 V58" />
-      </svg>
+      <div className="grid h-full w-full place-items-center [&>svg]:h-1/2 [&>svg]:w-auto" aria-hidden>
+        {preset.mark}
+      </div>
       <div aria-hidden className="absolute inset-0" style={{ background: 'radial-gradient(120% 120% at 50% 50%, transparent 55%, rgba(255,255,255,0.25) 100%)' }} />
     </div>
   )
 }
 
-/** Initials avatar — we store only an author name, no photos. */
-export function AuthorAvatar({ name }: { name: string }) {
+/** Author mark — real photo when the author directory has one, initials otherwise. */
+export function AuthorAvatar({ name, image }: { name: string; image?: string }) {
+  if (image) {
+    return (
+      <img
+        src={image}
+        alt=""
+        className="size-9 shrink-0 rounded-full object-cover"
+      />
+    )
+  }
+
   const initials = name
     .split(/\s+/)
     .filter(Boolean)
@@ -358,7 +322,7 @@ const CARD_PRESETS: { bg: string; mark: React.ReactNode }[] = [
   {
     bg: 'radial-gradient(70% 90% at 12% 20%, rgba(125,211,252,0.95) 0%, transparent 55%), radial-gradient(60% 80% at 85% 15%, rgba(165,243,252,0.9) 0%, transparent 55%), radial-gradient(75% 95% at 78% 88%, rgba(251,191,36,0.95) 0%, transparent 58%), linear-gradient(115deg, #bae6fd 0%, #fce7f3 38%, #fde68a 68%, #f59e0b 100%)',
     mark: (
-      <svg viewBox="0 0 120 72" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" className="h-1/3 w-auto opacity-90" aria-hidden>
+      <svg viewBox="0 0 120 72" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" className="opacity-90" aria-hidden>
         <path d="M14 58 V14 M14 36 H44 M44 14 V58 M30 14 L14 36 L30 58" />
         <ellipse cx="72" cy="36" rx="16" ry="22" />
         <path d="M100 14 V58" />
@@ -368,7 +332,7 @@ const CARD_PRESETS: { bg: string; mark: React.ReactNode }[] = [
   {
     bg: 'radial-gradient(70% 90% at 85% 15%, rgba(110,231,183,0.95) 0%, transparent 55%), radial-gradient(65% 85% at 15% 85%, rgba(45,212,191,0.9) 0%, transparent 58%), radial-gradient(60% 70% at 60% 60%, rgba(190,242,100,0.8) 0%, transparent 60%), linear-gradient(120deg, #99f6e4 0%, #bbf7d0 45%, #d9f99d 100%)',
     mark: (
-      <svg viewBox="0 0 120 72" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-1/3 w-auto opacity-90" aria-hidden>
+      <svg viewBox="0 0 120 72" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-90" aria-hidden>
         <path d="M8 44 L32 44 L42 20 L54 60 L64 36 L72 44 L112 44" />
         <circle cx="112" cy="44" r="3.5" fill="white" stroke="none" />
       </svg>
@@ -377,7 +341,7 @@ const CARD_PRESETS: { bg: string; mark: React.ReactNode }[] = [
   {
     bg: 'radial-gradient(70% 90% at 15% 15%, rgba(253,224,71,0.9) 0%, transparent 55%), radial-gradient(65% 85% at 85% 80%, rgba(196,181,253,0.95) 0%, transparent 58%), radial-gradient(60% 70% at 70% 30%, rgba(249,168,212,0.85) 0%, transparent 60%), linear-gradient(120deg, #fde68a 0%, #f5d0fe 50%, #c4b5fd 100%)',
     mark: (
-      <svg viewBox="0 0 120 72" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" className="h-1/3 w-auto opacity-90" aria-hidden>
+      <svg viewBox="0 0 120 72" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" className="opacity-90" aria-hidden>
         <ellipse cx="60" cy="36" rx="34" ry="20" />
         <ellipse cx="60" cy="36" rx="22" ry="12" />
         <ellipse cx="60" cy="36" rx="10" ry="5" />
@@ -387,21 +351,31 @@ const CARD_PRESETS: { bg: string; mark: React.ReactNode }[] = [
 ]
 
 /**
+ * Deterministic artwork per post — shared by index cards and the reader
+ * hero so the two stay visually linked.
+ */
+export function blogArtPreset(seed: string) {
+  let hash = 0
+  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0
+  return CARD_PRESETS[((hash % CARD_PRESETS.length) + CARD_PRESETS.length) % CARD_PRESETS.length]!
+}
+
+/**
  * Cover art for index cards — mesh gradient + abstract line mark, picked
  * deterministically per post so each card is distinct but stable.
  * Decorative: the parent link already names the post.
  */
 export function BlogCardArt({ seed }: { seed: string }) {
-  let hash = 0
-  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0
-  const preset = CARD_PRESETS[((hash % CARD_PRESETS.length) + CARD_PRESETS.length) % CARD_PRESETS.length]!
+  const preset = blogArtPreset(seed)
   return (
     <div
       aria-hidden
       className="relative grid aspect-[4/3] w-full place-items-center overflow-hidden rounded-[20px] dark:brightness-90"
       style={{ background: preset.bg }}
     >
-      {preset.mark}
+      <div className="grid h-full w-full place-items-center [&>svg]:h-1/3 [&>svg]:w-auto" aria-hidden>
+        {preset.mark}
+      </div>
     </div>
   )
 }

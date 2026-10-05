@@ -119,6 +119,12 @@
   --chart-5: oklch(0.453 0.124 130.933);
 }
 
+/* Brand logo ships as fixed dark ink — invert it in dark mode so it stays
+   legible on the dark card. */
+.dark .brand-logo {
+  filter: invert(1);
+}
+
 /* Faint dot grid on the page body, visible in the grey margins around the
    white content panel. */
 .page-dots {

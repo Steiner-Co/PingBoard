@@ -4,12 +4,11 @@ import { Prose } from '@/components/Prose'
 import { TopNav } from '@/sections/TopNav'
 import { SiteFooter } from '@/sections/SiteFooter'
 import { SiteLayout } from '@/layouts/SiteLayout'
-import { formatDate, getPost, posts } from '@/lib/content'
+import { authorMeta, formatDate, getPost, posts } from '@/lib/content'
 import { NotFound } from './NotFound'
 import {
   AuthorAvatar,
   BlogHero,
-  BlogPromo,
   BlogShare,
   BlogToc,
   MobileBlogToc,
@@ -54,7 +53,6 @@ export function BlogPost() {
           <aside className="sticky top-8 hidden w-[240px] shrink-0 flex-col gap-8 lg:flex">
             <BlogToc items={tocItems} />
             <BlogShare title={post.title} />
-            <BlogPromo />
           </aside>
 
           {/* ── Main card ── */}
@@ -77,12 +75,12 @@ export function BlogPost() {
                 {/* Author + date row */}
                 <div className="mt-6 flex items-center justify-between gap-4">
                   <div className="flex min-w-0 items-center gap-3">
-                    <AuthorAvatar name={post.author} />
+                    <AuthorAvatar name={post.author} image={authorMeta(post.author).image} />
                     <div className="flex min-w-0 flex-col">
                       <span className="truncate text-[13.5px] font-semibold tracking-[-0.2px] text-foreground">
                         {post.author}
                       </span>
-                      <span className="text-[12.5px] text-muted-foreground">PingBoard</span>
+                      <span className="text-[12.5px] text-muted-foreground">{authorMeta(post.author).role}</span>
                     </div>
                   </div>
                   <p className="shrink-0 text-[12.5px] tabular-nums text-muted-foreground">
@@ -107,10 +105,9 @@ export function BlogPost() {
                   </Prose>
                 </div>
 
-                {/* Mobile share + promo */}
-                <div className="mt-10 flex flex-col gap-8 lg:hidden">
+                {/* Mobile share */}
+                <div className="mt-10 lg:hidden">
                   <BlogShare title={post.title} />
-                  <BlogPromo />
                 </div>
 
                 <footer className="mt-12 flex flex-col gap-6 border-t border-border pt-6">
