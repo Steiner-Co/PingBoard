@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { formatDate, type PostEntry } from '@/lib/content'
 
 export interface BlogTocItem {
   id: string
@@ -289,6 +291,31 @@ export function BlogHero({ seed }: { seed: string }) {
   )
 }
 
+/**
+ * Index card — cover art, title, category · date. Shared by the blog grid
+ * and the reader's "More posts" footer so both stay identical.
+ */
+export function PostCard({ post }: { post: PostEntry }) {
+  return (
+    <Link
+      to={`/blog/${post.slug}`}
+      className="group flex flex-col gap-4 rounded-[4px] outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+    >
+      <BlogCardArt seed={post.slug} />
+      <span className="flex flex-col gap-1.5">
+        <span className="text-[17px] font-semibold leading-[1.3] tracking-[-0.4px] text-balance text-foreground transition-colors duration-150 group-hover:text-foreground/70">
+          {post.title}
+        </span>
+        <span className="text-[12.5px] text-muted-foreground">
+          {post.category ?? 'News'}
+          {' · '}
+          <time dateTime={post.date}>{formatDate(post.date)}</time>
+        </span>
+      </span>
+    </Link>
+  )
+}
+
 /** Author mark — real photo when the author directory has one, initials otherwise. */
 export function AuthorAvatar({ name, image }: { name: string; image?: string }) {
   if (image) {
@@ -365,12 +392,16 @@ export function blogArtPreset(seed: string) {
  * deterministically per post so each card is distinct but stable.
  * Decorative: the parent link already names the post.
  */
-export function BlogCardArt({ seed }: { seed: string }) {
+export function BlogCardArt({ seed, thumb }: { seed: string; thumb?: boolean }) {
   const preset = blogArtPreset(seed)
   return (
     <div
       aria-hidden
-      className="relative grid aspect-[4/3] w-full place-items-center overflow-hidden rounded-[20px] dark:brightness-90"
+      className={
+        thumb
+          ? 'relative grid aspect-[4/3] w-full place-items-center overflow-hidden rounded-xl dark:brightness-90'
+          : 'relative grid aspect-[4/3] w-full place-items-center overflow-hidden rounded-[20px] dark:brightness-90'
+      }
       style={{ background: preset.bg }}
     >
       <div className="grid h-full w-full place-items-center [&>svg]:h-1/3 [&>svg]:w-auto" aria-hidden>

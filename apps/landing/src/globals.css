@@ -192,15 +192,18 @@
   position: relative;
 }
 
-/* Docs tables: Fumadocs-like — subtle header, zebra-free, compact */
-[data-docs-article] table {
+/* Docs + blog tables: Fumadocs-like — subtle header, zebra-free, compact.
+   Blog MDX can contain tables too, so both scroll horizontally on narrow screens. */
+[data-docs-article] table,
+[data-blog-article] table {
   display: block;
   width: 100%;
   overflow-x: auto;
   border-collapse: collapse;
   font-size: 13px;
 }
-[data-docs-article] thead th {
+[data-docs-article] thead th,
+[data-blog-article] thead th {
   background: var(--muted);
   font-weight: 600;
   font-size: 12px;
@@ -209,11 +212,13 @@
   color: var(--muted-foreground);
   border-bottom: 1px solid var(--border);
 }
-[data-docs-article] tbody td {
+[data-docs-article] tbody td,
+[data-blog-article] tbody td {
   border-bottom: 1px solid var(--border);
   vertical-align: top;
 }
-[data-docs-article] tbody tr:last-child td {
+[data-docs-article] tbody tr:last-child td,
+[data-blog-article] tbody tr:last-child td {
   border-bottom: none;
 }
 

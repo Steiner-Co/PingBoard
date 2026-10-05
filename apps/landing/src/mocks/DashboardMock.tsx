@@ -36,9 +36,9 @@ export function DashboardMock() {
 
       <div className="grid grid-cols-4 divide-x divide-border border-b border-border">
         {STATS.map(([label, value]) => (
-          <div key={label} className="px-4 py-3">
-            <div className="font-mono text-[9px] uppercase tracking-wider text-foreground/40">{label}</div>
-            <div className="mt-1 text-[15px] font-semibold tabular-nums">{value}</div>
+          <div key={label} className="min-w-0 px-2 py-2 sm:px-4 sm:py-3">
+            <div className="truncate font-mono text-[9px] uppercase tracking-wider text-foreground/40">{label}</div>
+            <div className="mt-1 truncate text-[13px] font-semibold tabular-nums sm:text-[15px]">{value}</div>
           </div>
         ))}
       </div>

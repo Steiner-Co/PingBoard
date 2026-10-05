@@ -1,7 +1,6 @@
-import { Link } from 'react-router-dom'
 import { Seo } from '@/components/Seo'
-import { BlogCardArt } from '@/components/blog/BlogChrome'
-import { formatDate, posts, type PostEntry } from '@/lib/content'
+import { PostCard } from '@/components/blog/BlogChrome'
+import { posts } from '@/lib/content'
 
 function RssIcon({ className }: { className?: string }) {
   return (
@@ -10,27 +9,6 @@ function RssIcon({ className }: { className?: string }) {
       <path d="M4 4a16 16 0 0 1 16 16" />
       <circle cx="5" cy="19" r="1" fill="currentColor" stroke="none" />
     </svg>
-  )
-}
-
-function PostCard({ post }: { post: PostEntry }) {
-  return (
-    <Link
-      to={`/blog/${post.slug}`}
-      className="group flex flex-col gap-4 rounded-[4px] outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
-    >
-      <BlogCardArt seed={post.slug} />
-      <span className="flex flex-col gap-1.5">
-        <span className="text-[17px] font-semibold leading-[1.3] tracking-[-0.4px] text-balance text-foreground transition-colors duration-150 group-hover:text-foreground/70">
-          {post.title}
-        </span>
-        <span className="text-[12.5px] text-muted-foreground">
-          {post.category ?? 'News'}
-          {' · '}
-          <time dateTime={post.date}>{formatDate(post.date)}</time>
-        </span>
-      </span>
-    </Link>
   )
 }
 

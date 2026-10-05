@@ -12,6 +12,7 @@ import {
   BlogShare,
   BlogToc,
   MobileBlogToc,
+  PostCard,
   useBlogToc,
   useReadingTime,
 } from '@/components/blog/BlogChrome'
@@ -39,10 +40,6 @@ export function BlogPost() {
   if (!post) return <SiteLayout><NotFound /></SiteLayout>
 
   const { Component } = post
-  // posts are newest-first: index - 1 is newer, index + 1 is older
-  const index = posts.findIndex((p) => p.slug === post.slug)
-  const newer = index > 0 ? posts[index - 1] : undefined
-  const older = index < posts.length - 1 ? posts[index + 1] : undefined
 
   return (
     <>
@@ -73,7 +70,7 @@ export function BlogPost() {
                 </div>
 
                 {/* Author + date row */}
-                <div className="mt-6 flex items-center justify-between gap-4">
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <AuthorAvatar name={post.author} image={authorMeta(post.author).image} />
                     <div className="flex min-w-0 flex-col">
@@ -111,36 +108,19 @@ export function BlogPost() {
                 </div>
 
                 <footer className="mt-12 flex flex-col gap-6 border-t border-border pt-6">
-                  {(newer || older) && (
-                    <nav aria-label="More posts" className="grid gap-3 sm:grid-cols-2">
-                      {older ? (
-                        <Link
-                          to={`/blog/${older.slug}`}
-                          className="group flex flex-col gap-1 rounded-xl border border-border bg-card px-4 py-3 outline-none transition-colors hover:border-foreground/15 hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/30"
-                        >
-                          <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">Older</span>
-                          <span className="text-[13.5px] font-medium leading-[1.3] tracking-[-0.2px] text-foreground/80 transition-colors group-hover:text-foreground">
-                            {older.title}
-                          </span>
-                        </Link>
-                      ) : (
-                        <span />
-                      )}
-                      {newer ? (
-                        <Link
-                          to={`/blog/${newer.slug}`}
-                          className="group flex flex-col gap-1 rounded-xl border border-border bg-card px-4 py-3 text-left outline-none transition-colors hover:border-foreground/15 hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/30 sm:items-end sm:text-right"
-                        >
-                          <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">Newer</span>
-                          <span className="text-[13.5px] font-medium leading-[1.3] tracking-[-0.2px] text-foreground/80 transition-colors group-hover:text-foreground">
-                            {newer.title}
-                          </span>
-                        </Link>
-                      ) : (
-                        <span />
-                      )}
-                    </nav>
-                  )}
+                  <div className="flex flex-col gap-5">
+                    <h2 className="text-[14px] font-semibold tracking-[-0.2px] text-foreground">
+                      More posts
+                    </h2>
+                    <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2">
+                      {posts
+                        .filter((p) => p.slug !== post.slug)
+                        .slice(0, 2)
+                        .map((p) => (
+                          <PostCard key={p.slug} post={p} />
+                        ))}
+                    </div>
+                  </div>
                   <Link
                     to="/blog"
                     className="w-fit rounded-[4px] text-[12px] font-medium text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
