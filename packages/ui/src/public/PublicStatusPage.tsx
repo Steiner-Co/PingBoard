@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type MutableRefObject, type RefObject } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type MutableRefObject, type RefObject } from 'react'
 import { humanDate, UptimeTimeline } from '@/components/uptime-timeline'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from 'next-themes'
@@ -207,6 +207,14 @@ export function PublicStatusPage({ slug }: { slug: string }) {
 }
 
 /**
+ * Overlays (calendar popover, visitor theme menu) portal into this host —
+ * a div inside the page's themed root — instead of document.body. The page's
+ * theme class and any custom CSS variables are scoped to that root, so an
+ * overlay portaled to body would render in the global default theme.
+ */
+const PublicOverlayHostContext = createContext<HTMLElement | null>(null)
+
+/**
  * The status page itself, presentation only. PublicStatusPage wraps this with
  * fetching/SSE/meta side effects; the admin live editor feeds it draft state
  * directly (`preview` hides the visitor-facing theme toggle, `forcedTheme`
@@ -225,6 +233,7 @@ export function PublicStatusView({
   descriptionValue,
   onDescriptionChange,
   descriptionEditorRef,
+  className,
 }: {
   data: PublicData
   dataUpdatedAt: number
@@ -240,9 +249,12 @@ export function PublicStatusView({
   descriptionValue?: string
   onDescriptionChange?: (v: string) => void
   descriptionEditorRef?: MutableRefObject<HTMLDivElement | null>
+  /** Extra root classes — the editor uses this to stretch the canvas. */
+  className?: string
 }) {
   const { resolvedTheme } = useTheme()
   const { page, monitors, incidents, maintenance = [] } = data
+  const [overlayHost, setOverlayHost] = useState<HTMLDivElement | null>(null)
   const now = Date.now()
   const activeMaintenance = maintenance.filter((w) => {
     const start = new Date(w.startsAt).getTime()
@@ -331,11 +343,12 @@ export function PublicStatusView({
 
   return (
     <div
-      className={cn('bg-background text-foreground', preview ? 'min-h-full' : 'min-h-app')}
+      className={cn('bg-background text-foreground', preview ? 'min-h-full' : 'min-h-app', className)}
     >
       {page?.customCss && (
         <style data-pb-custom>{page.customCss}</style>
       )}
+      <PublicOverlayHostContext.Provider value={overlayHost}>
       <div className="max-w-3xl mx-auto px-5 py-10 sm:px-6 sm:py-14 space-y-8">
         <header className="flex items-start justify-between gap-3 sm:gap-4">
           {page?.websiteUrl ? (
@@ -413,6 +426,9 @@ export function PublicStatusView({
           </footer>
         )}
       </div>
+      </PublicOverlayHostContext.Provider>
+      {/* Portal host for the page's overlays — sits inside the themed root. */}
+      <div ref={setOverlayHost} />
     </div>
   )
 }
@@ -771,6 +787,7 @@ function PastEventsPanel({
   // Which day's incidents the log is filtered to; undefined shows every day.
   const [selectedDay, setSelectedDay] = useState<Date | undefined>(undefined)
   const [calendarOpen, setCalendarOpen] = useState(false)
+  const overlayHost = useContext(PublicOverlayHostContext)
 
   const now = new Date()
   const DAY_MS = 24 * 60 * 60 * 1000
@@ -843,7 +860,7 @@ function PastEventsPanel({
                     {selectedDay ? humanDate(localDayKey(selectedDay)) : 'Calendar'}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent align="end" className="w-auto p-3">
+                <PopoverContent align="end" className="w-auto p-3" container={overlayHost}>
                   <Calendar
                     mode="single"
                     selected={selectedDay}
@@ -1230,6 +1247,7 @@ function PasswordGate({
 function ThemeToggle() {
   const { theme, resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const overlayHost = useContext(PublicOverlayHostContext)
   useEffect(() => setMounted(true), [])
 
   // Avoid SSR/CSR mismatch flash; render a sized placeholder until mounted.
@@ -1250,7 +1268,7 @@ function ThemeToggle() {
           <Icon icon={ThemeIcon} className="h-4 w-4" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" container={overlayHost}>
         {/* Radio semantics so AT announces which theme is active. */}
         <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
           <DropdownMenuRadioItem value="light">

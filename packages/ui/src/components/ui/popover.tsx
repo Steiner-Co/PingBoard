@@ -10,13 +10,18 @@ const PopoverTrigger = PopoverPrimitive.Trigger
 const PopoverAnchor = PopoverPrimitive.Anchor
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
+  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content> & {
+    /** Portal host. Defaults to document.body; pass an element inside a
+        themed subtree (e.g. the public status page) so scoped tokens and
+        custom CSS reach the overlay. */
+    container?: HTMLElement | null
+  }
 >(function PopoverContent(
-  { className, align = 'center', sideOffset = 4, ...props },
+  { className, align = 'center', sideOffset = 4, container, ...props },
   ref,
 ) {
   return (
-    <PopoverPrimitive.Portal>
+    <PopoverPrimitive.Portal container={container ?? undefined}>
       <PopoverPrimitive.Content
         ref={ref}
         align={align}
