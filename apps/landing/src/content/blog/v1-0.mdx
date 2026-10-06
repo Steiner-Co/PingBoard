@@ -1,0 +1,42 @@
+---
+title: PingBoard 1.0
+description: The ground-up redesign, a status page editor that is the page itself, domains as first-class tracking, and twelve theme presets. No breaking changes.
+date: 2026-10-06
+author: Arunava
+---
+
+The launch post in July ended with a claim: simple underneath, polished on top. The first half held up — one container, one SQLite file, nothing to orchestrate. The second was a coat of paint over screens designed one at a time, in the order they were built, and you could tell. 1.0 is the fix: a ground-up redesign of the whole product — admin, public status pages, auth, landing — plus domain tracking as a first-class feature. It's out today.
+
+## Why a monitoring tool needs a design system
+
+You open a monitor two ways: a daily glance, or mid-incident with your heart rate up. Both punish inconsistency — if every screen invents its own header, card, and primary button, you're re-learning the interface when you have the least attention to spare.
+
+So 1.0 builds one screen language and applies it everywhere: the same breadcrumb-titled headers, section cards, and list rows on every admin page. Icons are Phosphor throughout, with one rule — plain glyphs for actions, circle-fill reserved for status — so a filled circle always means "state of something," never "clickable thing." Primary actions are lime, and nothing else is. It sounds like tidying. It changes how fast the app reads.
+
+## The page is the editor
+
+The old status page editor was the usual arrangement — form on one side, preview on the other, faith-based relationship between the two. That's gone. The editor is now the page itself — a live canvas where you click the title and type, with a floating toolbar for formatting. Monitors and groups are managed inline, arranged as your customers will see them. There is no preview because there's nothing to preview: what you edit is what ships.
+
+Theming got the same treatment. There are now twelve curated presets — Catppuccin, Nord, Gruvbox, Tokyo Night, Rosé Pine, GitHub, Kanagawa, Synthwave, Noir, Flexoki, One Dark, and Ayu — each with dark and light sides, delivered through Custom CSS so a preset is a starting point you can hand-edit, not a locked swatch. If none of the twelve is yours, the theme builder takes eight color picks and derives the rest of the palette, light variant included. Light and dark are now the visitor's choice: every page carries a light/dark/system toggle.
+
+## Domains are not uptime checks
+
+A lapsed domain takes down everything hosted on it, and registrars' reminder emails are easy to miss — that was true in July, when domain expiry was one monitor type among seven. But a domain isn't a target you poll; it's an asset you track. In 1.0 domains split out into their own page: expiry and renewal runway, registrar, nameservers, and the SSL certificate, with warnings before anything lapses. The split runs the full depth of the product — their own API endpoints, their own MCP tools — so an assistant can answer "which of my domains renew this quarter?" without scraping a monitor list.
+
+The rest in one breath: maintenance windows got a weekly calendar with the live window highlighted; channels got a type-picker dialog; settings moved to section cards with instance details in a modal; status page slugs are now editable.
+
+## Upgrading
+
+No breaking changes. Pull, recreate, and the database migrations run automatically on boot:
+
+```bash
+docker pull ghcr.io/steiner-co/pingboard:1.0.0
+```
+
+One removal to know about: the per-page theme setting is gone. Pages keep their Custom CSS, and the old accent color is folded into the preset system, so pages that used it keep their look. If you pin tags, bump to `1.0.0`; `latest` tracks it as usual.
+
+## What's next
+
+The strongest 1.1 candidate is status page subscriptions — RSS/Atom per page and double-opt-in email — deferred to keep the path to 1.0 short, now first in line. The docs are mid-refresh to catch up with the redesign; some screenshots there still show the old UI, and we'd rather say so than pretend otherwise.
+
+What's not next is also a decision: no per-seat anything, no SMS gateway, no roles and audit logs. The webhook channel covers the programmable case; the cloud-version concerns can stay with the cloud versions. One container, one file, all of the checks — that part doesn't change at 1.0.

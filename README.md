@@ -31,7 +31,8 @@ Open `http://localhost:3000`, create your admin account, add your first monitor.
 
 ## What it does
 
-- **7 monitor types** — HTTP(S), TCP, ping, DNS, SSL-certificate expiry, domain expiry, and push/heartbeat, plus keyword/JSON assertions on HTTP bodies
+- **6 monitor types** — HTTP(S), TCP, ping, DNS, SSL-certificate expiry, and push/heartbeat, plus keyword/JSON assertions on HTTP bodies
+- **Domain tracking** — expiry, registrar, nameservers and SSL certificates for the whole portfolio, with their own page and API
 - **5 notification channels** — email (SMTP), webhook, Discord, Slack, ntfy
 - **Public status pages** — multiple per instance, optional password protection, custom slugs
 - **Free branding** — logo, theme presets, website link, custom CSS, and a white-label toggle on every status page. Others charge per page for this; PingBoard doesn't

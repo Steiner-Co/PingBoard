@@ -33,7 +33,7 @@ PingBoard covers the checks indie hackers actually run and skips the rest. No sy
 
 ### Monitor types
 
-Seven monitor types, each with its own sensible defaults:
+Six monitor types, each with its own sensible defaults:
 
 | Type | What it checks |
 |---|---|
@@ -42,8 +42,9 @@ Seven monitor types, each with its own sensible defaults:
 | Ping | Classic ICMP round-trip |
 | DNS | Resolves a record and optionally matches its value |
 | SSL expiry | Certificate lifetime with warning/critical thresholds |
-| Domain expiry | RDAP lookup with a WHOIS fallback for lagging ccTLDs |
 | Push | Heartbeat monitors for cron jobs and backups, with a grace period |
+
+Domain expiry launched as a seventh type here; as of 1.0 it's a tracker of its own — expiry, registrar, nameservers, and SSL across your whole portfolio, on its own page, API, and MCP surface.
 
 The HTTP assertions deserve a callout: a 200 that says `"database":"down"` is not up. Keyword matching catches the maintenance page served with a smile and a 200 status; JSON-path assertions catch the API that's technically responding and functionally broken. These are the checks that page you at 3am for a reason, instead of paging you because a CDN hiccuped once — retries are configurable per monitor, so a single missed check doesn't become an incident.
 
@@ -55,7 +56,7 @@ As many status pages as you want, each with its own slug, optional password prot
 
 ![Illustration of a 90-day uptime strip](/blog/uptime-strip.svg)
 
-Pages support light, dark, or automatic themes, five prebuilt palettes, custom CSS per page, your own logo and website link, and a white-label toggle that hides the "Powered by PingBoard" footer. Free, on every page — things other tools charge per page for. Live updates come over SSE there too, so a customer staring at the page during an outage watches it recover in real time.
+Pages ship in light and dark (the visitor picks, or follows their system), with twelve theme presets plus a visual custom-theme builder, custom CSS per page, your own logo and website link, and a white-label toggle that hides the "Powered by PingBoard" footer. Free, on every page — things other tools charge per page for. Live updates come over SSE there too, so a customer staring at the page during an outage watches it recover in real time.
 
 ### Notifications
 
@@ -104,7 +105,7 @@ Point Claude Code, Cursor, or Zed at your instance and ask things you'd never cl
 >
 > "Schedule maintenance on the database for tonight 2–4am."
 
-Thirteen tools, read-only ones annotated as such, deletes marked destructive. Monitoring data is exactly the kind of thing that's painful to browse and trivial to ask about, so meeting the assistant where it lives felt obvious.
+Twenty-two tools, read-only ones annotated as such, deletes marked destructive. Monitoring data is exactly the kind of thing that's painful to browse and trivial to ask about, so meeting the assistant where it lives felt obvious.
 
 ## Principles
 
