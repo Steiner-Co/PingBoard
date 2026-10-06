@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
-import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft"
 import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
 import { DateTimePicker } from '@/components/ui/date-time-picker'
 import { Trash } from "@phosphor-icons/react/dist/icons/Trash"
@@ -111,7 +110,10 @@ export function MonitorDetailPage() {
   // Shared clock so "Last check … ago" keeps counting between heartbeats.
   useNow()
   // Name the tab and header after the monitor, not the generic route.
-  usePageTitle(query.data?.monitor.name ?? null)
+  usePageTitle(query.data?.monitor.name ?? null, {
+    label: 'Monitors',
+    to: '/admin',
+  })
 
   if (query.isLoading) return <MonitorDetailSkeleton />
   if (query.isError)
@@ -164,13 +166,6 @@ export function MonitorDetailPage() {
 
   return (
     <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
-      <Button variant="ghost" size="sm" asChild className="self-start -ml-3">
-        <Link to="/admin" className="gap-2">
-          <Icon icon={ArrowLeft} className="h-4 w-4" />
-          Back to dashboard
-        </Link>
-      </Button>
-
       <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight break-words">

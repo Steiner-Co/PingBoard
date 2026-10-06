@@ -28,15 +28,31 @@ const ROUTE_TITLES: Record<string, string> = {
 }
 
 // Pages that know something the route can't (a monitor's name) push a title
-// up to the shell, which drives both the header and the browser tab.
-const PageTitleContext = createContext<(title: string | null) => void>(() => {})
+// up to the shell, which drives both the header and the browser tab. `back`
+// turns the title into a breadcrumb: Status pages / Refrsh.
+export interface PageTitleOverride {
+  title: string
+  back?: { label: string; to: string }
+}
 
-export function usePageTitle(title: string | null): void {
+const PageTitleContext =
+  createContext<(title: PageTitleOverride | null) => void>(() => {})
+
+export function usePageTitle(
+  title: string | null,
+  back?: PageTitleOverride['back'],
+): void {
   const setTitle = useContext(PageTitleContext)
+  const backLabel = back?.label
+  const backTo = back?.to
   useEffect(() => {
-    setTitle(title)
+    setTitle(
+      title
+        ? { title, back: backLabel && backTo ? { label: backLabel, to: backTo } : undefined }
+        : null,
+    )
     return () => setTitle(null)
-  }, [setTitle, title])
+  }, [setTitle, title, backLabel, backTo])
 }
 
 function titleForPath(pathname: string): string {
@@ -52,8 +68,8 @@ const COLLAPSED_KEY = 'pb-shell-collapsed'
 
 export function AdminLayout() {
   const { pathname } = useLocation()
-  const [override, setOverride] = useState<string | null>(null)
-  const title = override ?? titleForPath(pathname)
+  const [override, setOverride] = useState<PageTitleOverride | null>(null)
+  const title = override?.title ?? titleForPath(pathname)
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem(COLLAPSED_KEY) === '1',
   )
@@ -106,7 +122,7 @@ export function AdminLayout() {
         >
           <AppSidebar />
           <div className="shell-panel">
-            <SiteHeader title={title} onToggleSidebar={toggleSidebar} />
+            <SiteHeader title={title} back={override?.back} onToggleSidebar={toggleSidebar} />
             <main id="main-content" tabIndex={-1} className="shell-body">
               <Outlet />
             </main>

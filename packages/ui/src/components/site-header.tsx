@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { Link } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import { Cube, PlusCircle, SidebarSimple } from "@phosphor-icons/react"
 import { Icon } from "@/components/ui/icon"
 import { ThemeSwitch } from "@/components/unlumen-ui/theme-switch"
@@ -32,17 +32,24 @@ function GitHubMark() {
 
 export function SiteHeader({
   title = "Dashboard",
+  back,
   onToggleSidebar,
 }: {
   title?: string
+  /** Breadcrumb parent for detail/editor screens, e.g. Status pages / Refrsh. */
+  back?: { label: string; to: string }
   onToggleSidebar: () => void
 }) {
+  const { pathname } = useLocation()
   const pages = useQuery({
     queryKey: ["pages"],
     queryFn: () => api.get<{ pages: StatusPage[] }>("/api/admin/pages"),
     staleTime: 60_000,
   })
-  const firstPage = pages.data?.pages[0]
+  // The "Status page" shortcut opens the page being edited when there is one,
+  // not blindly the first.
+  const editingId = /^\/admin\/pages\/([^/]+)\/edit$/.exec(pathname)?.[1]
+  const firstPage = pages.data?.pages.find((p) => p.id === editingId) ?? pages.data?.pages[0]
   // The lime action belongs to the current screen — Domains registers
   // "Add domain", Status pages "Create page", the editor "Save changes";
   // everything else falls back to "Add monitor".
@@ -59,7 +66,19 @@ export function SiteHeader({
       >
         <Icon icon={SidebarSimple} weight="fill" size={24} />
       </button>
-      <div className="shell-title">{title}</div>
+      <div className="shell-title">
+        {back && (
+          <>
+            <Link to={back.to} className="shell-title-back">
+              {back.label}
+            </Link>
+            <span aria-hidden className="shell-title-sep">
+              /
+            </span>
+          </>
+        )}
+        {title}
+      </div>
       <div className="shell-actions">
         <ThemeSwitch
           iconSize={24}
