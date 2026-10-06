@@ -245,6 +245,13 @@ export function EditorToolbar({
     <div
       ref={barRef}
       className="fixed bottom-5 left-1/2 z-40 flex w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-col items-center gap-2"
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          setMode(null)
+          onClose()
+          editorRef.current?.focus({ preventScroll: true })
+        }
+      }}
     >
       {activeSection !== null && panel != null && (
         <div
@@ -358,13 +365,6 @@ export function EditorToolbar({
         role="toolbar"
         aria-label="Edit status page"
         className="flex max-w-full items-center gap-0.5 overflow-x-auto rounded-2xl border border-border/70 bg-card/95 px-2.5 py-2 shadow-lg backdrop-blur"
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
-            setMode(null)
-            onClose()
-            editorRef.current?.focus({ preventScroll: true })
-          }
-        }}
       >
         <button
           type="button"
