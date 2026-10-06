@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { useReducedMotion } from 'motion/react'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
 import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass"
@@ -15,13 +16,7 @@ import { Panel } from '@/components/panel'
 import { QueryError } from '@/components/QueryError'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { ScreenHeader, SegmentFilter } from '@/components/screen'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { api } from '@/lib/api'
 import { useSSE } from '@/lib/sse'
@@ -269,6 +264,8 @@ function spanLabel(ms: number): string {
 export function IncidentsPage() {
   const queryClient = useQueryClient()
   const [filter, setFilter] = useState<FilterValue>('all')
+  const [search, setSearch] = useState('')
+  const reduceMotion = useReducedMotion() ?? false
   const now = useNow()
 
   const query = useQuery({
@@ -287,23 +284,34 @@ export function IncidentsPage() {
 
   const all = query.data?.incidents ?? []
   const filtered = all.filter((i) => {
-    if (filter === 'open') return !i.resolvedAt
-    if (filter === 'resolved') return !!i.resolvedAt
-    return true
+    if (filter === 'open' && i.resolvedAt) return false
+    if (filter === 'resolved' && !i.resolvedAt) return false
+    const q = search.trim().toLowerCase()
+    if (!q) return true
+    return (
+      i.monitorName.toLowerCase().includes(q) ||
+      i.monitorType.toLowerCase().includes(q) ||
+      i.monitorTarget.toLowerCase().includes(q) ||
+      (i.note ?? '').toLowerCase().includes(q)
+    )
   })
   const openCount = all.filter((i) => !i.resolvedAt).length
+  const resolvedCount = all.length - openCount
+  const counts: Record<FilterValue, number> = {
+    all: all.length,
+    open: openCount,
+    resolved: resolvedCount,
+  }
 
   const stats = useMemo(() => computeAnalytics(all, now), [all, now])
 
   if (query.isError) {
     return (
       <div className="px-4 lg:px-6 flex flex-col gap-6">
-        <header className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Incidents</h1>
-          <p className="text-sm text-muted-foreground">
-            Every down → up transition across all monitors
-          </p>
-        </header>
+        <ScreenHeader
+          title="Incidents"
+          description="Every down → up transition across all monitors"
+        />
         <QueryError subject="incidents" onRetry={() => void query.refetch()} />
       </div>
     )
@@ -312,12 +320,10 @@ export function IncidentsPage() {
   if (!query.isLoading && all.length === 0) {
     return (
       <div className="px-4 lg:px-6 flex flex-col gap-6">
-        <header className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Incidents</h1>
-          <p className="text-sm text-muted-foreground">
-            Every down → up transition across all monitors
-          </p>
-        </header>
+        <ScreenHeader
+          title="Incidents"
+          description="Every down → up transition across all monitors"
+        />
         <EmptyState
           icon={CheckCircle}
           title="No incidents on record"
@@ -328,20 +334,46 @@ export function IncidentsPage() {
   }
 
   const chartWindowLabel = `${granularityLabel(stats.granularityMs)} · ${spanLabel(stats.spanMs)}`
-  const maxBucket = stats.buckets.reduce((m, b) => Math.max(m, b.count), 0)
 
   return (
     <div className="px-4 lg:px-6 flex flex-col gap-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Incidents</h1>
-        <p className="text-sm text-muted-foreground">
-          Every down → up transition across all monitors
-        </p>
-      </header>
+      <ScreenHeader
+        title="Incidents"
+        description="Every down → up transition across all monitors"
+      />
+
+      <div className="flex flex-wrap items-center gap-3">
+        <SegmentFilter
+          label="Incident filter"
+          options={(
+            [
+              { id: 'all', label: 'All' },
+              { id: 'open', label: 'Open' },
+              { id: 'resolved', label: 'Resolved' },
+            ] as const
+          ).map((f) => ({ ...f, count: counts[f.id] }))}
+          value={filter}
+          onChange={setFilter}
+          reduceMotion={reduceMotion}
+          layoutId="incidents-segment-pill"
+        />
+        <div className="ml-auto flex items-center gap-2.5">
+          <label className="flex h-10 w-full items-center gap-2 rounded-full border border-border bg-card px-3 text-sm font-medium sm:w-[153px]">
+            <Icon icon={MagnifyingGlass} className="size-[19px] shrink-0" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search"
+              aria-label="Search incidents"
+              className="w-full bg-transparent outline-none placeholder:text-foreground"
+            />
+          </label>
+        </div>
+      </div>
 
       {all.length > 0 && (
         <>
-          <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
+          <Panel className="grid grid-cols-2 overflow-hidden rounded-2xl lg:grid-cols-4 lg:divide-x divide-border/60">
             <StatCell
               label="Open now"
               value={String(stats.openCount)}
@@ -395,9 +427,9 @@ export function IncidentsPage() {
           </Panel>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-            <Panel className="flex flex-col lg:col-span-3">
-              <header className="flex items-baseline justify-between gap-3 border-b border-border/60 px-4 py-2.5">
-                <h2 className="text-sm font-medium">Incident frequency</h2>
+            <Panel className="flex flex-col overflow-hidden rounded-2xl lg:col-span-3">
+              <header className="flex items-baseline justify-between gap-3 border-b border-border bg-muted px-4 py-3.5">
+                <h2 className="text-base font-medium">Incident frequency</h2>
                 <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground whitespace-nowrap">
                   {chartWindowLabel}
                 </span>
@@ -434,9 +466,9 @@ export function IncidentsPage() {
               )}
             </Panel>
 
-            <Panel className="lg:col-span-2">
-              <header className="flex items-baseline justify-between gap-3 border-b border-border/60 px-4 py-2.5">
-                <h2 className="text-sm font-medium">Most affected</h2>
+            <Panel className="overflow-hidden rounded-2xl lg:col-span-2">
+              <header className="flex items-baseline justify-between gap-3 border-b border-border bg-muted px-4 py-3.5">
+                <h2 className="text-base font-medium">Most affected</h2>
                 <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground whitespace-nowrap">
                   By incidents
                 </span>
@@ -451,24 +483,19 @@ export function IncidentsPage() {
         </>
       )}
 
-      <Panel>
-        <header className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-2.5">
+      <Panel className="overflow-hidden rounded-2xl">
+        <header className="flex items-baseline justify-between gap-3 border-b border-border bg-muted px-4 py-3.5">
           <div className="flex items-baseline gap-3">
-            <h2 className="text-sm font-medium">Incidents</h2>
+            <h2 className="text-base font-medium">Incidents</h2>
             <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
               {openCount} open · {all.length} total
             </span>
           </div>
-          <Select value={filter} onValueChange={(v) => setFilter(v as FilterValue)}>
-            <SelectTrigger className="w-[140px]" aria-label="Filter incidents">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="open">Open only</SelectItem>
-              <SelectItem value="resolved">Resolved only</SelectItem>
-            </SelectContent>
-          </Select>
+          {search.trim() !== '' && (
+            <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+              {filtered.length} match{filtered.length === 1 ? '' : 'es'}
+            </span>
+          )}
         </header>
         {query.isLoading ? (
           <div className="space-y-2 p-4" aria-hidden>
@@ -484,13 +511,13 @@ export function IncidentsPage() {
         ) : (
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Monitor</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Started</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Note</TableHead>
-                <TableHead className="text-right" />
+              <TableRow className="border-b border-border bg-muted hover:bg-muted">
+                <TableHead className="px-4 py-3.5 text-left text-base font-medium normal-case tracking-normal text-foreground">Monitor</TableHead>
+                <TableHead className="px-4 py-3.5 text-left text-base font-medium normal-case tracking-normal text-foreground">Status</TableHead>
+                <TableHead className="px-4 py-3.5 text-left text-base font-medium normal-case tracking-normal text-foreground">Started</TableHead>
+                <TableHead className="px-4 py-3.5 text-left text-base font-medium normal-case tracking-normal text-foreground">Duration</TableHead>
+                <TableHead className="px-4 py-3.5 text-left text-base font-medium normal-case tracking-normal text-foreground">Note</TableHead>
+                <TableHead className="px-4 py-3.5 text-right"><span className="sr-only">Actions</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -667,19 +694,19 @@ function Row({ incident }: { incident: IncidentRow }) {
     : now - new Date(incident.startedAt).getTime()
 
   return (
-    <TableRow>
-      <TableCell>
+    <TableRow className="hover:bg-muted/40">
+      <TableCell className="px-4 py-4">
         <Link
           to={`/admin/monitors/${incident.monitorId}`}
-          className="font-medium hover:underline underline-offset-4"
+          className="text-[15px] font-medium tracking-tight hover:underline underline-offset-4"
         >
           {incident.monitorName}
         </Link>
-        <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+        <div className="mt-0.5 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
           {incident.monitorType}
         </div>
       </TableCell>
-      <TableCell>
+      <TableCell className="px-4 py-4">
         {isOpen ? (
           <Badge variant="destructive">Open</Badge>
         ) : (
@@ -691,14 +718,14 @@ function Row({ incident }: { incident: IncidentRow }) {
           </Badge>
         )}
       </TableCell>
-      <TableCell className="text-sm whitespace-nowrap tabular-nums">
+      <TableCell className="px-4 py-4 text-sm whitespace-nowrap tabular-nums">
         {formatDateTime(incident.startedAt)}
       </TableCell>
-      <TableCell className="text-sm whitespace-nowrap tabular-nums">
+      <TableCell className="px-4 py-4 text-sm whitespace-nowrap tabular-nums">
         {formatDuration(durationMs)}
         {isOpen && <span className="text-muted-foreground"> (so far)</span>}
       </TableCell>
-      <TableCell className="text-sm w-full">
+      <TableCell className="px-4 py-4 text-sm w-full">
         {editing ? (
           <form
             onSubmit={(e) => {
@@ -744,7 +771,7 @@ function Row({ incident }: { incident: IncidentRow }) {
           </button>
         )}
       </TableCell>
-      <TableCell className="text-right">
+      <TableCell className="px-4 py-4 text-right">
         {isOpen && (
           <Button
             size="sm"

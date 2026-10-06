@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/EmptyState'
 import { Panel } from '@/components/panel'
 import { QueryError } from '@/components/QueryError'
+import { ScreenHeader } from '@/components/screen'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useConfirm } from '@/components/confirm-provider'
 import { api } from '@/lib/api'
@@ -75,10 +76,7 @@ export function MaintenancePage() {
   if (query.isError) {
     return (
       <div className="px-4 lg:px-6 flex flex-col gap-6">
-        <header className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Maintenance</h1>
-          <p className="text-sm text-muted-foreground">{INTRO}</p>
-        </header>
+        <ScreenHeader title="Maintenance" description={INTRO} />
         <QueryError
           subject="maintenance windows"
           onRetry={() => void query.refetch()}
@@ -90,11 +88,8 @@ export function MaintenancePage() {
   if (query.isLoading) {
     return (
       <div className="px-4 lg:px-6 flex flex-col gap-6">
-        <header className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Maintenance</h1>
-          <p className="text-sm text-muted-foreground">{INTRO}</p>
-        </header>
-        <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
+        <ScreenHeader title="Maintenance" description={INTRO} />
+        <Panel className="grid grid-cols-2 overflow-hidden rounded-2xl lg:grid-cols-4 lg:divide-x divide-border/60">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="flex flex-col gap-2.5 p-4 sm:p-5">
               <Skeleton className="h-3 w-24" />
@@ -103,7 +98,7 @@ export function MaintenancePage() {
             </div>
           ))}
         </Panel>
-        <Panel>
+        <Panel className="overflow-hidden rounded-2xl">
           <div className="p-4">
             <Skeleton className="h-24 w-full" />
           </div>
@@ -115,10 +110,7 @@ export function MaintenancePage() {
   if (windows.length === 0) {
     return (
       <div className="px-4 lg:px-6 flex flex-col gap-6">
-        <header className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Maintenance</h1>
-          <p className="text-sm text-muted-foreground">{INTRO}</p>
-        </header>
+        <ScreenHeader title="Maintenance" description={INTRO} />
         <EmptyState
           icon={CalendarBlank}
           title="No maintenance windows scheduled"
@@ -147,12 +139,9 @@ export function MaintenancePage() {
 
   return (
     <div className="px-4 lg:px-6 flex flex-col gap-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Maintenance</h1>
-        <p className="text-sm text-muted-foreground">{INTRO}</p>
-      </header>
+      <ScreenHeader title="Maintenance" description={INTRO} />
 
-      <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
+      <Panel className="grid grid-cols-2 overflow-hidden rounded-2xl lg:grid-cols-4 lg:divide-x divide-border/60">
         <StatCell
           label="Active now"
           value={String(active.length)}
@@ -343,9 +332,9 @@ function Timeline({
   const trackH = Math.max(lanes * laneH + 6, 56)
 
   return (
-    <Panel>
-      <header className="flex items-baseline justify-between gap-4 border-b border-border/60 px-4 py-2.5">
-        <h2 className="text-sm font-medium">Next {TIMELINE_DAYS} days</h2>
+    <Panel className="overflow-hidden rounded-2xl">
+      <header className="flex items-baseline justify-between gap-4 border-b border-border bg-muted px-4 py-3.5">
+        <h2 className="text-base font-medium">Next {TIMELINE_DAYS} days</h2>
         <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground tabular-nums">
           {bars.length === 0
             ? 'Clear'
@@ -487,9 +476,9 @@ function WindowList({
   onDelete: (w: MaintenanceWindow) => void
 }) {
   return (
-    <Panel>
-      <header className="flex items-baseline justify-between gap-4 border-b border-border/60 px-4 py-2.5">
-        <h2 className="text-sm font-medium">{label}</h2>
+    <Panel className="overflow-hidden rounded-2xl">
+      <header className="flex items-baseline justify-between gap-4 border-b border-border bg-muted px-4 py-3.5">
+        <h2 className="text-base font-medium">{label}</h2>
         <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground tabular-nums">
           {count}
         </span>
@@ -533,13 +522,13 @@ function WindowRow({
   return (
     <div
       className={cn(
-        'flex items-start justify-between gap-3 p-4',
+        'flex items-start justify-between gap-3 px-5 py-4 transition-colors hover:bg-muted/40',
         active && 'border-l-2 border-l-warning bg-warning/5',
       )}
     >
       <div className="min-w-0 flex-1 space-y-1.5">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="truncate font-medium">{w.title}</span>
+          <span className="truncate text-[15px] font-medium tracking-tight">{w.title}</span>
           {active && <Badge variant="warning">In progress</Badge>}
         </div>
 
