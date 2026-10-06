@@ -376,11 +376,6 @@ export function IncidentsPage() {
       )}
 
       <Panel className="overflow-hidden rounded-2xl">
-        <header className="flex items-baseline justify-between gap-3 border-b border-border bg-muted px-4 py-3.5">
-          <div className="flex items-baseline gap-3">
-            <h2 className="text-base font-medium">Incidents</h2>
-          </div>
-        </header>
         {query.isLoading ? (
           <div className="space-y-2 p-4" aria-hidden>
             {[0, 1, 2].map((i) => (
