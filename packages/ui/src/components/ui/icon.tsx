@@ -44,6 +44,13 @@ const FILL_CONTROLS =
 /**
  * App-wide icon wrapper.
  *
+ * Weight language: circle-fill glyphs (CheckCircle, XCircle, WarningCircle,
+ * PlusCircle, ArrowCircleUpRight…) are reserved for the Monitors/Domains
+ * status columns; actions, confirmations, indicators and badges use the plain
+ * glyph (Check, X, Warning, Plus, ArrowUpRight), with `weight="bold"` for
+ * check/x marks at ≤16px. The sidebar nav is regular → fill on hover/active
+ * via `stateful`.
+ *
  * Default is a plain, static **regular** weight — no listeners, no state, no
  * animation. `stateful` opts an icon into the hover/selected fill language
  * (used by the sidebar nav), where a short WAAPI fade sells the glyph swap.

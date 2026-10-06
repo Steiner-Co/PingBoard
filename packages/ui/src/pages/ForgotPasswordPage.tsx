@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from '@phosphor-icons/react/dist/icons/ArrowLeft'
-import { CheckCircle } from '@phosphor-icons/react/dist/icons/CheckCircle'
+import { Check } from '@phosphor-icons/react/dist/icons/Check'
 import { Copy } from '@phosphor-icons/react/dist/icons/Copy'
 import { AuthLayout } from '@/components/auth-layout'
 import { Button } from '@/components/ui/button'
@@ -43,7 +43,8 @@ export function ForgotPasswordPage() {
             {RESET_COMMAND}
           </code>
           <Icon
-            icon={copied ? CheckCircle : Copy}
+            icon={copied ? Check : Copy}
+            weight={copied ? 'bold' : undefined}
             className={cn(
               'mt-0.5 size-4 shrink-0 transition-colors',
               copied ? 'text-success-text' : 'text-muted-foreground',

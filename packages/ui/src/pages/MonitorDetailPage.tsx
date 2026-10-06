@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
-import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
+import { Check } from "@phosphor-icons/react/dist/icons/Check"
 import { DateTimePicker } from '@/components/ui/date-time-picker'
 import { Trash } from "@phosphor-icons/react/dist/icons/Trash"
 import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple"
@@ -559,7 +559,7 @@ function IncidentRow({
             onClick={() => resolve.mutate()}
             disabled={resolve.isPending}
           >
-            <Icon icon={CheckCircle} className="h-3.5 w-3.5" />
+            <Icon icon={Check} weight="bold" className="h-3.5 w-3.5" />
             Resolve
           </Button>
         )}

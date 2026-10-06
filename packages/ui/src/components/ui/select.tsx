@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 import { Icon } from "@/components/ui/icon"
 import { ArrowDown } from "@phosphor-icons/react/dist/icons/ArrowDown"
 import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown"
-import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
+import { Check } from "@phosphor-icons/react/dist/icons/Check"
 import { ArrowUp } from "@phosphor-icons/react/dist/icons/ArrowUp"
 
 function Select({
@@ -125,7 +125,7 @@ function SelectItem({
     >
       <span className="pointer-events-none absolute right-2 flex items-center justify-center">
         <SelectPrimitive.ItemIndicator>
-          <Icon icon={CheckCircle} className="pointer-events-none" />
+          <Icon icon={Check} weight="bold" className="pointer-events-none" />
         </SelectPrimitive.ItemIndicator>
       </span>
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>

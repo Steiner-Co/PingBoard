@@ -21,7 +21,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank"
-import { PlusCircle } from "@phosphor-icons/react/dist/icons/PlusCircle"
+import { Plus } from "@phosphor-icons/react/dist/icons/Plus"
 import { X } from "@phosphor-icons/react/dist/icons/X"
 import { useSSE } from '@/lib/sse'
 import { useNow } from '@/hooks/use-now'
@@ -764,7 +764,7 @@ function AddMonitorRow({
               : 'flex items-center gap-1.5 rounded-full border border-dashed border-border px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground'
           }
         >
-          <Icon icon={PlusCircle} className="h-3.5 w-3.5" />
+          <Icon icon={Plus} weight="bold" className="h-3.5 w-3.5" />
           {standalone ? 'Add Monitor/Group' : 'Add monitor'}
         </button>
       </PopoverTrigger>
@@ -820,7 +820,7 @@ function AddMonitorRow({
                   onClick={() => setNaming(true)}
                   className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 >
-                  <Icon icon={PlusCircle} className="h-3.5 w-3.5" />
+                  <Icon icon={Plus} weight="bold" className="h-3.5 w-3.5" />
                   New group
                 </button>
               </>

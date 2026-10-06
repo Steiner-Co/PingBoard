@@ -2,11 +2,11 @@ import { useQuery } from "@tanstack/react-query"
 import { Link, useLocation } from "react-router-dom"
 import {
   Bell,
-  Briefcase,
+  CalendarCheck,
   Cube,
   GearSix,
-  House,
-  Planet,
+  Globe,
+  Pulse,
   Warning,
 } from "@phosphor-icons/react"
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react"
@@ -23,10 +23,10 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Monitor",
     items: [
-      { title: "Monitors", url: "/admin", icon: House },
-      { title: "Domains", url: "/admin/domains", icon: Planet },
+      { title: "Monitors", url: "/admin", icon: Pulse },
+      { title: "Domains", url: "/admin/domains", icon: Globe },
       { title: "Incidents", url: "/admin/incidents", icon: Warning },
-      { title: "Maintenance", url: "/admin/maintenance", icon: Briefcase },
+      { title: "Maintenance", url: "/admin/maintenance", icon: CalendarCheck },
     ],
   },
   {
@@ -83,16 +83,19 @@ export function AppSidebar() {
         <div key={group.label}>
           <div className="shell-nav-section">{group.label}</div>
           <nav className="shell-nav" aria-label={group.label}>
-            {group.items.map((item) => (
-              <Link
-                key={item.title}
-                to={item.url}
-                aria-current={isActive(pathname, item.url) ? "page" : undefined}
-              >
-                <Icon icon={item.icon} weight="fill" size={24} />
-                <span>{item.title}</span>
-              </Link>
-            ))}
+            {group.items.map((item) => {
+              const active = isActive(pathname, item.url)
+              return (
+                <Link
+                  key={item.title}
+                  to={item.url}
+                  aria-current={active ? "page" : undefined}
+                >
+                  <Icon icon={item.icon} stateful active={active} size={24} />
+                  <span>{item.title}</span>
+                </Link>
+              )
+            })}
           </nav>
         </div>
       ))}

@@ -1,53 +1,12 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
-
-function SunIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="4" />
-      <line x1="12" y1="2" x2="12" y2="6" />
-      <line x1="12" y1="18" x2="12" y2="22" />
-      <line x1="4.93" y1="4.93" x2="7.76" y2="7.76" />
-      <line x1="16.24" y1="16.24" x2="19.07" y2="19.07" />
-      <line x1="2" y1="12" x2="6" y2="12" />
-      <line x1="18" y1="12" x2="22" y2="12" />
-      <line x1="4.93" y1="19.07" x2="7.76" y2="16.24" />
-      <line x1="16.24" y1="7.76" x2="19.07" y2="4.93" />
-    </svg>
-  );
-}
-
-function MoonIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-    </svg>
-  );
-}
+import { Icon } from "@/components/ui/icon";
+import { Sun } from "@phosphor-icons/react/dist/icons/Sun";
+import { Moon } from "@phosphor-icons/react/dist/icons/Moon";
 
 // no-op fallback for browsers that don't support startViewTransition
 interface ThemeSwitchProps {
@@ -103,7 +62,11 @@ function ThemeSwitch({ iconSize = 16, className }: ThemeSwitchProps) {
           transition={{ duration: 0.15, ease: 'easeOut' }}
           className="absolute inset-0 flex items-center justify-center"
         >
-          {isDark ? <MoonIcon size={iconSize} /> : <SunIcon size={iconSize} />}
+          {isDark ? (
+            <Icon icon={Moon} size={iconSize} />
+          ) : (
+            <Icon icon={Sun} size={iconSize} />
+          )}
         </motion.span>
       </AnimatePresence>
     </button>

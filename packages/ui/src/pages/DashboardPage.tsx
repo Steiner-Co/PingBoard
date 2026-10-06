@@ -8,7 +8,7 @@ import { Pulse } from "@phosphor-icons/react/dist/icons/Pulse"
 import { PlusCircle } from "@phosphor-icons/react/dist/icons/PlusCircle"
 import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass"
 import { ArrowClockwise } from "@phosphor-icons/react/dist/icons/ArrowClockwise"
-import { ArrowDown } from "@phosphor-icons/react/dist/icons/ArrowDown"
+import { Timer } from "@phosphor-icons/react/dist/icons/Timer"
 import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft"
 import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight"
 import { DotsThreeOutlineVertical } from "@phosphor-icons/react/dist/icons/DotsThreeOutlineVertical"
@@ -336,7 +336,7 @@ function MonitorRow({
             <span className="text-lg text-muted-foreground">—</span>
           ) : (
             <span className="inline-flex items-center gap-1.5 text-lg font-medium tabular-nums">
-              <Icon icon={ArrowDown} className="size-3.5 text-success" />
+              <Icon icon={Timer} className="size-3.5 text-muted-foreground" />
               {monitor.latest.responseTimeMs}ms
             </span>
           )

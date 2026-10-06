@@ -401,7 +401,7 @@ export function EditorToolbar({
             className="flex size-4 items-center justify-center rounded-[5px] ring-1 ring-foreground/20"
             style={{ backgroundColor: highlightColor }}
           >
-            <Icon icon={Highlighter} className="h-2.5 w-2.5 text-foreground/70" />
+            <Icon icon={Highlighter} className="size-3 text-foreground/70" />
           </span>
         </button>
         <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-border" />

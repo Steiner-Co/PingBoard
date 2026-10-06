@@ -1,7 +1,7 @@
 import { useCallback, useState, type ReactNode } from 'react'
 import { motion, useReducedMotion, type PanInfo, type Transition } from 'motion/react'
 import { Bell } from '@phosphor-icons/react/dist/icons/Bell'
-import { CheckCircle } from '@phosphor-icons/react/dist/icons/CheckCircle'
+import { Check } from '@phosphor-icons/react/dist/icons/Check'
 import { Warning } from '@phosphor-icons/react/dist/icons/Warning'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -57,7 +57,7 @@ function StatusCard() {
           Live status
         </span>
         <CardTitle className="flex items-center gap-2 text-sm">
-          <Icon icon={CheckCircle} className="size-4 text-success-text" />
+          <Icon icon={Check} weight="bold" className="size-4 text-success-text" />
           All systems operational
         </CardTitle>
       </CardHeader>
@@ -148,7 +148,7 @@ function ChannelsCard() {
           >
             <span className="text-foreground">{channel}</span>
             <span className="flex items-center gap-1 text-muted-foreground">
-              <Icon icon={CheckCircle} className="size-3.5 text-success-text" />
+              <Icon icon={Check} weight="bold" className="size-3.5 text-success-text" />
               connected
             </span>
           </div>

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
 import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple"
-import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
+import { Check } from "@phosphor-icons/react/dist/icons/Check"
 import { Bar, BarChart, BarXAxis, ChartTooltip, Grid } from '@/components/charts'
 
 import { Badge } from '@/components/ui/badge'
@@ -299,7 +299,8 @@ export function IncidentsPage() {
           description="Every down → up transition across all monitors"
         />
         <EmptyState
-          icon={CheckCircle}
+          icon={Check}
+          weight="bold"
           title="No incidents on record"
           description="Quiet is good. When a monitor flips down, it'll appear here with start time, duration, and any notes you add."
         />
@@ -585,7 +586,7 @@ function Row({ incident }: { incident: IncidentRow }) {
             onClick={() => resolve.mutate()}
             disabled={resolve.isPending}
           >
-            <Icon icon={CheckCircle} className="h-3.5 w-3.5" />
+            <Icon icon={Check} weight="bold" className="h-3.5 w-3.5" />
             Resolve
           </Button>
         )}

@@ -5,7 +5,8 @@ import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 import { Icon } from "@/components/ui/icon"
-import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
+import { Check } from "@phosphor-icons/react/dist/icons/Check"
+import { Circle } from "@phosphor-icons/react/dist/icons/Circle"
 import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight"
 
 function DropdownMenu({
@@ -113,7 +114,7 @@ function DropdownMenuCheckboxItem({
         data-slot="dropdown-menu-checkbox-item-indicator"
       >
         <DropdownMenuPrimitive.ItemIndicator>
-          <Icon icon={CheckCircle} />
+          <Icon icon={Check} weight="bold" />
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
       {children}
@@ -155,7 +156,7 @@ function DropdownMenuRadioItem({
         data-slot="dropdown-menu-radio-item-indicator"
       >
         <DropdownMenuPrimitive.ItemIndicator>
-          <Icon icon={CheckCircle} />
+          <Icon icon={Circle} weight="fill" className="size-3" />
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
       {children}

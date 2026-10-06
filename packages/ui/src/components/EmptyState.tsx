@@ -1,10 +1,12 @@
 import type { ReactNode, ComponentType } from 'react'
-import type { IconProps as PhosphorIconProps } from '@phosphor-icons/react'
+import type { IconProps as PhosphorIconProps, IconWeight } from '@phosphor-icons/react'
 import { Icon } from '@/components/ui/icon'
 import { cn } from '@/lib/utils'
 
 interface EmptyStateProps {
   icon: ComponentType<PhosphorIconProps>
+  /** Forwarded to the icon, e.g. "bold" for check marks. */
+  weight?: IconWeight
   title: string
   description?: string
   action?: ReactNode
@@ -13,6 +15,7 @@ interface EmptyStateProps {
 
 export function EmptyState({
   icon,
+  weight,
   title,
   description,
   action,
@@ -29,7 +32,7 @@ export function EmptyState({
         aria-hidden="true"
         className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground"
       >
-        <Icon icon={icon} className="h-5 w-5" />
+        <Icon icon={icon} weight={weight} className="h-5 w-5" />
       </div>
       <div className="space-y-2 max-w-md">
         <h2 className="text-xl font-semibold tracking-tight">{title}</h2>

@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
 import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft"
-import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
+import { Check } from "@phosphor-icons/react/dist/icons/Check"
 import { ALLOWED_INTERVALS_SECONDS } from '@pingboard/shared'
 
 import { Panel } from '@/components/panel'
@@ -474,7 +474,7 @@ export function MonitorEditPage() {
         </Button>
         <Button type="submit" disabled={save.isPending || !isDirty}>
           {save.isPending ? 'Saving…' : 'Save changes'}
-          <Icon icon={CheckCircle} className="h-4 w-4" />
+          <Icon icon={Check} weight="bold" className="h-4 w-4" />
         </Button>
       </div>
     </form>

@@ -4,7 +4,7 @@ import { format } from 'date-fns'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Icon } from '@/components/ui/icon'
-import { WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle"
+import { Warning } from "@phosphor-icons/react/dist/icons/Warning"
 import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight"
 import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank"
 import { SealCheck } from "@phosphor-icons/react/dist/icons/SealCheck"
@@ -341,7 +341,7 @@ function DomainRow({
             <span className="truncate text-[15px] font-semibold tracking-tight">{d.name}</span>
             {d.channelIds.length === 0 && (
               <Badge variant="warning" className="gap-1 shrink-0">
-                <Icon icon={WarningCircle} className="size-3.5" />
+                <Icon icon={Warning} className="size-3.5" />
                 Not alerting
               </Badge>
             )}

@@ -4,10 +4,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
 import { Checkbox } from '@/components/ui/checkbox'
-import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
+import { Check } from "@phosphor-icons/react/dist/icons/Check"
 import { Copy } from "@phosphor-icons/react/dist/icons/Copy"
 import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple"
-import { ArrowCircleUpRight } from "@phosphor-icons/react/dist/icons/ArrowCircleUpRight"
+import { ArrowUpRight } from "@phosphor-icons/react/dist/icons/ArrowUpRight"
 import { LockKey } from "@phosphor-icons/react/dist/icons/LockKey"
 import { DotsThreeOutlineVertical } from "@phosphor-icons/react/dist/icons/DotsThreeOutlineVertical"
 import { PlusCircle } from "@phosphor-icons/react/dist/icons/PlusCircle"
@@ -373,7 +373,7 @@ function RowActions({
         <DropdownMenuItem
           onSelect={() => window.open(`/${page.slug}`, '_blank', 'noopener')}
         >
-          <Icon icon={ArrowCircleUpRight} className="size-3.5" />
+          <Icon icon={ArrowUpRight} className="size-3.5" />
           View public page
         </DropdownMenuItem>
         <DropdownMenuItem
@@ -413,7 +413,8 @@ function PublicUrl({ slug }: { slug: string }) {
       <span className="truncate text-muted-foreground">{origin}</span>
       <span className="-ml-2 truncate font-medium text-foreground">/{slug}</span>
       <Icon
-        icon={copied ? CheckCircle : Copy}
+        icon={copied ? Check : Copy}
+        weight={copied ? 'bold' : undefined}
         className={cn(
           'h-3.5 w-3.5 shrink-0 transition-colors',
           copied ? 'text-success-text' : 'text-muted-foreground/70',
