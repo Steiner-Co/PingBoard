@@ -738,7 +738,6 @@ export async function createStatusPage(req: Request, deps: AdminDeps): Promise<R
     slug,
     title: String(body.title ?? slug),
     description: body.description ? String(body.description) : null,
-    theme: (body.theme as 'light' | 'dark' | 'auto') ?? 'auto',
     passwordHash: passwordHash ?? null,
     customDomain: null,
     ...branding,
@@ -783,7 +782,6 @@ export async function updateStatusPage(
   if ('description' in body) {
     set.description = body.description == null ? null : String(body.description)
   }
-  if ('theme' in body) set.theme = (body.theme as 'light' | 'dark' | 'auto') ?? 'auto'
 
   if ('password' in body) {
     const hashed = await resolvePassword(body.password)

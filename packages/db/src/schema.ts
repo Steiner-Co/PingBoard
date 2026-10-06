@@ -15,7 +15,6 @@ import type {
   MonitorType,
   NotificationChannelConfig,
   NotificationChannelType,
-  Theme,
 } from '@pingboard/shared'
 
 const uuid = () => text().$defaultFn(() => crypto.randomUUID())
@@ -178,7 +177,6 @@ export const statusPages = sqliteTable(
     slug: text('slug').notNull(),
     title: text('title').notNull(),
     description: text('description'),
-    theme: text('theme').$type<Theme>().notNull().default('auto'),
     passwordHash: text('password_hash'),
     customDomain: text('custom_domain'),
     // Branding — all free, all optional. logoPath is a file name under

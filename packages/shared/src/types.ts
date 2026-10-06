@@ -18,8 +18,6 @@ export type NotificationChannelType =
 
 export type IncidentCause = 'auto' | 'manual'
 
-export type Theme = 'light' | 'dark' | 'auto'
-
 /**
  * Enriched facts about a domain, collected alongside its expiry check. Every
  * field beyond expiry is best-effort — WHOIS formats vary by TLD, and a domain

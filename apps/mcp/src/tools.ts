@@ -14,8 +14,6 @@ const MONITOR_TYPES = [
 
 const ALLOWED_INTERVALS = [10, 30, 60, 300, 900, 3600] as const
 
-const PAGE_THEMES = ['light', 'dark', 'auto'] as const
-
 const RESERVED_PAGE_SLUGS = [
   'admin',
   'api',
@@ -63,7 +61,6 @@ interface StatusPage {
   slug: string
   title: string
   description: string | null
-  theme: 'light' | 'dark' | 'auto'
   passwordSet: boolean
   hideBranding: boolean
   customDomain: string | null
@@ -114,7 +111,6 @@ interface BackupPage {
   slug: string
   title?: string
   description?: string | null
-  theme?: string
   websiteUrl?: string | null
   hideBranding?: boolean
   customCss?: string | null
@@ -189,7 +185,6 @@ function summarisePage(p: StatusPage) {
     path: `/${p.slug}`,
     title: p.title,
     description: p.description,
-    theme: p.theme,
     passwordSet: p.passwordSet,
     monitorCount: p.monitorCount ?? null,
     websiteUrl: p.websiteUrl,
@@ -398,7 +393,7 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
     {
       title: 'List status pages',
       description:
-        'Public status pages on this instance, with slug, theme, whether a password is set, and how many monitors each publishes.',
+        'Public status pages on this instance, with slug, whether a password is set, and how many monitors each publishes.',
       inputSchema: {},
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
@@ -486,7 +481,6 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
             slug: p.slug,
             title: p.title,
             description: p.description,
-            theme: p.theme,
             websiteUrl: p.websiteUrl,
             hideBranding: p.hideBranding,
             customCss: p.customCss,
@@ -747,10 +741,6 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
           .optional()
           .describe('Heading on the page. Defaults to the slug.'),
         description: z.string().optional(),
-        theme: z
-          .enum(PAGE_THEMES)
-          .optional()
-          .describe("Default 'auto' follows the visitor's system theme."),
         password: z
           .string()
           .optional()
@@ -778,12 +768,11 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
     {
       title: 'Update a status page',
       description:
-        "Change a page's title, description, theme, password, branding or published monitors. Fields you omit are left as-is; pass null to clear description/websiteUrl/customCss, or an empty password to remove the gate. Passing monitors replaces the page's whole list — call get_status_page first so nothing is dropped. The slug cannot change.",
+        "Change a page's title, description, password, branding or published monitors. Fields you omit are left as-is; pass null to clear description/websiteUrl/customCss, or an empty password to remove the gate. Passing monitors replaces the page's whole list — call get_status_page first so nothing is dropped. The slug cannot change.",
       inputSchema: {
         pageId: z.string().describe('Status page id from list_status_pages.'),
         title: z.string().optional(),
         description: z.string().nullable().optional(),
-        theme: z.enum(PAGE_THEMES).optional(),
         password: z
           .string()
           .nullable()
@@ -901,7 +890,6 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
               slug: p.slug,
               title: p.title,
               description: p.description ?? undefined,
-              theme: p.theme,
               websiteUrl: p.websiteUrl ?? undefined,
               hideBranding: p.hideBranding,
               customCss: p.customCss ?? undefined,

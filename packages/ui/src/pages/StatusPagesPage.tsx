@@ -39,18 +39,11 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { ScreenHeader } from '@/components/screen'
 import { usePrimaryAction } from '@/contexts/primary-action'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
-import type { Monitor, MonitorWithLatest, StatusPage, Theme } from '@/types'
+import type { Monitor, MonitorWithLatest, StatusPage } from '@/types'
 
 interface LinkedMonitor {
   statusPageId: string
@@ -501,7 +494,6 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [password, setPassword] = useState('')
-  const [theme, setTheme] = useState<Theme>('auto')
   const [selected, setSelected] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const slugRef = useRef<HTMLInputElement>(null)
@@ -516,7 +508,6 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
     setTitle('')
     setDescription('')
     setPassword('')
-    setTheme('auto')
     setSelected([])
     setError(null)
   }
@@ -540,7 +531,6 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
       slug: slug.trim().toLowerCase(),
       title: title.trim() || slug,
       description: description.trim() || null,
-      theme,
       password: password.trim() || null,
       monitors: selected.map((id, i) => ({ monitorId: id, sortOrder: i })),
     })
@@ -553,7 +543,7 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
           <DialogTitle>Create status page</DialogTitle>
           <DialogDescription>
             Public, shareable, and updates live. After creating, open Edit to add
-            a logo, a theme, and custom CSS.
+            a logo and custom CSS.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -599,32 +589,17 @@ function PageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
               placeholder="Optional"
             />
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-2">
-              <Label htmlFor="page-password">Password (optional)</Label>
-              <Input
-                id="page-password"
-                name="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Leave blank for a public page"
-                autoComplete="new-password"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="page-theme">Theme</Label>
-              <Select value={theme} onValueChange={(v) => setTheme(v as Theme)}>
-                <SelectTrigger id="page-theme">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">Auto (follow visitor)</SelectItem>
-                  <SelectItem value="light">Light</SelectItem>
-                  <SelectItem value="dark">Dark</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="page-password">Password (optional)</Label>
+            <Input
+              id="page-password"
+              name="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Leave blank for a public page"
+              autoComplete="new-password"
+            />
           </div>
           <div className="space-y-2">
             <Label>Monitors to show</Label>

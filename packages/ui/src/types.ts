@@ -8,7 +8,6 @@ export type MonitorType =
   | 'push'
 export type CheckStatus = 'up' | 'down' | 'degraded'
 export type ChannelType = 'email' | 'webhook' | 'discord' | 'slack' | 'ntfy'
-export type Theme = 'light' | 'dark' | 'auto'
 
 export interface Monitor {
   id: string
@@ -83,7 +82,6 @@ export interface StatusPage {
   slug: string
   title: string
   description: string | null
-  theme: Theme
   passwordSet: boolean
   customDomain: string | null
   logoPath: string | null

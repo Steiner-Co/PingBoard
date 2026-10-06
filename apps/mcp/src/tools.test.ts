@@ -16,7 +16,6 @@ const PAGE = {
   slug: 'status',
   title: 'Status',
   description: null,
-  theme: 'auto',
   passwordSet: false,
   hideBranding: false,
   customDomain: null,
