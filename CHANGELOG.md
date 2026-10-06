@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.0 (draft — tag after RC soak)
+## v1.0.0 — 2026-10-06
 
 First stable release. The headline is a ground-up redesign of the entire
 product — admin, public status pages, auth, and landing — plus domain
