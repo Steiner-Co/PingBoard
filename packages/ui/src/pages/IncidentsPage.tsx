@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { useReducedMotion } from 'motion/react'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
-import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass"
 import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple"
 import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
 import { Bar, BarChart, BarXAxis, ChartTooltip, Grid } from '@/components/charts'
@@ -16,11 +14,11 @@ import { Panel } from '@/components/panel'
 import { QueryError } from '@/components/QueryError'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ScreenHeader, SegmentFilter } from '@/components/screen'
+import { ScreenHeader } from '@/components/screen'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { api } from '@/lib/api'
 import { useSSE } from '@/lib/sse'
-import { cn, formatDateTime, formatDuration, formatTime } from '@/lib/utils'
+import { formatDateTime, formatDuration, formatTime } from '@/lib/utils'
 import { useNow } from '@/hooks/use-now'
 
 interface IncidentRow {
@@ -34,8 +32,6 @@ interface IncidentRow {
   cause: 'auto' | 'manual'
   note: string | null
 }
-
-type FilterValue = 'all' | 'open' | 'resolved'
 
 // The endpoint returns the most recent 200 incidents. When we get exactly that
 // many the history is clipped, so "last 30 days" would be a lie — every
@@ -263,9 +259,6 @@ function spanLabel(ms: number): string {
 
 export function IncidentsPage() {
   const queryClient = useQueryClient()
-  const [filter, setFilter] = useState<FilterValue>('all')
-  const [search, setSearch] = useState('')
-  const reduceMotion = useReducedMotion() ?? false
   const now = useNow()
 
   const query = useQuery({
@@ -283,25 +276,7 @@ export function IncidentsPage() {
   })
 
   const all = query.data?.incidents ?? []
-  const filtered = all.filter((i) => {
-    if (filter === 'open' && i.resolvedAt) return false
-    if (filter === 'resolved' && !i.resolvedAt) return false
-    const q = search.trim().toLowerCase()
-    if (!q) return true
-    return (
-      i.monitorName.toLowerCase().includes(q) ||
-      i.monitorType.toLowerCase().includes(q) ||
-      i.monitorTarget.toLowerCase().includes(q) ||
-      (i.note ?? '').toLowerCase().includes(q)
-    )
-  })
   const openCount = all.filter((i) => !i.resolvedAt).length
-  const resolvedCount = all.length - openCount
-  const counts: Record<FilterValue, number> = {
-    all: all.length,
-    open: openCount,
-    resolved: resolvedCount,
-  }
 
   const stats = useMemo(() => computeAnalytics(all, now), [all, now])
 
@@ -342,90 +317,8 @@ export function IncidentsPage() {
         description="Every down → up transition across all monitors"
       />
 
-      <div className="flex flex-wrap items-center gap-3">
-        <SegmentFilter
-          label="Incident filter"
-          options={(
-            [
-              { id: 'all', label: 'All' },
-              { id: 'open', label: 'Open' },
-              { id: 'resolved', label: 'Resolved' },
-            ] as const
-          ).map((f) => ({ ...f, count: counts[f.id] }))}
-          value={filter}
-          onChange={setFilter}
-          reduceMotion={reduceMotion}
-          layoutId="incidents-segment-pill"
-        />
-        <div className="ml-auto flex items-center gap-2.5">
-          <label className="flex h-10 w-full items-center gap-2 rounded-full border border-border bg-card px-3 text-sm font-medium sm:w-[153px]">
-            <Icon icon={MagnifyingGlass} className="size-[19px] shrink-0" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search"
-              aria-label="Search incidents"
-              className="w-full bg-transparent outline-none placeholder:text-foreground"
-            />
-          </label>
-        </div>
-      </div>
-
       {all.length > 0 && (
         <>
-          <Panel className="grid grid-cols-2 overflow-hidden rounded-2xl lg:grid-cols-4 lg:divide-x divide-border/60">
-            <StatCell
-              label="Open now"
-              value={String(stats.openCount)}
-              tone={stats.openCount > 0 ? 'destructive' : 'success'}
-              sub={
-                stats.openCount === 0
-                  ? 'Everything has recovered'
-                  : filter === 'open'
-                    ? 'Showing open only'
-                    : 'Filter the table →'
-              }
-              onClick={
-                stats.openCount > 0
-                  ? () => setFilter(filter === 'open' ? 'all' : 'open')
-                  : undefined
-              }
-              className="border-b border-border/60 lg:border-b-0 border-r lg:border-r-0"
-            />
-            <StatCell
-              label="Incidents"
-              value={String(stats.windowCount)}
-              sub={
-                stats.truncated
-                  ? `Since ${formatDateTime(stats.coverageStart)}`
-                  : `In the last ${WINDOW_DAYS} days`
-              }
-              className="border-b border-border/60 lg:border-b-0"
-            />
-            <StatCell
-              label="Median recovery"
-              value={stats.medianMs == null ? '—' : formatDuration(stats.medianMs)}
-              tone="default"
-              sub={
-                stats.medianMs == null
-                  ? 'Nothing resolved yet'
-                  : `Mean ${formatDuration(stats.meanMs ?? 0)} · ${stats.resolvedCount} resolved`
-              }
-              className="border-r border-border/60 lg:border-r-0"
-            />
-            <StatCell
-              label="Longest outage"
-              value={stats.longest == null ? '—' : formatDuration(stats.longest.ms)}
-              tone={stats.longest == null ? 'muted' : 'warn'}
-              sub={stats.longest == null ? 'No resolved outages' : stats.longest.monitorName}
-              to={
-                stats.longest == null
-                  ? undefined
-                  : `/admin/monitors/${stats.longest.monitorId}`
-              }
-            />
-          </Panel>
-
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
             <Panel className="flex flex-col overflow-hidden rounded-2xl lg:col-span-3">
               <header className="flex items-baseline justify-between gap-3 border-b border-border bg-muted px-4 py-3.5">
@@ -491,22 +384,12 @@ export function IncidentsPage() {
               {openCount} open · {all.length} total
             </span>
           </div>
-          {search.trim() !== '' && (
-            <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-              {filtered.length} match{filtered.length === 1 ? '' : 'es'}
-            </span>
-          )}
         </header>
         {query.isLoading ? (
           <div className="space-y-2 p-4" aria-hidden>
             {[0, 1, 2].map((i) => (
               <Skeleton key={i} className="h-9 w-full" />
             ))}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="py-10 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
-            <Icon icon={MagnifyingGlass} className="h-5 w-5 opacity-50" />
-            No incidents match this filter.
           </div>
         ) : (
           <Table>
@@ -521,7 +404,7 @@ export function IncidentsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((i) => (
+              {all.map((i) => (
                 <Row key={i.id} incident={i} />
               ))}
             </TableBody>
@@ -530,74 +413,6 @@ export function IncidentsPage() {
       </Panel>
     </div>
   )
-}
-
-// Mirrors the dashboard's StatusHero metric cell. Duplicated rather than
-// imported because that component owns its own props shape (monitor stats);
-// the visual contract — mono micro-label, tabular value, tone ramp — is kept
-// identical on purpose.
-function StatCell({
-  to,
-  onClick,
-  label,
-  value,
-  sub,
-  tone = 'default',
-  className,
-}: {
-  to?: string
-  onClick?: () => void
-  label: string
-  value: string
-  sub: string
-  tone?: 'default' | 'success' | 'destructive' | 'warn' | 'muted'
-  className?: string
-}) {
-  const valueTone =
-    tone === 'success'
-      ? 'text-success-text'
-      : tone === 'destructive'
-        ? 'text-destructive'
-        : tone === 'warn'
-          ? 'text-warning'
-          : tone === 'muted'
-            ? 'text-muted-foreground'
-            : 'text-foreground'
-
-  const interactive = Boolean(to || onClick)
-  const body = (
-    <div
-      className={cn(
-        'flex flex-col gap-2.5 p-4 sm:p-5 text-left transition-colors',
-        interactive && 'cursor-pointer hover:bg-muted/40',
-        className,
-      )}
-    >
-      <div className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-        {label}
-      </div>
-      <div className="flex items-baseline gap-1.5">
-        <span
-          className={cn(
-            'text-2xl font-semibold tracking-tight tabular-nums',
-            valueTone,
-          )}
-        >
-          {value}
-        </span>
-      </div>
-      <div className="text-xs text-muted-foreground line-clamp-1">{sub}</div>
-    </div>
-  )
-
-  if (to) return <Link to={to}>{body}</Link>
-  if (onClick)
-    return (
-      <button type="button" onClick={onClick} className="block w-full">
-        {body}
-      </button>
-    )
-  return body
 }
 
 function OffenderRow({ offender, max }: { offender: Offender; max: number }) {
