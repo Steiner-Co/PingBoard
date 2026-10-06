@@ -3,10 +3,13 @@
  * feature rather than a schema column: picking one writes this CSS into the
  * page's Custom CSS field, where the owner can then hand-edit it.
  *
- * Every theme is scoped to the page root with `div:has(> .max-w-3xl.mx-auto)`
- * — that element is the only div whose direct child is the page's content
- * column. Scoping matters: custom CSS is injected as a plain <style>, so an
- * unscoped `:root { … }` would restyle the admin shell too (and does, in the
+ * Every theme is scoped to the page canvas with the `.pb-canvas` class the
+ * PublicStatusView root carries — element-level, never an ancestor selector.
+ * Ancestor scoping (`.light div:has(…)`) reads as cleaner CSS but breaks in
+ * the admin editor: <html> wears the admin's own theme class there, so a
+ * `.light` ancestor can exist while the canvas is dark. Scoping matters in
+ * the first place because custom CSS is injected as a plain <style> — an
+ * unscoped `:root { … }` would restyle the admin shell too (and did, in the
  * editor's live preview). Light/dark are both shipped so the page holds up
  * whichever theme it renders in.
  *
@@ -14,8 +17,8 @@
  * per theme, never collapsed into the accent.
  */
 
-const PAGE = 'div:has(> .max-w-3xl.mx-auto)'
-const PAGE_LIGHT = '.light div:has(> .max-w-3xl.mx-auto)'
+const PAGE = '.pb-canvas'
+const PAGE_LIGHT = '.pb-canvas.light'
 
 interface Palette {
   bg: string
@@ -255,6 +258,146 @@ const ROSE_PINE_DAWN: Palette = {
   destructive: '#b4637a',
 }
 
+
+// Dracula's official light companion (Alacritty's "Alucard" spec values).
+
+const GITHUB_DARK: Palette = {
+  bg: '#0d1117',
+  fg: '#e6edf3',
+  card: '#161b22',
+  muted: '#21262d',
+  mutedFg: '#7d8590',
+  accent: '#30363d',
+  border: '#30363d',
+  input: '#30363d',
+  primary: '#58a6ff',
+  primaryFg: '#0d1117',
+  primaryText: '#58a6ff',
+  success: '#3fb950',
+  warning: '#d29922',
+  destructive: '#f85149',
+}
+const GITHUB_LIGHT: Palette = {
+  bg: '#ffffff',
+  fg: '#1f2328',
+  card: '#f6f8fa',
+  muted: '#eaeef2',
+  mutedFg: '#59636e',
+  accent: '#d1d9e0',
+  border: '#d1d9e0',
+  input: '#d1d9e0',
+  primary: '#0969da',
+  primaryFg: '#ffffff',
+  primaryText: '#0550ae',
+  success: '#1a7f37',
+  warning: '#9a6700',
+  destructive: '#cf222e',
+}
+
+
+const KANAGAWA: Palette = {
+  bg: '#1f1f28',
+  fg: '#dcd7ba',
+  card: '#2a2a37',
+  muted: '#363646',
+  mutedFg: '#a09a7f',
+  accent: '#414154',
+  border: '#363646',
+  input: '#49495c',
+  primary: '#7e9cd8',
+  primaryFg: '#1f1f28',
+  primaryText: '#7fb4ca',
+  success: '#98bb6c',
+  warning: '#e6c384',
+  destructive: '#ff5d62',
+}
+const KANAGAWA_LOTUS: Palette = {
+  bg: '#f2ecbc',
+  fg: '#545464',
+  card: '#ece5c1',
+  muted: '#e3dca9',
+  mutedFg: '#716e61',
+  accent: '#d9d2a0',
+  border: '#ddd5a8',
+  input: '#d5cea3',
+  primary: '#4d699b',
+  primaryFg: '#f2ecbc',
+  primaryText: '#597b75',
+  success: '#6f894e',
+  warning: '#de9800',
+  destructive: '#c84053',
+}
+
+// Neon on deep violet — the loud end of the set. The light variant is a
+// synthwave dawn: lavender paper with magenta/cyan accents.
+const SYNTHWAVE: Palette = {
+  bg: '#241b2f',
+  fg: '#f0edf7',
+  card: '#2a2139',
+  muted: '#34294f',
+  mutedFg: '#848bbd',
+  accent: '#3f3160',
+  border: '#34294f',
+  input: '#463465',
+  primary: '#ff7edb',
+  primaryFg: '#241b2f',
+  primaryText: '#36f9f6',
+  success: '#72f1b8',
+  warning: '#fede5d',
+  destructive: '#fe4450',
+}
+const SYNTHWAVE_DAWN: Palette = {
+  bg: '#f6f2fb',
+  fg: '#3d3252',
+  card: '#ffffff',
+  muted: '#ece4f7',
+  mutedFg: '#7a6f9b',
+  accent: '#e0d4f2',
+  border: '#e3d9f2',
+  input: '#d9cbee',
+  primary: '#d63384',
+  primaryFg: '#ffffff',
+  primaryText: '#0f8b8d',
+  success: '#1a7f54',
+  warning: '#946800',
+  destructive: '#d92d20',
+}
+
+// Pure monochrome — no hue anywhere except desaturated status signals, which
+// stay colored so "up" and "down" never blur into the ink.
+const NOIR: Palette = {
+  bg: '#0a0a0a',
+  fg: '#fafafa',
+  card: '#171717',
+  muted: '#262626',
+  mutedFg: '#a3a3a3',
+  accent: '#333333',
+  border: '#262626',
+  input: '#333333',
+  primary: '#fafafa',
+  primaryFg: '#0a0a0a',
+  primaryText: '#d4d4d4',
+  success: '#34d399',
+  warning: '#fbbf24',
+  destructive: '#f87171',
+}
+const NOIR_LIGHT: Palette = {
+  bg: '#ffffff',
+  fg: '#171717',
+  card: '#fafafa',
+  muted: '#f5f5f5',
+  mutedFg: '#737373',
+  accent: '#e5e5e5',
+  border: '#e5e5e5',
+  input: '#d4d4d4',
+  primary: '#171717',
+  primaryFg: '#ffffff',
+  primaryText: '#525252',
+  success: '#15803d',
+  warning: '#b45309',
+  destructive: '#b91c1c',
+}
+
 export const THEME_PRESETS: ThemePreset[] = [
   {
     id: 'catppuccin',
@@ -285,5 +428,29 @@ export const THEME_PRESETS: ThemePreset[] = [
     label: 'Rosé Pine',
     swatches: [ROSE_PINE.bg, ROSE_PINE.primary, ROSE_PINE.success],
     css: theme('Rosé Pine — main (dark) / Dawn (light)', ROSE_PINE, ROSE_PINE_DAWN),
+  },
+  {
+    id: 'github',
+    label: 'GitHub',
+    swatches: [GITHUB_DARK.bg, GITHUB_DARK.primary, GITHUB_DARK.success],
+    css: theme('GitHub (dark / light)', GITHUB_DARK, GITHUB_LIGHT),
+  },
+  {
+    id: 'kanagawa',
+    label: 'Kanagawa',
+    swatches: [KANAGAWA.bg, KANAGAWA.primary, KANAGAWA.success],
+    css: theme('Kanagawa — Wave (dark) / Lotus (light)', KANAGAWA, KANAGAWA_LOTUS),
+  },
+  {
+    id: 'synthwave',
+    label: 'Synthwave',
+    swatches: [SYNTHWAVE.bg, SYNTHWAVE.primary, SYNTHWAVE.success],
+    css: theme('Synthwave — \'84 (dark) / Dawn (light)', SYNTHWAVE, SYNTHWAVE_DAWN),
+  },
+  {
+    id: 'noir',
+    label: 'Noir',
+    swatches: [NOIR.bg, NOIR.primary, NOIR.success],
+    css: theme('Noir (dark / light)', NOIR, NOIR_LIGHT),
   },
 ]
