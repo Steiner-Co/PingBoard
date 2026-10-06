@@ -9,13 +9,14 @@ import { ArrowCircleUpRight } from "@phosphor-icons/react/dist/icons/ArrowCircle
 import { ListChecks } from '@phosphor-icons/react/dist/icons/ListChecks'
 import { Palette } from '@phosphor-icons/react/dist/icons/Palette'
 import { LockKey } from '@phosphor-icons/react/dist/icons/LockKey'
-import { LockKeyOpen } from '@phosphor-icons/react/dist/icons/LockKeyOpen'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/panel'
 import { QueryError } from '@/components/QueryError'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useConfirm } from '@/components/confirm-provider'
+import { usePrimaryAction } from '@/contexts/primary-action'
 import { useUnsavedGuard } from '@/contexts/unsaved-changes'
+import { usePageTitle } from '@/layouts/AdminLayout'
 import { THEME_PRESETS, type ThemePreset } from '@/public/theme-presets'
 import {
   PublicStatusView,
@@ -58,6 +59,11 @@ const SECTIONS: ToolbarSection[] = [
     label: 'Appearance',
     icon: <Icon icon={Palette} className="h-4 w-4" />,
   },
+  {
+    id: 'access',
+    label: 'Access',
+    icon: <Icon icon={LockKey} className="h-4 w-4" />,
+  },
 ]
 
 /**
@@ -76,12 +82,16 @@ export function StatusPageEditorPage() {
   const queryClient = useQueryClient()
   const confirm = useConfirm()
   const { resolvedTheme } = useTheme()
+  const { setAction: setPrimaryAction } = usePrimaryAction()
 
   const detail = useQuery({
     queryKey: ['page', id],
     queryFn: () => api.get<PageDetail>(`/api/admin/pages/${id}`),
     enabled: !!id,
   })
+
+  // The shell shows the page's own name, not a generic "Edit status page".
+  usePageTitle(detail.data?.page.title ?? null)
 
   const monitors = useQuery({
     queryKey: ['monitors'],
@@ -220,18 +230,6 @@ export function StatusPageEditorPage() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [isDirty])
 
-  // The Access dropdown anchors to the top bar — dismiss it on outside click.
-  useEffect(() => {
-    if (activeSection !== 'access') return
-    const onDown = (e: PointerEvent) => {
-      if (!(e.target as HTMLElement).closest('[data-access-menu]')) {
-        setActiveSection(null)
-      }
-    }
-    document.addEventListener('pointerdown', onDown)
-    return () => document.removeEventListener('pointerdown', onDown)
-  }, [activeSection])
-
   const save = useMutation({
     mutationFn: (payload: object) =>
       api.patch(`/api/admin/pages/${id}`, payload),
@@ -316,6 +314,21 @@ export function StatusPageEditorPage() {
       })),
     })
   }
+
+  // Save is the screen's primary action, so it lives in the shell's lime
+  // slot. A ref keeps the registered onClick stable while handleSubmit
+  // closes over fresh draft state every render.
+  const submitRef = useRef(handleSubmit)
+  submitRef.current = handleSubmit
+  useEffect(() => {
+    setPrimaryAction({
+      label: save.isPending ? 'Saving…' : 'Save changes',
+      onClick: () => submitRef.current(),
+      disabled: !isDirty || save.isPending || !hydrated,
+      icon: null,
+    })
+  }, [setPrimaryAction, isDirty, save.isPending, hydrated])
+  useEffect(() => () => setPrimaryAction(null), [setPrimaryAction])
 
   const toggle = (mid: string) => {
     setSelected((prev) => {
@@ -416,7 +429,7 @@ export function StatusPageEditorPage() {
 
   if (detail.isError) {
     return (
-      <div className="px-4 lg:px-6">
+      <div className="px-4 lg:px-6 pb-10">
         <QueryError
           subject="page details"
           onRetry={() => void detail.refetch()}
@@ -427,19 +440,10 @@ export function StatusPageEditorPage() {
 
   const page = detail.data?.page
 
-  const saveButton = (
-    <Button
-      size="sm"
-      onClick={handleSubmit}
-      disabled={!isDirty || save.isPending || !hydrated}
-    >
-      {save.isPending ? 'Saving…' : 'Save changes'}
-    </Button>
-  )
-
   return (
     <div className="px-4 lg:px-6 flex flex-col gap-4">
-      {/* Top bar */}
+      {/* Utility row. The page's title sits in the shell header and Save in
+          the shell's lime slot — what remains here is navigation and meta. */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Button variant="ghost" size="sm" asChild className="gap-1.5 -ml-2">
           <Link to="/admin/pages">
@@ -447,80 +451,27 @@ export function StatusPageEditorPage() {
             Pages
           </Link>
         </Button>
-        <div className="min-w-0 flex-1">
-          {page ? (
-            <>
-              <h1 className="flex items-center gap-2 truncate text-lg font-semibold tracking-tight">
-                <span className="truncate">{page.title}</span>
-                {isDirty && (
-                  <span
-                    title="Unsaved changes"
-                    className="size-1.5 shrink-0 rounded-full bg-warning"
-                  />
-                )}
-              </h1>
-              <p className="font-mono text-xs text-muted-foreground">
-                /{page.slug}
-              </p>
-            </>
-          ) : (
-            <Skeleton className="h-6 w-48" />
-          )}
-        </div>
+        {page ? (
+          <span className="inline-flex items-center gap-2 font-mono text-xs text-muted-foreground">
+            /{page.slug}
+            {isDirty && (
+              <span
+                title="Unsaved changes"
+                className="size-1.5 shrink-0 rounded-full bg-warning"
+              />
+            )}
+          </span>
+        ) : (
+          <Skeleton className="h-4 w-24" />
+        )}
         {page && (
-          <Button size="sm" variant="outline" asChild className="gap-1.5">
+          <Button size="sm" variant="outline" asChild className="ml-auto gap-1.5">
             <a href={`/${page.slug}`} target="_blank" rel="noreferrer">
               <Icon icon={ArrowCircleUpRight} className="h-3.5 w-3.5" />
               View
             </a>
           </Button>
         )}
-        {page && (
-          <div className="relative" data-access-menu>
-            <Button
-              size="icon-sm"
-              variant="outline"
-              aria-label={
-                page.passwordSet
-                  ? 'Access: password protected. Change settings.'
-                  : 'Access: public. Change settings.'
-              }
-              title="Access"
-              aria-pressed={activeSection === 'access'}
-              onClick={() =>
-                setActiveSection((prev) => (prev === 'access' ? null : 'access'))
-              }
-            >
-              <Icon
-                icon={page.passwordSet ? LockKey : LockKeyOpen}
-                className="h-3.5 w-3.5"
-              />
-            </Button>
-            {activeSection === 'access' && (
-              <div
-                role="dialog"
-                aria-label="Access settings"
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') setActiveSection(null)
-                }}
-                className="absolute right-0 top-full z-40 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-border/70 bg-card p-4 shadow-lg"
-              >
-                <AccessPanel
-                  slug={page.slug}
-                  passwordSet={page.passwordSet}
-                  password={password}
-                  onPassword={setPassword}
-                  changingPassword={changingPassword}
-                  onChangingPassword={setChangingPassword}
-                  saving={savePassword.isPending}
-                  onSave={() => savePassword.mutate(password.trim())}
-                  onRemove={() => void removePassword()}
-                />
-              </div>
-            )}
-          </div>
-        )}
-        {saveButton}
       </div>
 
       {error && (
@@ -534,8 +485,10 @@ export function StatusPageEditorPage() {
       )}
 
       {/* The page is the canvas: full width, title + description editable in
-          place. Bottom padding keeps the footer clear of the fixed toolbar. */}
-      <div className="pb-32">
+          place. Toolbar clearance lives inside the canvas (pb-28 below), so
+          the void at the bottom of a short page wears the page's own theme
+          instead of reading as a shell-colored hole. */}
+      <div className="pb-6">
         {!page || !hydrated ? (
           <EditorSkeleton />
         ) : preview.isError ? (
@@ -546,23 +499,30 @@ export function StatusPageEditorPage() {
             />
           </div>
         ) : previewData ? (
-          // `dark`/`light` scope the class-based tokens to just this page,
-          // overriding whatever the admin shell uses — no next-themes or
-          // localStorage side effects.
-          <div className={effectiveTheme === 'dark' ? 'dark' : 'light'}>
-            <PublicStatusView
-              data={previewData}
-              dataUpdatedAt={preview.dataUpdatedAt}
-              forcedTheme={effectiveTheme}
-              preview
-              editable
-              pageId={id}
-              titleValue={title}
-              onTitleChange={setTitle}
-              descriptionValue={description}
-              onDescriptionChange={setDescription}
-              descriptionEditorRef={descriptionEditorRef}
-            />
+          // The public page renders its own theme inside the admin shell, so
+          // it gets the same frame as every other admin surface: a bordered,
+          // rounded card. `dark`/`light` scope the class-based tokens to just
+          // this subtree — no next-themes or localStorage side effects.
+          <div className="overflow-hidden rounded-2xl border border-border">
+            <div className={effectiveTheme === 'dark' ? 'dark' : 'light'}>
+              <PublicStatusView
+                data={previewData}
+                dataUpdatedAt={preview.dataUpdatedAt}
+                forcedTheme={effectiveTheme}
+                preview
+                editable
+                pageId={id}
+                titleValue={title}
+                onTitleChange={setTitle}
+                descriptionValue={description}
+                onDescriptionChange={setDescription}
+                descriptionEditorRef={descriptionEditorRef}
+                // Stretch the canvas to fill the viewport below the chrome and
+                // hold its footer clear of the floating toolbar — otherwise a
+                // short page leaves a dead shell-colored gap at the bottom.
+                className="min-h-[calc(var(--app-viewport-height)-11rem)] pb-28"
+              />
+            </div>
           </div>
         ) : (
           <div className="mx-auto max-w-3xl space-y-4 px-5 py-10">
@@ -614,6 +574,18 @@ export function StatusPageEditorPage() {
                 peekTheme={peekTheme}
                 onPeekTheme={setPeekTheme}
               />
+            ) : activeSection === 'access' ? (
+              <AccessPanel
+                slug={page.slug}
+                passwordSet={page.passwordSet}
+                password={password}
+                onPassword={setPassword}
+                changingPassword={changingPassword}
+                onChangingPassword={setChangingPassword}
+                saving={savePassword.isPending}
+                onSave={() => savePassword.mutate(password.trim())}
+                onRemove={() => void removePassword()}
+              />
             ) : null
           }
         />
@@ -624,14 +596,13 @@ export function StatusPageEditorPage() {
 
 function EditorSkeleton() {
   return (
-    <>
-      {[0, 1, 2].map((i) => (
-        <Panel key={i} className="space-y-3 p-4">
-          <Skeleton className="h-3 w-20" />
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
-        </Panel>
-      ))}
-    </>
+    <Panel className="overflow-hidden rounded-2xl">
+      <div className="space-y-4 p-10">
+        <Skeleton className="h-8 w-56" />
+        <Skeleton className="h-4 w-72 max-w-full" />
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    </Panel>
   )
 }

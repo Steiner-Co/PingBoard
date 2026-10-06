@@ -44,7 +44,8 @@ export function SiteHeader({
   })
   const firstPage = pages.data?.pages[0]
   // The lime action belongs to the current screen — Domains registers
-  // "Add domain", everything else falls back to "Add monitor".
+  // "Add domain", Status pages "Create page", the editor "Save changes";
+  // everything else falls back to "Add monitor".
   const { action } = usePrimaryAction()
   const primary = action ?? { label: "Add monitor", to: "/admin/monitors/new" }
 
@@ -94,16 +95,25 @@ export function SiteHeader({
         ) : null}
         {primary.to ? (
           <Link to={primary.to} className="shell-btn shell-btn-lime">
-            <Icon icon={PlusCircle} weight="fill" size={24} />
+            {primary.icon === undefined ? (
+              <Icon icon={PlusCircle} weight="fill" size={24} />
+            ) : (
+              primary.icon
+            )}
             {primary.label}
           </Link>
         ) : (
           <button
             type="button"
             onClick={primary.onClick}
-            className="shell-btn shell-btn-lime"
+            disabled={primary.disabled}
+            className="shell-btn shell-btn-lime disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Icon icon={PlusCircle} weight="fill" size={24} />
+            {primary.icon === undefined ? (
+              <Icon icon={PlusCircle} weight="fill" size={24} />
+            ) : (
+              primary.icon
+            )}
             {primary.label}
           </button>
         )}

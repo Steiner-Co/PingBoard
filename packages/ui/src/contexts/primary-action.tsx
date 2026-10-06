@@ -1,14 +1,19 @@
-import { createContext, useContext } from 'react'
+import { createContext, useContext, type ReactNode } from 'react'
 
 /**
  * The shell's lime action adapts to the current screen — "Add monitor" on
- * most pages, "Add domain" on Domains, etc. Pages register their action on
- * mount and clear it on unmount; the shell falls back to Add monitor.
+ * most pages, "Add domain" on Domains, "Save changes" on the status page
+ * editor. Pages register their action on mount and clear it on unmount; the
+ * shell falls back to Add monitor.
  */
 export interface PrimaryAction {
   label: string
   to?: string
   onClick?: () => void
+  /** Greyed out but visible — e.g. Save with no unsaved changes. */
+  disabled?: boolean
+  /** Replaces the default PlusCircle; null renders no icon at all. */
+  icon?: ReactNode | null
 }
 
 interface PrimaryActionState {
