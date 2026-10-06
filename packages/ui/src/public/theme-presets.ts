@@ -398,6 +398,111 @@ const NOIR_LIGHT: Palette = {
   destructive: '#b91c1c',
 }
 
+// Flexoki keeps 400-step accents on its dark base and 600-step accents on
+// paper; yellow-700 steps in as primaryText since yellow-600 alone falls
+// short of small-text contrast on paper.
+const FLEXOKI: Palette = {
+  bg: '#100f0f',
+  fg: '#cecdc3',
+  card: '#1c1b1a',
+  muted: '#282726',
+  mutedFg: '#878580',
+  accent: '#343331',
+  border: '#282726',
+  input: '#403e3c',
+  primary: '#d0a215',
+  primaryFg: '#100f0f',
+  primaryText: '#d0a215',
+  success: '#879a39',
+  warning: '#da702c',
+  destructive: '#d14d41',
+}
+const FLEXOKI_LIGHT: Palette = {
+  bg: '#fffcf0',
+  fg: '#100f0f',
+  card: '#f2f0e5',
+  muted: '#e6e4d9',
+  mutedFg: '#6f6e69',
+  accent: '#dad8ce',
+  border: '#e6e4d9',
+  input: '#cecdc3',
+  primary: '#ad8301',
+  primaryFg: '#fffcf0',
+  primaryText: '#8e6b01',
+  success: '#66800b',
+  warning: '#bc5215',
+  destructive: '#af3029',
+}
+
+const ONE_DARK: Palette = {
+  bg: '#282c34',
+  fg: '#abb2bf',
+  card: '#21252b',
+  muted: '#2c313c',
+  mutedFg: '#828997',
+  accent: '#3e4451',
+  border: '#2c313c',
+  input: '#3e4451',
+  primary: '#61afef',
+  primaryFg: '#282c34',
+  primaryText: '#61afef',
+  success: '#98c379',
+  warning: '#e5c07b',
+  destructive: '#e06c75',
+}
+const ONE_LIGHT: Palette = {
+  bg: '#fafafa',
+  fg: '#383a42',
+  card: '#ffffff',
+  muted: '#eaeaeb',
+  mutedFg: '#696c77',
+  accent: '#dbdbdc',
+  border: '#dbdbdc',
+  input: '#dbdbdc',
+  primary: '#4078f2',
+  primaryFg: '#fafafa',
+  primaryText: '#4078f2',
+  success: '#50a14f',
+  warning: '#c18401',
+  destructive: '#e45649',
+}
+
+// Ayu's accent tint fails small-text contrast on its own paper, so the light
+// variant pairs it with accent.on — the scheme's designated text-on-accent
+// tone — and status signals take the darkest step of each colour family.
+const AYU: Palette = {
+  bg: '#0b0e14',
+  fg: '#bfbdb6',
+  card: '#10141c',
+  muted: '#161a24',
+  mutedFg: '#5a6378',
+  accent: '#1b1f29',
+  border: '#161a24',
+  input: '#1b1f29',
+  primary: '#e6b450',
+  primaryFg: '#0b0e14',
+  primaryText: '#e6b450',
+  success: '#aad94c',
+  warning: '#ffb454',
+  destructive: '#d95757',
+}
+const AYU_LIGHT: Palette = {
+  bg: '#fcfcfc',
+  fg: '#5c6166',
+  card: '#ffffff',
+  muted: '#f8f9fa',
+  mutedFg: '#828e9f',
+  accent: '#ebeef0',
+  border: '#ebeef0',
+  input: '#c5c5c8',
+  primary: '#f29718',
+  primaryFg: '#7e4b01',
+  primaryText: '#7e4b01',
+  success: '#719700',
+  warning: '#b37c00',
+  destructive: '#e65050',
+}
+
 export const THEME_PRESETS: ThemePreset[] = [
   {
     id: 'catppuccin',
@@ -452,5 +557,23 @@ export const THEME_PRESETS: ThemePreset[] = [
     label: 'Noir',
     swatches: [NOIR.bg, NOIR.primary, NOIR.success],
     css: theme('Noir (dark / light)', NOIR, NOIR_LIGHT),
+  },
+  {
+    id: 'flexoki',
+    label: 'Flexoki',
+    swatches: [FLEXOKI.bg, FLEXOKI.primary, FLEXOKI.success],
+    css: theme('Flexoki (dark / light)', FLEXOKI, FLEXOKI_LIGHT),
+  },
+  {
+    id: 'one-dark',
+    label: 'One Dark',
+    swatches: [ONE_DARK.bg, ONE_DARK.primary, ONE_DARK.success],
+    css: theme('One Dark / One Light', ONE_DARK, ONE_LIGHT),
+  },
+  {
+    id: 'ayu',
+    label: 'Ayu',
+    swatches: [AYU.bg, AYU.primary, AYU.success],
+    css: theme('Ayu — Dark (dark) / Light (light)', AYU, AYU_LIGHT),
   },
 ]
