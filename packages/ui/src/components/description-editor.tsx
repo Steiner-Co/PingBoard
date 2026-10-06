@@ -305,7 +305,7 @@ export function EditorToolbar({
               />
               <button
                 type="submit"
-                className="h-8 shrink-0 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground transition-transform active:scale-[0.97]"
+                className="h-8 shrink-0 rounded-lg border border-transparent bg-[var(--lime)] px-3 text-xs font-semibold text-[var(--lime-ink)] transition-[background-color,transform] hover:bg-[var(--lime-hover)] active:scale-[0.97]"
               >
                 Apply
               </button>
@@ -377,7 +377,7 @@ export function EditorToolbar({
             mode === 'text' && 'bg-accent',
           )}
         >
-          Text
+          <span className="hidden md:inline">Text</span>
           <span
             aria-hidden
             className="size-4 rounded-[5px] ring-1 ring-foreground/20"
@@ -395,7 +395,7 @@ export function EditorToolbar({
             mode === 'highlight' && 'bg-accent',
           )}
         >
-          Highlight
+          <span className="hidden md:inline">Highlight</span>
           <span
             aria-hidden
             className="flex size-4 items-center justify-center rounded-[5px] ring-1 ring-foreground/20"
