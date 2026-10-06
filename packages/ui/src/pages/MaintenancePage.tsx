@@ -75,7 +75,7 @@ export function MaintenancePage() {
 
   if (query.isError) {
     return (
-      <div className="px-4 lg:px-6 flex flex-col gap-6">
+      <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
         <ScreenHeader title="Maintenance" description={INTRO} />
         <QueryError
           subject="maintenance windows"
@@ -87,7 +87,7 @@ export function MaintenancePage() {
 
   if (query.isLoading) {
     return (
-      <div className="px-4 lg:px-6 flex flex-col gap-6">
+      <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
         <ScreenHeader title="Maintenance" description={INTRO} />
         <Panel className="grid grid-cols-2 overflow-hidden rounded-2xl lg:grid-cols-4 lg:divide-x divide-border/60">
           {[0, 1, 2, 3].map((i) => (
@@ -109,7 +109,7 @@ export function MaintenancePage() {
 
   if (windows.length === 0) {
     return (
-      <div className="px-4 lg:px-6 flex flex-col gap-6">
+      <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
         <ScreenHeader title="Maintenance" description={INTRO} />
         <EmptyState
           icon={CalendarBlank}
@@ -138,7 +138,7 @@ export function MaintenancePage() {
   const nextUp = upcoming[0]
 
   return (
-    <div className="px-4 lg:px-6 flex flex-col gap-6">
+    <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
       <ScreenHeader title="Maintenance" description={INTRO} />
 
       <Panel className="grid grid-cols-2 overflow-hidden rounded-2xl lg:grid-cols-4 lg:divide-x divide-border/60">

@@ -142,7 +142,7 @@ export function DashboardPage() {
   if (query.isPending) return <DashboardSkeleton />
   if (query.isError) {
     return (
-      <div className="px-4 lg:px-6">
+      <div className="px-4 lg:px-6 pb-10">
         <QueryError subject="monitors" onRetry={() => void query.refetch()} />
       </div>
     )
@@ -158,7 +158,7 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 px-4 lg:px-6">
+    <div className="flex flex-col gap-6 px-4 lg:px-6 pb-10">
       <ScreenHeader
         title="Monitors"
         description="Every check, it’s current state and thirty days of history"
@@ -428,7 +428,7 @@ function RowActions({ monitor }: { monitor: MonitorWithLatest }) {
 
 function DashboardSkeleton() {
   return (
-    <div className="flex flex-col gap-6 px-4 lg:px-6">
+    <div className="flex flex-col gap-6 px-4 lg:px-6 pb-10">
       <div className="space-y-2">
         <Skeleton className="h-9 w-44" />
         <Skeleton className="h-5 w-96 max-w-full" />
@@ -459,7 +459,7 @@ function DashboardSkeleton() {
 
 function EmptyDashboard() {
   return (
-    <div className="px-4 lg:px-6">
+    <div className="px-4 lg:px-6 pb-10">
       <div className="flex min-h-[420px] flex-col items-center justify-center gap-6 rounded-lg border border-dashed bg-card/50 p-10 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <Icon icon={Pulse} className="h-6 w-6" />

@@ -281,7 +281,7 @@ export function IncidentsPage() {
 
   if (query.isError) {
     return (
-      <div className="px-4 lg:px-6 flex flex-col gap-6">
+      <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
         <ScreenHeader
           title="Incidents"
           description="Every down → up transition across all monitors"
@@ -293,7 +293,7 @@ export function IncidentsPage() {
 
   if (!query.isLoading && all.length === 0) {
     return (
-      <div className="px-4 lg:px-6 flex flex-col gap-6">
+      <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
         <ScreenHeader
           title="Incidents"
           description="Every down → up transition across all monitors"
@@ -310,7 +310,7 @@ export function IncidentsPage() {
   const chartWindowLabel = `${granularityLabel(stats.granularityMs)} · ${spanLabel(stats.spanMs)}`
 
   return (
-    <div className="px-4 lg:px-6 flex flex-col gap-6">
+    <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
       <ScreenHeader
         title="Incidents"
         description="Every down → up transition across all monitors"

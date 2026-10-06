@@ -229,7 +229,7 @@ export function DomainsPage() {
 
   if (query.isPending) {
     return (
-      <div className="px-4 lg:px-6 flex flex-col gap-6">
+      <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
         {header}
         <DomainsSkeleton />
         {dialogs}
@@ -239,7 +239,7 @@ export function DomainsPage() {
 
   if (query.isError) {
     return (
-      <div className="px-4 lg:px-6 flex flex-col gap-6">
+      <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
         {header}
         <QueryError subject="domains" onRetry={() => void query.refetch()} />
         {dialogs}
@@ -249,7 +249,7 @@ export function DomainsPage() {
 
   if (domains.length === 0) {
     return (
-      <div className="px-4 lg:px-6 flex flex-col gap-6">
+      <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
         {header}
         <EmptyState
           icon={Globe}
@@ -270,7 +270,7 @@ export function DomainsPage() {
   const refreshing = query.isFetching
 
   return (
-    <div className="px-4 lg:px-6 flex flex-col gap-6">
+    <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
       {header}
 
       <div>

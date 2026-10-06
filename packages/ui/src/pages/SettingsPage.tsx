@@ -47,7 +47,7 @@ export function SettingsPage() {
   const { user } = useAuth()
 
   return (
-    <div className="px-4 lg:px-6 flex flex-col gap-6">
+    <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground">

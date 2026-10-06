@@ -168,7 +168,7 @@ export function ChannelsPage() {
 
   if (channels.isPending) {
     return (
-      <div className="px-4 lg:px-6 flex flex-col gap-6">
+      <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
         {header}
         <ChannelsSkeleton />
         {dialogs}
@@ -178,7 +178,7 @@ export function ChannelsPage() {
 
   if (channels.isError) {
     return (
-      <div className="px-4 lg:px-6 flex flex-col gap-6">
+      <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
         {header}
         <QueryError subject="channels" onRetry={() => void channels.refetch()} />
         {dialogs}
@@ -188,7 +188,7 @@ export function ChannelsPage() {
 
   if (items.length === 0) {
     return (
-      <div className="px-4 lg:px-6 flex flex-col gap-6">
+      <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
         {header}
         <EmptyState
           icon={Bell}
@@ -214,7 +214,7 @@ export function ChannelsPage() {
   const unknownRouting = monitors.isError || monitors.isPending
 
   return (
-    <div className="px-4 lg:px-6 flex flex-col gap-6">
+    <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
       {header}
 
       <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">

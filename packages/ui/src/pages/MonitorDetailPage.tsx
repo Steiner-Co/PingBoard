@@ -116,7 +116,7 @@ export function MonitorDetailPage() {
   if (query.isLoading) return <MonitorDetailSkeleton />
   if (query.isError)
     return (
-      <div className="px-4 lg:px-6">
+      <div className="px-4 lg:px-6 pb-10">
         <div className="rounded-lg border border-dashed bg-card/50 p-8 text-center text-sm text-muted-foreground">
           Couldn't load this monitor.{' '}
           <button
@@ -163,7 +163,7 @@ export function MonitorDetailPage() {
       : Math.round(msValues.reduce((a, b) => a + b, 0) / msValues.length)
 
   return (
-    <div className="px-4 lg:px-6 flex flex-col gap-6">
+    <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
       <Button variant="ghost" size="sm" asChild className="self-start -ml-3">
         <Link to="/admin" className="gap-2">
           <Icon icon={ArrowLeft} className="h-4 w-4" />
@@ -882,7 +882,7 @@ function MaintenanceWindowsCard({ monitorId }: { monitorId: string }) {
 
 function MonitorDetailSkeleton() {
   return (
-    <div className="px-4 lg:px-6 flex flex-col gap-6">
+    <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
       <Skeleton className="h-7 w-32" />
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2 flex-1">
