@@ -11,8 +11,8 @@ import {
 const FEATURES = [
   {
     Icon: PulseIcon,
-    title: '7 monitor types',
-    body: 'HTTP, TCP, ping, DNS, SSL, domain expiry and push/heartbeat — with keyword and JSON assertions on responses.',
+    title: '6 monitor types',
+    body: 'HTTP, TCP, ping, DNS, SSL and push/heartbeat — with keyword and JSON assertions on responses.',
   },
   {
     Icon: GlobeIcon,

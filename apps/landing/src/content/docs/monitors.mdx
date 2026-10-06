@@ -7,6 +7,8 @@ order: 1
 
 A monitor is one recurring check against one target. Every monitor has a name, a [type](/docs/monitor-types), a target, and the shared scheduling options below. The first check runs immediately after you save; the in-process scheduler then re-checks on your interval.
 
+<Screenshot name="dashboard" alt="The monitors dashboard — filterable list of monitors with status, response time and uptime history" />
+
 ## Shared configuration
 
 | Field | Allowed values | Default | Notes |
@@ -31,7 +33,7 @@ Checks resolve to one of three statuses:
 
 - **up** — everything passed.
 - **down** — the check failed. Opens an incident and fires notifications.
-- **degraded** — a warning state (SSL/domain expiry approaching its warning threshold, or a domain whose expiry couldn't be verified). Degraded shows amber on the dashboard and status pages but does **not** open an incident or send alerts.
+- **degraded** — a warning state (an SSL certificate approaching its warning threshold). Degraded shows amber on the dashboard and status pages but does **not** open an incident or send alerts.
 
 Incidents are pure down→up transitions: a `down` result with no open incident opens one; an `up` result closes it and sends the "is UP" recovery notification. See [Notifications](/docs/notifications).
 

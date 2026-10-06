@@ -1,11 +1,11 @@
 ---
 title: Monitor types
-description: What each of the seven check types verifies and every per-type config option.
+description: What each of the six check types verifies and every per-type config option.
 group: Guides
 order: 2
 ---
 
-PingBoard has seven monitor types. All share the scheduling options in [Monitors](/docs/monitors); this page covers what each type checks and its type-specific configuration.
+PingBoard has six monitor types. All share the scheduling options in [Monitors](/docs/monitors); this page covers what each type checks and its type-specific configuration.
 
 ### HTTP(S)
 
@@ -62,22 +62,7 @@ Target can be a bare hostname, `host:port`, or a full URL (the host and port are
 
 ### Domain expiry
 
-Looks up domain registration data and tracks the expiry date — a domain lapsing takes down everything on it, and registrars' reminder emails are easy to miss.
-
-- **RDAP first** — the structured, ICANN-mandated successor to WHOIS. PingBoard maps the TLD to its authoritative RDAP server via the IANA bootstrap list (cached in-process, refreshed daily).
-- **WHOIS fallback** — for ccTLDs without RDAP, it asks `whois.iana.org` for the registry's WHOIS server and parses the free-text response.
-
-| Option | Default | Notes |
-|---|---|---|
-| `warningDays` | `30` | Days remaining ≤ this → **degraded** |
-| `criticalDays` | `7` | Days remaining ≤ this → **down** |
-| `manualExpiryAt` | — | Renewal date, entered by hand |
-| `manualRegisteredAt` | — | Registration date, entered by hand |
-| `manualRegistrar` | — | Registrar name, entered by hand |
-
-Manual fields exist for domains RDAP/WHOIS can't resolve (some ccTLDs, private registrations). Auto-detected values always win — the manual date is only used when detection came up empty. If neither source yields an expiry date, the monitor goes **degraded** ("couldn't verify expiry") rather than firing a false expiry incident.
-
-Alongside the expiry check, each run enriches the domain with live DNS records (A/MX/NS), registry nameservers and statuses, and the SSL certificate issuer and expiry on port 443 — all best-effort and never failing the check. These facts feed the **Domains** portfolio view in the dashboard.
+Domain expiry is no longer a monitor type — a domain isn't a target you poll, it's an asset you track. Since 1.0, domains live on their own **Domains** page in the dashboard: expiry and renewal runway, registrar, nameservers, and the SSL certificate across your whole portfolio, auto-detected via RDAP (with a WHOIS fallback for ccTLDs without it) or entered by hand, with alerts before anything lapses. The [v1.0 announcement](/blog/v1-0) covers why the split happened. For certificate expiry on a specific endpoint, use the SSL type above.
 
 ### Push (heartbeat)
 

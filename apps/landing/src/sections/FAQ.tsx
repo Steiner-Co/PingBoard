@@ -14,7 +14,7 @@ const FAQS = [
   },
   {
     q: 'What can it monitor?',
-    a: 'HTTP(S), TCP, ping, DNS, SSL-certificate and domain expiry, and push/heartbeat for cron jobs — plus keyword and JSON assertions on response bodies.',
+    a: 'HTTP(S), TCP, ping, DNS, SSL-certificate expiry, and push/heartbeat for cron jobs — plus keyword and JSON assertions on response bodies. Domains get their own tracker: expiry, registrar, nameservers and certs across the whole portfolio.',
   },
   {
     q: 'Can it alert me on Slack or Discord?',

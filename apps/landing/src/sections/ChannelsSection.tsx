@@ -1,32 +1,5 @@
 import { SectionHeading } from '@/components/section-heading'
-import { BellIcon, CheckIcon, DiscordIcon, MailIcon, SlackIcon } from '@/components/icons'
-
-const CHANNELS = [
-  { Icon: DiscordIcon, name: 'Discord' },
-  { Icon: SlackIcon, name: 'Slack' },
-  { Icon: MailIcon, name: 'Email' },
-  { Icon: BellIcon, name: 'ntfy' },
-]
-
-function ChannelsMock() {
-  return (
-    <div aria-hidden="true" className="w-[300px] max-w-full space-y-2 rounded-[14px] border border-border bg-card p-3">
-      {CHANNELS.map(({ Icon, name }) => (
-        <div
-          key={name}
-          className="flex items-center gap-3 rounded-[10px] border border-border/70 bg-background/40 px-3 py-2.5"
-        >
-          <Icon className="size-[18px] text-foreground/80" />
-          <span className="text-[13px] font-medium text-foreground">{name}</span>
-          <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-medium text-success">
-            Connected
-            <CheckIcon className="size-3.5" />
-          </span>
-        </div>
-      ))}
-    </div>
-  )
-}
+import { ThemeScreenshot } from '@/components/theme-screenshot'
 
 export function ChannelsSection() {
   return (
@@ -38,8 +11,12 @@ export function ChannelsSection() {
         lines={['Alerts where your', 'team already is']}
         subtitle="Email, webhooks, Discord, Slack or ntfy — wired up in seconds, routed per monitor, and silenced during maintenance."
       />
-      <div aria-hidden="true" className="shrink-0 md:-ml-5 md:-rotate-[4deg] lg:-ml-14">
-        <ChannelsMock />
+      <div className="shrink-0 md:-ml-5 md:-rotate-[4deg] lg:-ml-14">
+        <ThemeScreenshot
+          name="channels-card"
+          alt="The Channels screen — connected notification channels with the monitors each one alerts for"
+          className="w-[400px] max-w-full shadow-[0_18px_50px_-20px_rgba(0,0,0,0.35)]"
+        />
       </div>
     </section>
   )

@@ -1,15 +1,18 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { MDXProvider } from '@mdx-js/react'
 import { Seo } from '@/components/Seo'
 import { Prose } from '@/components/Prose'
 import { Toc, useToc } from '@/components/docs/Toc'
 import { Callout } from '@/components/docs/Callout'
 import { Tabs } from '@/components/docs/Tabs'
 import { Steps, Step } from '@/components/docs/Steps'
+import { Screenshot } from '@/components/docs/Screenshot'
 import { useDocsCopyButtons } from '@/components/docs/DocsEnhancements'
 import { docs, firstDoc, getDoc } from '@/lib/content'
 
-const mdxComponents = { Callout, Tabs, Steps, Step }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type MdxComponents = Record<string, React.ComponentType<any>>
+
+const mdxComponents: MdxComponents = { Callout, Tabs, Steps, Step, Screenshot }
 
 export function DocsRedirect() {
   if (!firstDoc) return <div className="py-16 text-center text-sm text-muted-foreground">No docs yet.</div>
@@ -140,7 +143,7 @@ function DocsArticle({
   doc: { title: string; description: string; group: string; slug: string }
   prev?: { slug: string; title: string }
   next?: { slug: string; title: string }
-  Component: React.ComponentType
+  Component: React.ComponentType<{ components?: MdxComponents }>
 }) {
   const tocItems = useToc()
   useDocsCopyButtons()
@@ -161,11 +164,12 @@ function DocsArticle({
         </div>
 
         <div data-docs-article className="mt-8">
-          <MDXProvider components={mdxComponents}>
-            <Prose variant="docs">
-              <Component />
-            </Prose>
-          </MDXProvider>
+          {/* Components go in as a prop: the MDX plugin has no
+              providerImportSource, so MDXProvider context never reaches the
+              compiled pages. */}
+          <Prose variant="docs">
+            <Component components={mdxComponents} />
+          </Prose>
         </div>
 
         <DocsPager prev={prev} next={next} />

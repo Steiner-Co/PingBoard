@@ -1,5 +1,5 @@
 import { TopNav } from './TopNav'
-import { DashboardMock } from '@/mocks/DashboardMock'
+import { ThemeScreenshot } from '@/components/theme-screenshot'
 
 function GitHubIcon() {
   return (
@@ -40,8 +40,12 @@ export function Hero() {
       {/* Wider than the panel so it breaks out onto the grey on both sides;
           the parent's items-center keeps the overflow symmetric (no mx-auto,
           which would collapse to 0 and pin it left). */}
-      <div aria-hidden="true" className="w-full md:w-[696px] md:max-w-none">
-        <DashboardMock />
+      <div className="w-full md:w-[696px] md:max-w-none">
+        <ThemeScreenshot
+          name="dashboard"
+          alt="The PingBoard dashboard — a monitor list with live status, response times and 30-day uptime history"
+          imgClassName="aspect-[16/10] object-cover object-top"
+        />
       </div>
     </section>
   )
