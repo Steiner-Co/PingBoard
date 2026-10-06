@@ -276,7 +276,6 @@ export function IncidentsPage() {
   })
 
   const all = query.data?.incidents ?? []
-  const openCount = all.filter((i) => !i.resolvedAt).length
 
   const stats = useMemo(() => computeAnalytics(all, now), [all, now])
 
@@ -380,9 +379,6 @@ export function IncidentsPage() {
         <header className="flex items-baseline justify-between gap-3 border-b border-border bg-muted px-4 py-3.5">
           <div className="flex items-baseline gap-3">
             <h2 className="text-base font-medium">Incidents</h2>
-            <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-              {openCount} open · {all.length} total
-            </span>
           </div>
         </header>
         {query.isLoading ? (
