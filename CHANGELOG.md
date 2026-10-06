@@ -1,5 +1,30 @@
 # Changelog
 
+## v1.1.0 — 2026-10-06
+
+Follow-up release: editable slugs, custom themes, and the remaining
+screens brought into the v1.0 design language.
+
+## What's Changed
+
+* **Editable status page slugs** — change a page's slug from the editor's Access panel (validation + conflict errors, MCP support); the old link stops working, everything else follows
+* **Custom theme builder** — 8 color picks in the Appearance panel generate a full theme (dark from your picks, light auto-derived), written into Custom CSS where you can keep tweaking
+* **Three new presets** — Flexoki, One Dark, Ayu (12 total)
+* **Add flows restyled** — the monitor wizard and domain dialog now speak the v1.0 design language (section cards, lime actions)
+* **Editor toolbar fixes** — fits narrow viewports without clipping, lime link apply
+* **Landing & docs** — real product screenshots everywhere, a v1.0 announcement post, content brought up to date (six monitor types with domains split out)
+
+## Upgrade guide (1.0.0 → 1.1.0)
+
+Nothing to do — no breaking changes, no migrations. Bump the image tag to `1.1.0` if you pin it.
+
+## Docker image
+```
+docker pull ghcr.io/steiner-co/pingboard:1.1.0
+```
+
+**Full Changelog**: https://github.com/Steiner-Co/PingBoard/compare/v1.0.0...v1.1.0
+
 ## v1.0.0 — 2026-10-06
 
 First stable release. The headline is a ground-up redesign of the entire
