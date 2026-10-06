@@ -9,24 +9,15 @@ import { Globe } from '@phosphor-icons/react/dist/icons/Globe'
 import { LockKey } from '@phosphor-icons/react/dist/icons/LockKey'
 import { UploadSimple } from '@phosphor-icons/react/dist/icons/UploadSimple'
 import { Trash } from '@phosphor-icons/react/dist/icons/Trash'
-import { Sun } from '@phosphor-icons/react/dist/icons/Sun'
-import { Moon } from '@phosphor-icons/react/dist/icons/Moon'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { THEME_PRESETS, type ThemePreset } from '@/public/theme-presets'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
-import type { MonitorWithLatest, Theme } from '@/types'
+import type { MonitorWithLatest } from '@/types'
 
 /**
  * Non-text page settings for the toolbar popover. The page itself is the
@@ -138,8 +129,6 @@ export function MonitorsPanel({
 }
 
 export function AppearancePanel({
-  theme,
-  onTheme,
   activePresetId,
   onPreset,
   onClearPreset,
@@ -151,11 +140,7 @@ export function AppearancePanel({
   onHideBranding,
   customCss,
   onCustomCss,
-  peekTheme,
-  onPeekTheme,
 }: {
-  theme: Theme
-  onTheme: (v: Theme) => void
   activePresetId: string | null
   onPreset: (preset: ThemePreset) => void
   onClearPreset: () => void
@@ -167,51 +152,9 @@ export function AppearancePanel({
   onHideBranding: (v: boolean) => void
   customCss: string
   onCustomCss: (v: string) => void
-  peekTheme: 'light' | 'dark' | null
-  onPeekTheme: (v: 'light' | 'dark' | null) => void
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <Label>Preview as</Label>
-        <div className="flex gap-1">
-          {(
-            [
-              { v: null, label: 'Setting', icon: null },
-              { v: 'light', label: 'Light', icon: Sun },
-              { v: 'dark', label: 'Dark', icon: Moon },
-            ] as const
-          ).map((o) => (
-            <Button
-              key={o.label}
-              type="button"
-              size="sm"
-              variant={peekTheme === o.v ? 'secondary' : 'ghost'}
-              aria-pressed={peekTheme === o.v}
-              onClick={() => onPeekTheme(o.v)}
-              className="gap-1.5"
-            >
-              {o.icon && <Icon icon={o.icon} className="h-3.5 w-3.5" />}
-              {o.label}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="editor-theme">Theme</Label>
-        <Select value={theme} onValueChange={(v) => onTheme(v as Theme)}>
-          <SelectTrigger id="editor-theme">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="auto">Auto (follow visitor)</SelectItem>
-            <SelectItem value="light">Light</SelectItem>
-            <SelectItem value="dark">Dark</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
       <div className="flex flex-col gap-2">
         <Label>Theme preset</Label>
         <div className="flex flex-wrap gap-1.5">

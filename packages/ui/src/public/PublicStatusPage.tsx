@@ -21,6 +21,8 @@ import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank"
+import { PlusCircle } from "@phosphor-icons/react/dist/icons/PlusCircle"
+import { X } from "@phosphor-icons/react/dist/icons/X"
 import { useSSE } from '@/lib/sse'
 import { useNow } from '@/hooks/use-now'
 import {
@@ -40,14 +42,11 @@ import { DescriptionEditor } from '@/components/description-editor'
 import { InlineLogo } from '@/pages/StatusPageEditorPanels'
 import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown"
 
-type AdminTheme = 'light' | 'dark' | 'auto'
-
 export interface PublicData {
   page: {
     slug: string
     title: string
     description: string | null
-    theme: AdminTheme
     logoUrl: string | null
     websiteUrl: string | null
     hideBranding: boolean
@@ -102,7 +101,6 @@ async function fetchPublic(slug: string): Promise<PublicData> {
 
 export function PublicStatusPage({ slug }: { slug: string }) {
   const queryClient = useQueryClient()
-  const { setTheme } = useTheme()
   const query = useQuery({
     queryKey: ['public', slug],
     queryFn: () => fetchPublic(slug),
@@ -115,17 +113,6 @@ export function PublicStatusPage({ slug }: { slug: string }) {
       void queryClient.invalidateQueries({ queryKey: ['public', slug] })
     },
   })
-
-  // Apply the admin's stored theme as the default — but only if the visitor
-  // hasn't already picked one (i.e. nothing in localStorage yet). 'auto'
-  // means follow the system, which is already next-themes' default.
-  const adminTheme = query.data?.page.theme
-  useEffect(() => {
-    if (!adminTheme || adminTheme === 'auto') return
-    if (typeof window === 'undefined') return
-    if (window.localStorage.getItem('theme')) return
-    setTheme(adminTheme)
-  }, [adminTheme, setTheme])
 
   // Drive <title>, <meta description>, and OG/Twitter tags from the page's
   // own content. Status pages are explicitly meant to be shared, so this
@@ -217,14 +204,12 @@ const PublicOverlayHostContext = createContext<HTMLElement | null>(null)
 /**
  * The status page itself, presentation only. PublicStatusPage wraps this with
  * fetching/SSE/meta side effects; the admin live editor feeds it draft state
- * directly (`preview` hides the visitor-facing theme toggle, `forcedTheme`
- * overrides which accent variant applies).
+ * directly (`preview` hides the visitor-facing theme toggle).
  */
 export function PublicStatusView({
   data,
   dataUpdatedAt,
   stale = false,
-  forcedTheme,
   preview = false,
   editable = false,
   pageId,
@@ -234,11 +219,16 @@ export function PublicStatusView({
   onDescriptionChange,
   descriptionEditorRef,
   className,
+  onRenameGroup,
+  onAddMonitor,
+  onRemoveMonitor,
+  availableMonitors,
+  groups,
+  onCreateGroup,
 }: {
   data: PublicData
   dataUpdatedAt: number
   stale?: boolean
-  forcedTheme?: 'light' | 'dark'
   preview?: boolean
   /** Inline editing: title + description become editable on the page itself. */
   editable?: boolean
@@ -251,10 +241,26 @@ export function PublicStatusView({
   descriptionEditorRef?: MutableRefObject<HTMLDivElement | null>
   /** Extra root classes — the editor uses this to stretch the canvas. */
   className?: string
+  /** Editable: rename a group (null = the ungrouped section). Empty = ungroup. */
+  onRenameGroup?: (oldName: string | null, newName: string) => void
+  /** Editable: put a monitor on the page, directly into this group. */
+  onAddMonitor?: (monitorId: string, group: string | null) => void
+  /** Editable: take a monitor off the page. */
+  onRemoveMonitor?: (monitorId: string) => void
+  /** Editable: monitors not yet on the page — the Add-monitor picker source. */
+  availableMonitors?: { id: string; name: string }[]
+  /** Editable: group names in display order, including empty ones. */
+  groups?: string[]
+  /** Editable: create an (empty) group section on the canvas. */
+  onCreateGroup?: (name: string) => void
 }) {
   const { resolvedTheme } = useTheme()
   const { page, monitors, incidents, maintenance = [] } = data
   const [overlayHost, setOverlayHost] = useState<HTMLDivElement | null>(null)
+  // The canvas wears its own theme class so scoped styles (globals' .dark /
+  // .light token blocks, preset custom CSS) key off this element — immune to
+  // whatever theme class <html> happens to carry in the admin shell.
+  const canvasTheme: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light'
   const now = Date.now()
   const activeMaintenance = maintenance.filter((w) => {
     const start = new Date(w.startsAt).getTime()
@@ -300,6 +306,20 @@ export function PublicStatusView({
     return acc
   }, {})
 
+  // Editable mode follows the draft's explicit group list (so freshly created
+  // groups render while still empty); anything unlisted — defensive — appends
+  // after, and the ungrouped section always trails.
+  const sectionKeys =
+    editable && groups
+      ? [
+          ...groups,
+          ...Object.keys(grouped).filter(
+            (k) => k !== '__ungrouped' && !groups.includes(k),
+          ),
+          ...(grouped['__ungrouped'] ? ['__ungrouped'] : []),
+        ]
+      : Object.keys(grouped)
+
   const headerTitle = (
     <div className="flex items-center gap-3.5 min-w-0">
       {editable && pageId ? (
@@ -343,7 +363,7 @@ export function PublicStatusView({
 
   return (
     <div
-      className={cn('bg-background text-foreground', preview ? 'min-h-full' : 'min-h-app', className)}
+      className={cn('pb-canvas bg-background text-foreground', canvasTheme, preview ? 'min-h-full' : 'min-h-app', className)}
     >
       {page?.customCss && (
         <style data-pb-custom>{page.customCss}</style>
@@ -383,24 +403,58 @@ export function PublicStatusView({
         )}
 
         <div className="space-y-8">
-          {Object.entries(grouped).map(([group, list]) => (
-            <section key={group} className="space-y-3">
-              {group !== '__ungrouped' && (
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {group}
-                </h2>
-              )}
-              <Panel className="divide-y">
-                {list.map((m) => (
-                  <MonitorRow
-                    key={m.id}
-                    monitor={m}
-                    inMaintenance={inMaintenance.has(m.id)}
-                  />
-                ))}
-              </Panel>
-            </section>
-          ))}
+          {sectionKeys.map((group) => {
+            const list = grouped[group] ?? []
+            const groupName = group === '__ungrouped' ? null : group
+            return (
+              <section key={group} className="space-y-3">
+                {groupName !== null &&
+                  (editable && onRenameGroup ? (
+                    <GroupNameEditor
+                      value={groupName}
+                      onCommit={(next) => onRenameGroup(groupName, next)}
+                    />
+                  ) : (
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {groupName}
+                    </h2>
+                  ))}
+                <Panel className="divide-y">
+                  {list.map((m) => (
+                    <MonitorRow
+                      key={m.id}
+                      monitor={m}
+                      inMaintenance={inMaintenance.has(m.id)}
+                      editable={editable}
+                      onRemove={
+                        onRemoveMonitor ? () => onRemoveMonitor(m.id) : undefined
+                      }
+                    />
+                  ))}
+                  {editable && onAddMonitor && availableMonitors && (
+                    <AddMonitorRow
+                      group={groupName}
+                      available={availableMonitors}
+                      onAdd={onAddMonitor}
+                    />
+                  )}
+                </Panel>
+              </section>
+            )
+          })}
+          {/* One trailing control for both cases: add outside a group, or
+              start a new group — the picker's "New group" step names it,
+              then the first pick founds it (groups exist via members). */}
+          {editable && onAddMonitor && availableMonitors && (
+            <AddMonitorRow
+              group={null}
+              available={availableMonitors}
+              onAdd={onAddMonitor}
+              allowNewGroup
+              standalone
+              onCreateGroup={onCreateGroup}
+            />
+          )}
         </div>
 
         <PastEventsPanel
@@ -621,12 +675,181 @@ function OverallStatusBanner({
   )
 }
 
+/** Editable group header — an input dressed as the static h2. */
+function GroupNameEditor({  value,
+  onCommit,
+}: {
+  value: string
+  onCommit: (next: string) => void
+}) {
+  const [draft, setDraft] = useState(value)
+  useEffect(() => setDraft(value), [value])
+  const commit = () => {
+    const next = draft.trim()
+    if (next !== value) onCommit(next)
+    else setDraft(value)
+  }
+  return (
+    <input
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur()
+        if (e.key === 'Escape') {
+          setDraft(value)
+          e.currentTarget.blur()
+        }
+      }}
+      aria-label="Group name"
+      size={Math.max(5, draft.length + 1)}
+      className="-ml-1 rounded-md bg-transparent px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground outline-none transition-colors focus:text-foreground"
+    />
+  )
+}
+
+/**
+ * Editable: at the foot of a group panel — a slim strip with a small dashed
+ * pill (or, standalone, the dashed trailing button) — pick a monitor to add
+ * here. With `allowNewGroup` the picker gains a "New group" step: name it,
+ * Enter creates an empty group section on the canvas, ready for its first
+ * monitor.
+ */
+function AddMonitorRow({
+  group,
+  available,
+  onAdd,
+  allowNewGroup = false,
+  standalone = false,
+  onCreateGroup,
+}: {
+  group: string | null
+  available: { id: string; name: string }[]
+  onAdd: (monitorId: string, group: string | null) => void
+  allowNewGroup?: boolean
+  /** Dashed full-width button instead of the in-panel row. */
+  standalone?: boolean
+  /** With allowNewGroup: Enter on the name step creates an empty group
+      section on the canvas. */
+  onCreateGroup?: (name: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [naming, setNaming] = useState(false)
+  const [groupName, setGroupName] = useState('')
+  const overlayHost = useContext(PublicOverlayHostContext)
+  const nameRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (naming) nameRef.current?.focus()
+  }, [naming])
+
+  const reset = () => {
+    setNaming(false)
+    setGroupName('')
+  }
+
+  const picker = (
+    <Popover
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v)
+        if (!v) reset()
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={
+            standalone
+              ? 'flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-3 text-xs font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground'
+              : 'flex items-center gap-1.5 rounded-full border border-dashed border-border px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground'
+          }
+        >
+          <Icon icon={PlusCircle} className="h-3.5 w-3.5" />
+          {standalone ? 'Add Monitor/Group' : 'Add monitor'}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent container={overlayHost} align="center" className="w-56 p-1">
+        {naming ? (
+          <div className="p-1">
+            <input
+              ref={nameRef}
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && groupName.trim()) {
+                  onCreateGroup?.(groupName)
+                  setOpen(false)
+                  reset()
+                }
+                if (e.key === 'Escape') setNaming(false)
+              }}
+              placeholder="Group name"
+              aria-label="New group name"
+              className="w-full rounded-md bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground focus:bg-muted/30"
+            />
+            <p className="px-2 pt-1 pb-0.5 text-[11px] text-muted-foreground">
+              Enter creates the group on the page — then add monitors from its
+              section.
+            </p>
+          </div>
+        ) : available.length === 0 ? (
+          <p className="px-2 py-1.5 text-xs text-muted-foreground">
+            Every monitor is already on this page.
+          </p>
+        ) : (
+          <>
+            {available.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => {
+                  onAdd(m.id, group)
+                  setOpen(false)
+                  reset()
+                }}
+                className="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent"
+              >
+                {m.name}
+              </button>
+            ))}
+            {allowNewGroup && onCreateGroup && (
+              <>
+                <div aria-hidden className="mx-1 my-1 h-px bg-border" />
+                <button
+                  type="button"
+                  onClick={() => setNaming(true)}
+                  className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                >
+                  <Icon icon={PlusCircle} className="h-3.5 w-3.5" />
+                  New group
+                </button>
+              </>
+            )}
+          </>
+        )}
+      </PopoverContent>
+    </Popover>
+  )
+
+  // In-panel, the pill sits in a slim strip (the divide-y border stays the
+  // panel's, not the pill's); standalone is the button itself.
+  return standalone ? (
+    picker
+  ) : (
+    <div className="flex justify-center px-4 py-2">{picker}</div>
+  )
+}
+
 function MonitorRow({
   monitor,
   inMaintenance,
+  editable = false,
+  onRemove,
 }: {
   monitor: PublicMonitor
   inMaintenance: boolean
+  editable?: boolean
+  onRemove?: () => void
 }) {
   const dotColor =
     monitor.currentStatus === 'up'
@@ -646,7 +869,7 @@ function MonitorRow({
           : 'Unknown'
 
   return (
-    <div className="p-4 sm:p-5 flex flex-col gap-3">
+    <div className="group/row p-4 sm:p-5 flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-3 min-w-0">
           {inMaintenance ? (
@@ -671,9 +894,23 @@ function MonitorRow({
               ? '—'
               : `${monitor.uptimePct.toFixed(2)}% uptime`}
           </span>
+          {editable && onRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              aria-label={`Remove ${monitor.name} from this page`}
+              className="-mr-1 flex size-6 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-[opacity,color,background-color] duration-150 hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring/50 group-hover/row:opacity-100"
+            >
+              <Icon icon={X} className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
-      <UptimeTimeline timeline={monitor.timeline} monitorName={monitor.name} />
+      <UptimeTimeline
+        timeline={monitor.timeline}
+        monitorName={monitor.name}
+        emptyLabel={editable ? 'Timeline fills in once you save' : undefined}
+      />
     </div>
   )
 }

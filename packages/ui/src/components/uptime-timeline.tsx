@@ -14,9 +14,12 @@ export interface TimelineDay {
 export function UptimeTimeline({
   timeline,
   monitorName,
+  emptyLabel,
 }: {
   timeline: TimelineDay[]
   monitorName: string
+  /** Empty-timeline label — the editor drafts a clearer one for unsaved rows. */
+  emptyLabel?: string
 }) {
   const [hovered, setHovered] = useState<number | null>(null)
   // Pointer hovers get the 100ms tooltip entry; keyboard focus does not —
@@ -45,7 +48,7 @@ export function UptimeTimeline({
   if (timeline.length === 0) {
     return (
       <div className="text-xs text-muted-foreground italic">
-        Gathering data…
+        {emptyLabel ?? 'Gathering data…'}
       </div>
     )
   }

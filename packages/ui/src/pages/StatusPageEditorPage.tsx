@@ -1,15 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
-import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft"
-import { ArrowCircleUpRight } from "@phosphor-icons/react/dist/icons/ArrowCircleUpRight"
 import { ListChecks } from '@phosphor-icons/react/dist/icons/ListChecks'
 import { Palette } from '@phosphor-icons/react/dist/icons/Palette'
 import { LockKey } from '@phosphor-icons/react/dist/icons/LockKey'
-import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/panel'
 import { QueryError } from '@/components/QueryError'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -34,7 +31,7 @@ import {
 } from '@/components/description-editor'
 import { api } from '@/lib/api'
 import { isRichTextBlank, sanitizeRichText } from '@/lib/rich-text'
-import type { MonitorWithLatest, StatusPage, Theme } from '@/types'
+import type { MonitorWithLatest, StatusPage } from '@/types'
 
 interface LinkedMonitor {
   statusPageId: string
@@ -90,8 +87,12 @@ export function StatusPageEditorPage() {
     enabled: !!id,
   })
 
-  // The shell shows the page's own name, not a generic "Edit status page".
-  usePageTitle(detail.data?.page.title ?? null)
+  // The shell header shows Status pages / <title> as a breadcrumb instead of
+  // a generic "Edit status page".
+  usePageTitle(detail.data?.page.title ?? null, {
+    label: 'Status pages',
+    to: '/admin/pages',
+  })
 
   const monitors = useQuery({
     queryKey: ['monitors'],
@@ -110,18 +111,19 @@ export function StatusPageEditorPage() {
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [theme, setTheme] = useState<Theme>('auto')
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [hideBranding, setHideBranding] = useState(false)
   const [customCss, setCustomCss] = useState('')
   // monitorId → groupName ('' = no group)
   const [selected, setSelected] = useState<Map<string, string>>(new Map())
   const [order, setOrder] = useState<string[]>([])
+  // Group names in display order. Groups are implicit server-side (they exist
+  // via their monitors' groupName), but the draft tracks them explicitly so
+  // a freshly created group can sit empty on the canvas until the first
+  // monitor lands in it. Empty groups vanish on save — by design.
+  const [groups, setGroups] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [hydrated, setHydrated] = useState(false)
-  // Manual light/dark override for the preview; null = follow the draft
-  // theme setting. Reset whenever the draft theme changes.
-  const [peekTheme, setPeekTheme] = useState<'light' | 'dark' | null>(null)
   // Which toolbar section panel is open above the bar; null = formatting only.
   // The ?add= deep link opens Monitors so the ticked monitor is visible.
   const [activeSection, setActiveSection] = useState<string | null>(
@@ -152,13 +154,13 @@ export function StatusPageEditorPage() {
         // link attrs (target/rel) that are semantically identical — without
         // this, a focus+blur with zero edits would read as dirty.
         description: sanitizeRichText(description).trim(),
-        theme,
         websiteUrl: websiteUrl.trim(),
         hideBranding,
         customCss: customCss.trim(),
+        groups,
         monitors: order.map((mid) => [mid, selected.get(mid)?.trim() || '']),
       }),
-    [title, description, theme, websiteUrl, hideBranding, customCss, order, selected],
+    [title, description, websiteUrl, hideBranding, customCss, groups, order, selected],
   )
 
   useEffect(() => {
@@ -172,7 +174,6 @@ export function StatusPageEditorPage() {
     setTitle(detail.data.page.title)
     // Store sanitized so the baseline matches what the editor DOM reads back.
     setDescription(sanitizeRichText(detail.data.page.description ?? ''))
-    setTheme(detail.data.page.theme)
     setWebsiteUrl(detail.data.page.websiteUrl ?? '')
     setHideBranding(detail.data.page.hideBranding)
     setCustomCss(detail.data.page.customCss ?? '')
@@ -183,14 +184,19 @@ export function StatusPageEditorPage() {
     const nextSelected = new Map(
       sorted.map((m) => [m.monitorId, m.groupName ?? '']),
     )
+    const nextGroups = [
+      ...new Set(
+        sorted.map((m) => m.groupName?.trim()).filter((g): g is string => !!g),
+      ),
+    ]
     if (addMonitorId && !nextSelected.has(addMonitorId)) {
       nextOrder.push(addMonitorId)
       nextSelected.set(addMonitorId, '')
     }
     setOrder(nextOrder)
     setSelected(nextSelected)
+    setGroups(nextGroups)
     setError(null)
-    setPeekTheme(null)
     setHydrated(true)
   }, [detail.data, detail.dataUpdatedAt, addMonitorId])
 
@@ -303,7 +309,6 @@ export function StatusPageEditorPage() {
     save.mutate({
       title: title.trim() || detail.data.page.slug,
       description: isRichTextBlank(cleanDesc) ? null : cleanDesc,
-      theme,
       websiteUrl: websiteUrl.trim() || null,
       hideBranding,
       customCss: customCss.trim() || null,
@@ -345,6 +350,38 @@ export function StatusPageEditorPage() {
     )
   }
 
+  // Canvas inline edits: rename a group for every monitor in it (empty name
+  // = ungroup), add a monitor straight into the section it was picked in,
+  // and create a group as an empty section waiting for its first monitor.
+  const renameGroup = (oldName: string | null, newName: string) => {
+    const name = newName.trim()
+    setSelected((prev) => {
+      const next = new Map(prev)
+      for (const [mid, g] of next) {
+        if ((g.trim() || null) === oldName) next.set(mid, name)
+      }
+      return next
+    })
+    setGroups((prev) => {
+      if (oldName === null) return prev
+      if (!name) return prev.filter((g) => g !== oldName)
+      // Renaming onto an existing group merges them.
+      const merged = prev.map((g) => (g === oldName ? name : g))
+      return [...new Set(merged)]
+    })
+  }
+
+  const addMonitorToGroup = (mid: string, group: string | null) => {
+    setSelected((prev) => new Map(prev).set(mid, group ?? ''))
+    setOrder((prev) => (prev.includes(mid) ? prev : [...prev, mid]))
+    if (group) setGroups((prev) => (prev.includes(group) ? prev : [...prev, group]))
+  }
+
+  const createGroup = (name: string) => {
+    const n = name.trim()
+    if (n) setGroups((prev) => (prev.includes(n) ? prev : [...prev, n]))
+  }
+
   const setGroup = (mid: string, value: string) => {
     setSelected((prev) => {
       const next = new Map(prev)
@@ -376,20 +413,30 @@ export function StatusPageEditorPage() {
     if (!preview.data || !hydrated) return null
     const saved = preview.data
     const byId = new Map(saved.monitors.map((m) => [m.id, m]))
-    const draftMonitors: PublicMonitor[] = order.map((mid) => {
+    const draftMonitors: PublicMonitor[] = order.flatMap((mid) => {
       const group = selected.get(mid)?.trim() || null
       const existing = byId.get(mid)
-      if (existing) return { ...existing, group }
+      if (existing) return [{ ...existing, group }]
       const admin = allMonitors.find((m) => m.id === mid)
-      return {
-        id: mid,
-        name: admin?.name ?? 'Monitor',
-        group,
-        currentStatus: admin?.latest?.status ?? 'unknown',
-        uptimePct: null,
-        avgResponseMs: null,
-        timeline: [],
-      }
+      // Legacy domain links and deleted monitors resolve to nothing — the
+      // public endpoint already hides them, so don't render a ghost row here
+      // either. (While the monitor list is still loading, nothing is
+      // resolvable yet — keep the placeholder rather than flash-empty.)
+      if (!admin && monitors.data) return []
+      // Synthesized draft row: live status + response time come from the admin
+      // list (already loaded); uptime % and the 90-day timeline only exist
+      // once the link is saved and the preview refetches.
+      return [
+        {
+          id: mid,
+          name: admin?.name ?? 'Monitor',
+          group,
+          currentStatus: admin?.latest?.status ?? 'unknown',
+          uptimePct: null,
+          avgResponseMs: admin?.latest?.responseTimeMs ?? null,
+          timeline: [],
+        },
+      ]
     })
     const draftIds = new Set(order)
     return {
@@ -398,7 +445,6 @@ export function StatusPageEditorPage() {
         ...saved.page,
         title: title.trim() || saved.page.title,
         description: isRichTextBlank(description) ? null : description,
-        theme,
         websiteUrl: websiteUrl.trim() || null,
         hideBranding,
         customCss: customCss.trim() || null,
@@ -417,15 +463,10 @@ export function StatusPageEditorPage() {
     allMonitors,
     title,
     description,
-    theme,
     websiteUrl,
     hideBranding,
     customCss,
   ])
-
-  const effectiveTheme: 'light' | 'dark' =
-    peekTheme ??
-    (theme === 'auto' ? (resolvedTheme === 'dark' ? 'dark' : 'light') : theme)
 
   if (detail.isError) {
     return (
@@ -442,38 +483,6 @@ export function StatusPageEditorPage() {
 
   return (
     <div className="px-4 lg:px-6 flex flex-col gap-4">
-      {/* Utility row. The page's title sits in the shell header and Save in
-          the shell's lime slot — what remains here is navigation and meta. */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <Button variant="ghost" size="sm" asChild className="gap-1.5 -ml-2">
-          <Link to="/admin/pages">
-            <Icon icon={ArrowLeft} className="h-3.5 w-3.5" />
-            Pages
-          </Link>
-        </Button>
-        {page ? (
-          <span className="inline-flex items-center gap-2 font-mono text-xs text-muted-foreground">
-            /{page.slug}
-            {isDirty && (
-              <span
-                title="Unsaved changes"
-                className="size-1.5 shrink-0 rounded-full bg-warning"
-              />
-            )}
-          </span>
-        ) : (
-          <Skeleton className="h-4 w-24" />
-        )}
-        {page && (
-          <Button size="sm" variant="outline" asChild className="ml-auto gap-1.5">
-            <a href={`/${page.slug}`} target="_blank" rel="noreferrer">
-              <Icon icon={ArrowCircleUpRight} className="h-3.5 w-3.5" />
-              View
-            </a>
-          </Button>
-        )}
-      </div>
-
       {error && (
         <p
           role="alert"
@@ -501,28 +510,33 @@ export function StatusPageEditorPage() {
         ) : previewData ? (
           // The public page renders its own theme inside the admin shell, so
           // it gets the same frame as every other admin surface: a bordered,
-          // rounded card. `dark`/`light` scope the class-based tokens to just
-          // this subtree — no next-themes or localStorage side effects.
+          // rounded card. The canvas follows the shell's theme toggle — there
+          // is no per-page theme setting anymore.
           <div className="overflow-hidden rounded-2xl border border-border">
-            <div className={effectiveTheme === 'dark' ? 'dark' : 'light'}>
-              <PublicStatusView
-                data={previewData}
-                dataUpdatedAt={preview.dataUpdatedAt}
-                forcedTheme={effectiveTheme}
-                preview
-                editable
-                pageId={id}
-                titleValue={title}
-                onTitleChange={setTitle}
-                descriptionValue={description}
-                onDescriptionChange={setDescription}
-                descriptionEditorRef={descriptionEditorRef}
-                // Stretch the canvas to fill the viewport below the chrome and
-                // hold its footer clear of the floating toolbar — otherwise a
-                // short page leaves a dead shell-colored gap at the bottom.
-                className="min-h-[calc(var(--app-viewport-height)-11rem)] pb-28"
-              />
-            </div>
+            <PublicStatusView
+              data={previewData}
+              dataUpdatedAt={preview.dataUpdatedAt}
+              preview
+              editable
+              pageId={id}
+              titleValue={title}
+              onTitleChange={setTitle}
+              descriptionValue={description}
+              onDescriptionChange={setDescription}
+              descriptionEditorRef={descriptionEditorRef}
+              onRenameGroup={renameGroup}
+              onAddMonitor={addMonitorToGroup}
+              onRemoveMonitor={toggle}
+              availableMonitors={allMonitors
+                .filter((m) => !order.includes(m.id))
+                .map((m) => ({ id: m.id, name: m.name }))}
+              groups={groups}
+              onCreateGroup={createGroup}
+              // Stretch the canvas to fill the viewport below the chrome and
+              // hold its footer clear of the floating toolbar — otherwise a
+              // short page leaves a dead shell-colored gap at the bottom.
+              className="min-h-[calc(var(--app-viewport-height)-11rem)] pb-28"
+            />
           </div>
         ) : (
           <div className="mx-auto max-w-3xl space-y-4 px-5 py-10">
@@ -555,11 +569,6 @@ export function StatusPageEditorPage() {
               />
             ) : activeSection === 'appearance' ? (
               <AppearancePanel
-                theme={theme}
-                onTheme={(v) => {
-                  setTheme(v)
-                  setPeekTheme(null)
-                }}
                 activePresetId={activePresetId}
                 onPreset={(preset) => void applyPreset(preset)}
                 onClearPreset={() => setCustomCss('')}
@@ -571,8 +580,6 @@ export function StatusPageEditorPage() {
                 onHideBranding={setHideBranding}
                 customCss={customCss}
                 onCustomCss={setCustomCss}
-                peekTheme={peekTheme}
-                onPeekTheme={setPeekTheme}
               />
             ) : activeSection === 'access' ? (
               <AccessPanel
