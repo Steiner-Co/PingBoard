@@ -9,16 +9,18 @@ import { TestTube } from "@phosphor-icons/react/dist/icons/TestTube"
 import { Trash } from "@phosphor-icons/react/dist/icons/Trash"
 import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple"
 import { Bell } from "@phosphor-icons/react/dist/icons/Bell"
-import { Warning } from "@phosphor-icons/react/dist/icons/Warning"
-import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle"
-import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight"
+import { ShareNetwork } from "@phosphor-icons/react/dist/icons/ShareNetwork"
+import { DiscordLogo } from "@phosphor-icons/react/dist/icons/DiscordLogo"
+import { SlackLogo } from "@phosphor-icons/react/dist/icons/SlackLogo"
+import { EnvelopeSimple } from "@phosphor-icons/react/dist/icons/EnvelopeSimple"
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/EmptyState'
-import { Panel } from '@/components/panel'
 import { QueryError } from '@/components/QueryError'
+import { ScreenHeader } from '@/components/screen'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useConfirm } from '@/components/confirm-provider'
+import { usePrimaryAction } from '@/contexts/primary-action'
 import {
   Dialog,
   DialogContent,
@@ -29,75 +31,31 @@ import {
 } from '@/components/ui/dialog'
 import { FieldInput } from '@/components/ui/field'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import type { ChannelType, MonitorWithLatest, NotificationChannel } from '@/types'
 
-/** A monitor that would page nobody, and why. */
-interface RoutingGap {
-  monitor: MonitorWithLatest
-  /** `none` — no channel attached at all. `disabled` — every attached channel is switched off. */
-  reason: 'none' | 'disabled'
-}
-
-interface Routing {
-  /** Monitors attached to each channel id, in list order. */
-  byChannel: Map<string, MonitorWithLatest[]>
-  enabledChannels: number
-  /** Active (non-paused) monitors that reach at least one enabled channel. */
-  covered: number
-  activeTotal: number
-  /** Active monitors with no live delivery path — the failure this page exists to prevent. */
-  gaps: RoutingGap[]
-  /** Same hole, but on paused monitors: worth listing, not worth alarming about. */
-  pausedGaps: MonitorWithLatest[]
-}
-
+/**
+ * Monitors attached to each channel id, in list order. Monitors carry
+ * `channelIds`, so inverting them is the only way to show "who gets paged
+ * for what" on each channel row. Per-monitor routing itself is managed from
+ * the monitor detail page (and the domain modal), not here.
+ */
 function computeRouting(
   channels: NotificationChannel[],
   monitors: MonitorWithLatest[],
-): Routing {
+): Map<string, MonitorWithLatest[]> {
   const byId = new Map(channels.map((c) => [c.id, c]))
   const byChannel = new Map<string, MonitorWithLatest[]>(channels.map((c) => [c.id, []]))
-
-  let covered = 0
-  let activeTotal = 0
-  const gaps: RoutingGap[] = []
-  const pausedGaps: MonitorWithLatest[] = []
 
   for (const m of monitors) {
     // Ignore ids pointing at channels that no longer exist — a deleted channel
     // leaves the monitor just as unreachable as an empty list.
     const attached = (m.channelIds ?? []).map((id) => byId.get(id)).filter((c) => c != null)
     for (const c of attached) byChannel.get(c.id)?.push(m)
-
-    // A monitor wired only to switched-off channels is silently unrouted — the
-    // same hole as having no channel, and easier to miss.
-    const live = attached.some((c) => c.enabled)
-    if (m.paused) {
-      if (!live) pausedGaps.push(m)
-      continue
-    }
-    activeTotal++
-    if (live) covered++
-    else gaps.push({ monitor: m, reason: attached.length === 0 ? 'none' : 'disabled' })
   }
 
-  return {
-    byChannel,
-    enabledChannels: channels.filter((c) => c.enabled).length,
-    covered,
-    activeTotal,
-    gaps,
-    pausedGaps,
-  }
+  return byChannel
 }
 
 export function ChannelsPage() {
@@ -105,6 +63,13 @@ export function ChannelsPage() {
   const confirm = useConfirm()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<NotificationChannel | null>(null)
+  const { setAction: setPrimaryAction } = usePrimaryAction()
+
+  // The shell's lime action belongs to this screen while mounted.
+  useEffect(() => {
+    setPrimaryAction({ label: 'Add channel', onClick: () => setOpen(true) })
+    return () => setPrimaryAction(null)
+  }, [setPrimaryAction])
 
   const channels = useQuery({
     queryKey: ['channels'],
@@ -141,18 +106,10 @@ export function ChannelsPage() {
   )
 
   const header = (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Channels</h1>
-        <p className="text-sm text-muted-foreground">
-          Where alerts go when monitors change state
-        </p>
-      </div>
-      <Button onClick={() => setOpen(true)} className="gap-2 self-start sm:self-auto">
-        <Icon icon={PlusCircle} className="h-4 w-4" />
-        Add channel
-      </Button>
-    </div>
+    <ScreenHeader
+      title="Channels"
+      description="Where alerts go when monitors change state"
+    />
   )
 
   const dialogs = (
@@ -199,8 +156,8 @@ export function ChannelsPage() {
               : 'Add a channel (webhook, Slack, Discord, ntfy, or email) so PingBoard can tell you when something goes down.'
           }
           action={
-            <Button onClick={() => setOpen(true)}>
-        <Icon icon={PlusCircle} className="h-4 w-4" />
+            <Button onClick={() => setOpen(true)} className="gap-2">
+              <Icon icon={PlusCircle} className="size-4" />
               Add your first channel
             </Button>
           }
@@ -210,120 +167,47 @@ export function ChannelsPage() {
     )
   }
 
-  const typeSummary = [...new Set(items.map((c) => c.type))].join(' · ')
   const unknownRouting = monitors.isError || monitors.isPending
 
   return (
     <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
       {header}
 
-      <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
-        <StatCell
-          label="Channels"
-          value={String(items.length)}
-          sub={typeSummary}
-          className="border-b border-border/60 lg:border-b-0 border-r lg:border-r-0"
-        />
-        <StatCell
-          label="Enabled"
-          value={String(routing.enabledChannels)}
-          valueSuffix={`/ ${items.length}`}
-          tone={routing.enabledChannels === items.length ? 'default' : 'warn'}
-          sub={
-            routing.enabledChannels === items.length
-              ? 'All channels are delivering'
-              : `${items.length - routing.enabledChannels} switched off — alerts dropped`
-          }
-          className="border-b border-border/60 lg:border-b-0"
-        />
-        <StatCell
-          label="Monitors covered"
-          value={unknownRouting ? '—' : String(routing.covered)}
-          valueSuffix={unknownRouting ? undefined : `/ ${routing.activeTotal}`}
-          tone={
-            unknownRouting
-              ? 'muted'
-              : routing.activeTotal > 0 && routing.covered === routing.activeTotal
-                ? 'success'
-                : 'default'
-          }
-          sub={
-            unknownRouting
-              ? 'Waiting on monitors'
-              : 'Active checks reaching a live channel'
-          }
-          className="border-r border-border/60 lg:border-r-0"
-        />
-        <StatCell
-          label="Unrouted"
-          value={unknownRouting ? '—' : String(routing.gaps.length)}
-          tone={unknownRouting ? 'muted' : routing.gaps.length > 0 ? 'warn' : 'success'}
-          sub={
-            unknownRouting
-              ? 'Waiting on monitors'
-              : routing.gaps.length > 0
-                ? 'These failures would page nobody'
-                : 'Every active check has a way out'
-          }
-        />
-      </Panel>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <Panel className="min-w-0">
-          <header className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
-            <h2 className="text-sm font-medium">Channels</h2>
-            <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground tabular-nums">
-              {items.length} configured
-            </span>
-          </header>
-          <ul className="divide-y divide-border/60">
-            {items.map((c) => (
-              <ChannelRow
-                key={c.id}
-                channel={c}
-                routed={routing.byChannel.get(c.id) ?? []}
-                routingKnown={!unknownRouting}
-                onEdit={() => setEditing(c)}
-                onTest={() => {
-                  const id = toast.loading(`Sending test via ${c.name}…`)
-                  testMutation.mutate(c.id, {
-                    onSuccess: () => toast.success(`Test sent via ${c.name}`, { id }),
-                    onError: (err) =>
-                      toast.error(
-                        err instanceof Error ? `Test failed: ${err.message}` : 'Test failed',
-                        { id },
-                      ),
-                  })
-                }}
-                testPending={testMutation.isPending}
-                onDelete={async () => {
-                  const attached = routing.byChannel.get(c.id)?.length ?? 0
-                  const ok = await confirm({
-                    title: `Delete "${c.name}"?`,
-                    description: attached
-                      ? `${attached} monitor${attached === 1 ? '' : 's'} route here. They'll keep running, but stop notifying through this channel.`
-                      : 'Monitors linked to this channel will keep working, but stop notifying through it.',
-                    confirmLabel: 'Delete channel',
-                    destructive: true,
-                  })
-                  if (ok) deleteMutation.mutate(c.id)
-                }}
-              />
-            ))}
-          </ul>
-        </Panel>
-
-        {/* On narrow screens the alerting hole matters more than the channel
-            list, so it leads; on xl it settles into the rail. */}
-        <aside className="order-first flex min-w-0 flex-col gap-4 xl:order-last">
-          <RoutingGaps
-            routing={routing}
-            isPending={monitors.isPending}
-            isError={monitors.isError}
-            onRetry={() => void monitors.refetch()}
+      <ul className="divide-y divide-border/60 overflow-hidden rounded-2xl border border-border bg-card">
+        {items.map((c) => (
+          <ChannelRow
+            key={c.id}
+            channel={c}
+            routed={routing.get(c.id) ?? []}
+            routingKnown={!unknownRouting}
+            onEdit={() => setEditing(c)}
+            onTest={() => {
+              const id = toast.loading(`Sending test via ${c.name}…`)
+              testMutation.mutate(c.id, {
+                onSuccess: () => toast.success(`Test sent via ${c.name}`, { id }),
+                onError: (err) =>
+                  toast.error(
+                    err instanceof Error ? `Test failed: ${err.message}` : 'Test failed',
+                    { id },
+                  ),
+              })
+            }}
+            testPending={testMutation.isPending}
+            onDelete={async () => {
+              const attached = routing.get(c.id)?.length ?? 0
+              const ok = await confirm({
+                title: `Delete "${c.name}"?`,
+                description: attached
+                  ? `${attached} monitor${attached === 1 ? '' : 's'} route here. They'll keep running, but stop notifying through this channel.`
+                  : 'Monitors linked to this channel will keep working, but stop notifying through it.',
+                confirmLabel: 'Delete channel',
+                destructive: true,
+              })
+              if (ok) deleteMutation.mutate(c.id)
+            }}
           />
-        </aside>
-      </div>
+        ))}
+      </ul>
 
       {dialogs}
     </div>
@@ -350,33 +234,39 @@ function ChannelRow({
   const destination = describeDestination(channel)
   const shown = routed.slice(0, 4)
   const overflow = routed.length - shown.length
+  const none = routingKnown && routed.length === 0
 
   return (
-    <li className="flex flex-col gap-3 px-4 py-4 sm:px-5 sm:py-5">
-      {/* Stacked below sm: letting the actions wrap only when the name is long
-          made adjacent rows disagree about their own layout. */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span
-            aria-hidden
-            className={cn(
-              'size-1.5 shrink-0 rounded-full',
-              channel.enabled ? 'bg-success' : 'bg-muted-foreground/50',
-            )}
-          />
-          <h3 className="truncate text-sm font-medium">{channel.name}</h3>
-          <span className="shrink-0 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-            {channel.type}
-          </span>
-          {!channel.enabled && <Badge variant="warning">Disabled</Badge>}
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Button size="sm" variant="outline" onClick={onTest} disabled={testPending}>
-            <Icon icon={TestTube} className="h-3.5 w-3.5" />
+    <li className="flex flex-col gap-2 px-4 py-3.5 sm:px-5">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        <span
+          aria-hidden
+          className={cn(
+            'size-2 shrink-0 rounded-full',
+            channel.enabled ? 'bg-success' : 'bg-muted-foreground/50',
+          )}
+        />
+        <h3 className="truncate text-[15px] font-semibold tracking-tight">
+          {channel.name}
+        </h3>
+        {!channel.enabled && (
+          <Badge variant="warning" className="shrink-0">
+            Disabled
+          </Badge>
+        )}
+        <div className="ml-auto flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            onClick={onTest}
+            disabled={testPending}
+          >
+            <Icon icon={TestTube} className="size-3.5" />
             Test
           </Button>
-          <Button size="sm" variant="outline" onClick={onEdit}>
-            <Icon icon={PencilSimple} className="h-3.5 w-3.5" />
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={onEdit}>
+            <Icon icon={PencilSimple} className="size-3.5" />
             Edit
           </Button>
           <Button
@@ -385,50 +275,37 @@ function ChannelRow({
             aria-label={`Delete ${channel.name}`}
             onClick={onDelete}
           >
-            <Icon icon={Trash} className="h-3.5 w-3.5" />
+            <Icon icon={Trash} className="size-3.5" />
           </Button>
         </div>
       </div>
 
-      <dl className="grid gap-x-5 gap-y-2 text-xs sm:grid-cols-[6.5rem_minmax(0,1fr)]">
-        {destination && (
-          <>
-            <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-              Delivers to
-            </dt>
-            <dd className="truncate font-mono text-[11px] text-muted-foreground">
-              {destination}
-            </dd>
-          </>
-        )}
-        <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-          Routes to
-        </dt>
-        <dd className="min-w-0">
-          {!routingKnown ? (
-            <span className="text-muted-foreground">—</span>
-          ) : routed.length === 0 ? (
-            <span className="text-muted-foreground">
-              <span className="text-warning">No monitors attached</span> — configured, but
-              nothing will ever fire it.
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pl-4">
+        <span className="truncate font-mono text-[13px] text-muted-foreground">
+          {destination ?? 'No destination configured'}
+        </span>
+        {!routingKnown ? (
+          <span className="text-[13px] text-muted-foreground">Checking routes…</span>
+        ) : none ? (
+          <span className="text-[13px] text-warning">
+            Nothing fires this channel
+          </span>
+        ) : (
+          <span className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[13px] tabular-nums text-muted-foreground">
+              {routed.length} monitor{routed.length === 1 ? '' : 's'}:
             </span>
-          ) : (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-0.5 tabular-nums text-muted-foreground">
-                {routed.length} monitor{routed.length === 1 ? '' : 's'}
+            {shown.map((m) => (
+              <MonitorChip key={m.id} monitor={m} />
+            ))}
+            {overflow > 0 && (
+              <span className="text-[11px] tabular-nums text-muted-foreground">
+                +{overflow} more
               </span>
-              {shown.map((m) => (
-                <MonitorChip key={m.id} monitor={m} />
-              ))}
-              {overflow > 0 && (
-                <span className="text-[11px] tabular-nums text-muted-foreground">
-                  +{overflow} more
-                </span>
-              )}
-            </div>
-          )}
-        </dd>
-      </dl>
+            )}
+          </span>
+        )}
+      </div>
     </li>
   )
 }
@@ -456,125 +333,6 @@ function StatusDot({ monitor }: { monitor: MonitorWithLatest }) {
           ? 'bg-destructive'
           : 'bg-warning'
   return <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', tone)} />
-}
-
-function RoutingGaps({
-  routing,
-  isPending,
-  isError,
-  onRetry,
-}: {
-  routing: Routing
-  isPending: boolean
-  isError: boolean
-  onRetry: () => void
-}) {
-  if (isError) {
-    return (
-      <Panel>
-        <header className="border-b border-border/60 px-4 py-2.5">
-          <h2 className="text-sm font-medium">Alert routing</h2>
-        </header>
-        <p className="px-4 py-5 text-xs text-destructive">
-          Couldn't load monitors, so routing coverage is unknown.{' '}
-          <button type="button" onClick={onRetry} className="underline underline-offset-4">
-            Retry
-          </button>
-        </p>
-      </Panel>
-    )
-  }
-
-  if (isPending) {
-    return (
-      <Panel>
-        <header className="border-b border-border/60 px-4 py-2.5">
-          <h2 className="text-sm font-medium">Alert routing</h2>
-        </header>
-        <div className="flex flex-col gap-3 px-4 py-4">
-          <Skeleton className="h-3 w-40" />
-          <Skeleton className="h-3 w-32" />
-          <Skeleton className="h-3 w-36" />
-        </div>
-      </Panel>
-    )
-  }
-
-  const { gaps, pausedGaps, activeTotal } = routing
-
-  if (gaps.length === 0) {
-    return (
-      <Panel>
-        <header className="border-b border-border/60 px-4 py-2.5">
-          <h2 className="text-sm font-medium">Alert routing</h2>
-        </header>
-        <div className="flex items-start gap-2.5 px-4 py-4">
-          <Icon
-            icon={CheckCircle}
-            className="mt-px size-3.5 shrink-0 text-success-text"
-          />
-          <p className="text-xs text-muted-foreground">
-            {activeTotal === 0
-              ? 'No active monitors to route yet.'
-              : `All ${activeTotal} active monitor${activeTotal === 1 ? '' : 's'} reach at least one enabled channel.`}
-          </p>
-        </div>
-        {pausedGaps.length > 0 && (
-          <p className="border-t border-border/60 px-4 py-2.5 text-[11px] text-muted-foreground">
-            {pausedGaps.length} paused monitor{pausedGaps.length === 1 ? ' has' : 's have'} no
-            channel — harmless until resumed.
-          </p>
-        )}
-      </Panel>
-    )
-  }
-
-  return (
-    <Panel className="border-warning/40">
-      <header className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2.5">
-        <h2 className="flex items-center gap-2 text-sm font-medium text-warning">
-          <Icon icon={Warning} className="size-3.5 shrink-0" />
-          Unrouted monitors
-        </h2>
-        <span className="font-mono text-[11px] tabular-nums text-warning">{gaps.length}</span>
-      </header>
-      <p className="border-b border-border/60 px-4 py-2.5 text-xs text-muted-foreground">
-        Checked on schedule, but a failure notifies nobody. Open one to attach a channel.
-      </p>
-      <ul className="divide-y divide-border/60">
-        {gaps.map(({ monitor, reason }) => (
-          <li key={monitor.id}>
-            <Link
-              to={`/admin/monitors/${monitor.id}/edit`}
-              className="group flex items-center gap-2 px-4 py-2.5 outline-none transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/30"
-            >
-              <StatusDot monitor={monitor} />
-              <span className="min-w-0 flex-1 truncate text-xs font-medium">
-                {monitor.name}
-              </span>
-              {reason === 'disabled' ? (
-                <Badge variant="warning">Channel off</Badge>
-              ) : (
-                <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                  {monitor.type}
-                </span>
-              )}
-              <Icon
-                icon={CaretRight}
-                className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
-              />
-            </Link>
-          </li>
-        ))}
-      </ul>
-      {pausedGaps.length > 0 && (
-        <p className="border-t border-border/60 px-4 py-2.5 text-[11px] text-muted-foreground">
-          {pausedGaps.length} paused monitor{pausedGaps.length === 1 ? ' also has' : 's also have'}{' '}
-          no channel — harmless until resumed.
-        </p>
-      )}
-    </Panel>
-  )
 }
 
 /**
@@ -615,85 +373,30 @@ function redactUrl(raw: string): string {
   }
 }
 
-function StatCell({
-  label,
-  value,
-  valueSuffix,
-  sub,
-  tone = 'default',
-  className,
-}: {
-  label: string
-  value: string
-  valueSuffix?: string
-  sub: string
-  tone?: 'default' | 'success' | 'destructive' | 'warn' | 'muted'
-  className?: string
-}) {
-  const valueTone =
-    tone === 'success'
-      ? 'text-success-text'
-      : tone === 'destructive'
-        ? 'text-destructive'
-        : tone === 'warn'
-          ? 'text-warning'
-          : tone === 'muted'
-            ? 'text-muted-foreground'
-            : 'text-foreground'
-
-  return (
-    <div className={cn('flex flex-col gap-2.5 p-4 sm:p-5', className)}>
-      <div className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-        {label}
-      </div>
-      <div className="flex items-baseline gap-1.5">
-        <span className={cn('text-2xl font-semibold tracking-tight tabular-nums', valueTone)}>
-          {value}
-        </span>
-        {valueSuffix && (
-          <span className="text-sm font-medium text-muted-foreground tabular-nums">
-            {valueSuffix}
-          </span>
-        )}
-      </div>
-      {/* Two lines at narrow widths: at 390px a single clamped line cuts these
-          sentences mid-thought. Matches the dashboard band from sm up. */}
-      <div className="text-xs text-muted-foreground line-clamp-2 sm:line-clamp-1">{sub}</div>
-    </div>
-  )
-}
-
 function ChannelsSkeleton() {
   return (
-    <>
-      <Panel className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-border/60">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="flex flex-col gap-2.5 p-4 sm:p-5">
-            <Skeleton className="h-3 w-24" />
-            <Skeleton className="h-8 w-16" />
-            <Skeleton className="h-3 w-28" />
-          </div>
-        ))}
-      </Panel>
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <Panel className="divide-y divide-border/60">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="flex flex-col gap-3 p-4 sm:px-5">
-              <Skeleton className="h-4 w-44" />
-              <Skeleton className="h-3 w-64" />
-              <Skeleton className="h-3 w-52" />
-            </div>
-          ))}
-        </Panel>
-        <Panel className="flex flex-col gap-3 p-4">
-          <Skeleton className="h-3 w-32" />
-          <Skeleton className="h-3 w-40" />
-          <Skeleton className="h-3 w-36" />
-        </Panel>
-      </div>
-    </>
+    <ul className="divide-y divide-border/60 overflow-hidden rounded-2xl border border-border bg-card">
+      {[0, 1, 2].map((i) => (
+        <li key={i} className="flex flex-col gap-2.5 px-4 py-3.5 sm:px-5">
+          <Skeleton className="h-4 w-44" />
+          <Skeleton className="h-3 w-64" />
+        </li>
+      ))}
+    </ul>
   )
 }
+
+const CHANNEL_TYPES: {
+  id: ChannelType
+  label: string
+  icon: typeof ShareNetwork
+}[] = [
+  { id: 'webhook', label: 'Webhook', icon: ShareNetwork },
+  { id: 'discord', label: 'Discord', icon: DiscordLogo },
+  { id: 'slack', label: 'Slack', icon: SlackLogo },
+  { id: 'ntfy', label: 'ntfy', icon: Bell },
+  { id: 'email', label: 'Email', icon: EnvelopeSimple },
+]
 
 function ChannelDialog({
   open,
@@ -802,7 +505,7 @@ function ChannelDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && void cancel()}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
             {isEdit ? `Edit ${editing!.name}` : 'Add notification channel'}
@@ -836,26 +539,43 @@ function ChannelDialog({
             )}
           </div>
           <div className="space-y-2">
-            <Label>Type</Label>
-            <Select
-              value={type}
-              onValueChange={(v) => {
-                setType(v as ChannelType)
-                setConfig({})
-              }}
-              disabled={isEdit}
+            <Label id="ch-type-label">Type</Label>
+            <div
+              role="radiogroup"
+              aria-labelledby="ch-type-label"
+              className="grid grid-cols-3 gap-2 sm:grid-cols-5"
             >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="webhook">Webhook</SelectItem>
-                <SelectItem value="discord">Discord</SelectItem>
-                <SelectItem value="slack">Slack</SelectItem>
-                <SelectItem value="ntfy">ntfy</SelectItem>
-                <SelectItem value="email">Email (SMTP)</SelectItem>
-              </SelectContent>
-            </Select>
+              {CHANNEL_TYPES.map((t) => {
+                const active = type === t.id
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    disabled={isEdit}
+                    onClick={() => {
+                      setType(t.id)
+                      setConfig({})
+                    }}
+                    className={cn(
+                      'flex flex-col items-center gap-1.5 rounded-lg border px-2 py-3 text-xs font-medium outline-none transition-[color,background-color,border-color,transform] duration-150 ease-out',
+                      'focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60',
+                      active
+                        ? 'border-[var(--lime)] bg-[var(--lime)]/10 text-foreground'
+                        : 'border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground',
+                    )}
+                  >
+                    <Icon
+                      icon={t.icon}
+                      weight={active ? 'fill' : 'regular'}
+                      className="size-5"
+                    />
+                    {t.label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
           <ConfigFields
             type={type}
@@ -886,7 +606,11 @@ function ChannelDialog({
             </Button>
             {/* Stays enabled with an empty name — submitting names the missing
                 field instead of leaving a dead button. */}
-            <Button type="submit" disabled={save.isPending}>
+            <Button
+              type="submit"
+              disabled={save.isPending}
+              className="border-transparent bg-[var(--lime)] font-semibold text-[var(--lime-ink)] hover:bg-[var(--lime-hover)]"
+            >
               {save.isPending ? 'Saving…' : isEdit ? 'Save changes' : 'Create channel'}
             </Button>
           </DialogFooter>
