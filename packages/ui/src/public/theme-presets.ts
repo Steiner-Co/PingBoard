@@ -20,7 +20,7 @@
 const PAGE = '.pb-canvas'
 const PAGE_LIGHT = '.pb-canvas.light'
 
-interface Palette {
+export interface Palette {
   bg: string
   fg: string
   card: string
@@ -79,7 +79,7 @@ function block(selector: string, p: Palette): string {
   return `${selector} {\n${body}\n}`
 }
 
-function theme(name: string, dark: Palette, light: Palette): string {
+export function buildThemeCss(name: string, dark: Palette, light: Palette): string {
   return `/* ${name} */\n${block(PAGE, dark)}\n\n${block(PAGE_LIGHT, light)}\n`
 }
 
@@ -508,72 +508,230 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'catppuccin',
     label: 'Catppuccin',
     swatches: [CATPPUCCIN.bg, CATPPUCCIN.primary, CATPPUCCIN.success],
-    css: theme('Catppuccin — Mocha (dark) / Latte (light)', CATPPUCCIN, CATPPUCCIN_LIGHT),
+    css: buildThemeCss('Catppuccin — Mocha (dark) / Latte (light)', CATPPUCCIN, CATPPUCCIN_LIGHT),
   },
   {
     id: 'nord',
     label: 'Nord',
     swatches: [NORD.bg, NORD.primary, NORD.success],
-    css: theme('Nord — Polar Night (dark) / Snow Storm (light)', NORD, NORD_LIGHT),
+    css: buildThemeCss('Nord — Polar Night (dark) / Snow Storm (light)', NORD, NORD_LIGHT),
   },
   {
     id: 'gruvbox',
     label: 'Gruvbox',
     swatches: [GRUVBOX.bg, GRUVBOX.primary, GRUVBOX.success],
-    css: theme('Gruvbox (dark / light)', GRUVBOX, GRUVBOX_LIGHT),
+    css: buildThemeCss('Gruvbox (dark / light)', GRUVBOX, GRUVBOX_LIGHT),
   },
   {
     id: 'tokyo-night',
     label: 'Tokyo Night',
     swatches: [TOKYO_NIGHT.bg, TOKYO_NIGHT.primary, TOKYO_NIGHT.success],
-    css: theme('Tokyo Night — Storm (dark) / Day (light)', TOKYO_NIGHT, TOKYO_NIGHT_DAY),
+    css: buildThemeCss('Tokyo Night — Storm (dark) / Day (light)', TOKYO_NIGHT, TOKYO_NIGHT_DAY),
   },
   {
     id: 'rose-pine',
     label: 'Rosé Pine',
     swatches: [ROSE_PINE.bg, ROSE_PINE.primary, ROSE_PINE.success],
-    css: theme('Rosé Pine — main (dark) / Dawn (light)', ROSE_PINE, ROSE_PINE_DAWN),
+    css: buildThemeCss('Rosé Pine — main (dark) / Dawn (light)', ROSE_PINE, ROSE_PINE_DAWN),
   },
   {
     id: 'github',
     label: 'GitHub',
     swatches: [GITHUB_DARK.bg, GITHUB_DARK.primary, GITHUB_DARK.success],
-    css: theme('GitHub (dark / light)', GITHUB_DARK, GITHUB_LIGHT),
+    css: buildThemeCss('GitHub (dark / light)', GITHUB_DARK, GITHUB_LIGHT),
   },
   {
     id: 'kanagawa',
     label: 'Kanagawa',
     swatches: [KANAGAWA.bg, KANAGAWA.primary, KANAGAWA.success],
-    css: theme('Kanagawa — Wave (dark) / Lotus (light)', KANAGAWA, KANAGAWA_LOTUS),
+    css: buildThemeCss('Kanagawa — Wave (dark) / Lotus (light)', KANAGAWA, KANAGAWA_LOTUS),
   },
   {
     id: 'synthwave',
     label: 'Synthwave',
     swatches: [SYNTHWAVE.bg, SYNTHWAVE.primary, SYNTHWAVE.success],
-    css: theme('Synthwave — \'84 (dark) / Dawn (light)', SYNTHWAVE, SYNTHWAVE_DAWN),
+    css: buildThemeCss('Synthwave — \'84 (dark) / Dawn (light)', SYNTHWAVE, SYNTHWAVE_DAWN),
   },
   {
     id: 'noir',
     label: 'Noir',
     swatches: [NOIR.bg, NOIR.primary, NOIR.success],
-    css: theme('Noir (dark / light)', NOIR, NOIR_LIGHT),
+    css: buildThemeCss('Noir (dark / light)', NOIR, NOIR_LIGHT),
   },
   {
     id: 'flexoki',
     label: 'Flexoki',
     swatches: [FLEXOKI.bg, FLEXOKI.primary, FLEXOKI.success],
-    css: theme('Flexoki (dark / light)', FLEXOKI, FLEXOKI_LIGHT),
+    css: buildThemeCss('Flexoki (dark / light)', FLEXOKI, FLEXOKI_LIGHT),
   },
   {
     id: 'one-dark',
     label: 'One Dark',
     swatches: [ONE_DARK.bg, ONE_DARK.primary, ONE_DARK.success],
-    css: theme('One Dark / One Light', ONE_DARK, ONE_LIGHT),
+    css: buildThemeCss('One Dark / One Light', ONE_DARK, ONE_LIGHT),
   },
   {
     id: 'ayu',
     label: 'Ayu',
     swatches: [AYU.bg, AYU.primary, AYU.success],
-    css: theme('Ayu — Dark (dark) / Light (light)', AYU, AYU_LIGHT),
+    css: buildThemeCss('Ayu — Dark (dark) / Light (light)', AYU, AYU_LIGHT),
   },
 ]
+
+/**
+ * Visual theme builder: the owner picks eight colours and the rest of the
+ * palette is derived. Surface steps (muted/border/input and the accent
+ * surface) are the canvas↔card midpoint nudged toward the foreground;
+ * primaryFg follows the accent's relative luminance — dark ink (the canvas
+ * colour) on bright accents, white on dark ones.
+ */
+export interface ThemePicks {
+  bg: string
+  card: string
+  fg: string
+  mutedFg: string
+  accent: string
+  success: string
+  warning: string
+  destructive: string
+}
+
+/** Noir's dark palette — a sane first render for the builder. */
+export const DEFAULT_THEME_PICKS: ThemePicks = {
+  bg: NOIR.bg,
+  card: NOIR.card,
+  fg: NOIR.fg,
+  mutedFg: NOIR.mutedFg,
+  accent: NOIR.primary,
+  success: NOIR.success,
+  warning: NOIR.warning,
+  destructive: NOIR.destructive,
+}
+
+export function isHexColor(value: string): boolean {
+  return /^#[0-9a-fA-F]{6}$/.test(value)
+}
+
+function clamp(v: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, v))
+}
+
+function hexToHsl(hex: string): { h: number; s: number; l: number } {
+  const n = parseInt(hex.slice(1), 16)
+  const r = ((n >> 16) & 255) / 255
+  const g = ((n >> 8) & 255) / 255
+  const b = (n & 255) / 255
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  const l = (max + min) / 2
+  let h = 0
+  let s = 0
+  if (max !== min) {
+    const d = max - min
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60
+    else if (max === g) h = ((b - r) / d + 2) * 60
+    else h = ((r - g) / d + 4) * 60
+  }
+  return { h, s: s * 100, l: l * 100 }
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+  const sn = s / 100
+  const ln = l / 100
+  const c = (1 - Math.abs(2 * ln - 1)) * sn
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1))
+  const m = ln - c / 2
+  let r = 0
+  let g = 0
+  let b = 0
+  if (h < 60) [r, g, b] = [c, x, 0]
+  else if (h < 120) [r, g, b] = [x, c, 0]
+  else if (h < 180) [r, g, b] = [0, c, x]
+  else if (h < 240) [r, g, b] = [0, x, c]
+  else if (h < 300) [r, g, b] = [x, 0, c]
+  else [r, g, b] = [c, 0, x]
+  const to = (v: number) =>
+    Math.round((v + m) * 255)
+      .toString(16)
+      .padStart(2, '0')
+  return `#${to(r)}${to(g)}${to(b)}`
+}
+
+function mixHex(a: string, b: string, t: number): string {
+  const pa = parseInt(a.slice(1), 16)
+  const pb = parseInt(b.slice(1), 16)
+  const ch = (shift: number) =>
+    Math.round(((pa >> shift) & 255) * (1 - t) + ((pb >> shift) & 255) * t)
+  const to = (v: number) => v.toString(16).padStart(2, '0')
+  return `#${to(ch(16))}${to(ch(8))}${to(ch(0))}`
+}
+
+function relativeLuminance(hex: string): number {
+  const n = parseInt(hex.slice(1), 16)
+  const chan = (shift: number) => {
+    const v = ((n >> shift) & 255) / 255
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)
+  }
+  return 0.2126 * chan(16) + 0.7152 * chan(8) + 0.0722 * chan(0)
+}
+
+export function paletteFromPicks(picks: ThemePicks): Palette {
+  const mid = mixHex(picks.bg, picks.card, 0.5)
+  const muted = mixHex(mid, picks.fg, 0.08)
+  const surface = mixHex(mid, picks.fg, 0.14)
+  return {
+    bg: picks.bg,
+    fg: picks.fg,
+    card: picks.card,
+    muted,
+    mutedFg: picks.mutedFg,
+    accent: surface,
+    border: muted,
+    input: surface,
+    primary: picks.accent,
+    primaryFg: relativeLuminance(picks.accent) > 0.45 ? picks.bg : '#ffffff',
+    primaryText: picks.accent,
+    success: picks.success,
+    warning: picks.warning,
+    destructive: picks.destructive,
+  }
+}
+
+/**
+ * Auto light variant, no hand authoring: invert lightness (L′ = 100 − L) in
+ * HSL, trim saturation to 90%, then clamp per role — surfaces land at ≥93%
+ * (paper), text at ≤22%, and accents/status inside 30–60% so they stay
+ * visible on paper. The result is written into Custom CSS as plain text, so
+ * the owner can hand-tune the light side afterwards.
+ */
+export function deriveLightPalette(dark: Palette): Palette {
+  const shift = (hex: string, minL: number, maxL: number): string => {
+    const { h, s, l } = hexToHsl(hex)
+    return hslToHex(h, s * 0.9, clamp(100 - l, minL, maxL))
+  }
+  const surface = (hex: string) => shift(hex, 93, 100)
+  const text = (hex: string) => shift(hex, 0, 22)
+  const signal = (hex: string) => shift(hex, 30, 60)
+  return {
+    bg: surface(dark.bg),
+    fg: text(dark.fg),
+    card: surface(dark.card),
+    muted: surface(dark.muted),
+    mutedFg: text(dark.mutedFg),
+    accent: surface(dark.accent),
+    border: surface(dark.border),
+    input: surface(dark.input),
+    primary: signal(dark.primary),
+    primaryFg: surface(dark.primaryFg),
+    primaryText: signal(dark.primaryText),
+    success: signal(dark.success),
+    warning: signal(dark.warning),
+    destructive: signal(dark.destructive),
+  }
+}
+
+export function buildCustomThemeCss(picks: ThemePicks): string {
+  const dark = paletteFromPicks(picks)
+  return buildThemeCss('Custom theme', dark, deriveLightPalette(dark))
+}

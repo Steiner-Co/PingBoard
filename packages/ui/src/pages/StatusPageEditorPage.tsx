@@ -300,6 +300,28 @@ export function StatusPageEditorPage() {
     setCustomCss(preset.css)
   }
 
+  // Same replace-confirmation as presets, but CSS identical to the builder's
+  // last output is treated as unedited generated content and replaced freely.
+  const lastGeneratedCss = useRef<string | null>(null)
+  const applyBuiltTheme = async (css: string) => {
+    if (
+      customCss.trim() &&
+      !activePresetId &&
+      customCss.trim() !== lastGeneratedCss.current?.trim()
+    ) {
+      const ok = await confirm({
+        title: 'Replace your custom CSS with the built theme?',
+        description:
+          'This overwrites the CSS currently in the Appearance panel. You can still edit it afterwards.',
+        confirmLabel: 'Replace',
+        destructive: true,
+      })
+      if (!ok) return
+    }
+    lastGeneratedCss.current = css
+    setCustomCss(css)
+  }
+
   const handleSubmit = () => {
     if (!detail.data) return // never submit a form that never hydrated
     if (customCss.length > 10 * 1024) {
@@ -583,6 +605,7 @@ export function StatusPageEditorPage() {
                 activePresetId={activePresetId}
                 onPreset={(preset) => void applyPreset(preset)}
                 onClearPreset={() => setCustomCss('')}
+                onApplyBuiltTheme={(css) => void applyBuiltTheme(css)}
                 pageId={page.id}
                 logoPath={page.logoPath}
                 websiteUrl={websiteUrl}

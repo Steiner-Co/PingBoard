@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Icon } from '@/components/ui/icon'
@@ -14,7 +14,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
 import { Textarea } from '@/components/ui/textarea'
-import { THEME_PRESETS, type ThemePreset } from '@/public/theme-presets'
+import {
+  buildCustomThemeCss,
+  DEFAULT_THEME_PICKS,
+  isHexColor,
+  THEME_PRESETS,
+  type ThemePicks,
+  type ThemePreset,
+} from '@/public/theme-presets'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import type { MonitorWithLatest } from '@/types'
@@ -132,6 +139,7 @@ export function AppearancePanel({
   activePresetId,
   onPreset,
   onClearPreset,
+  onApplyBuiltTheme,
   pageId,
   logoPath,
   websiteUrl,
@@ -144,6 +152,7 @@ export function AppearancePanel({
   activePresetId: string | null
   onPreset: (preset: ThemePreset) => void
   onClearPreset: () => void
+  onApplyBuiltTheme: (css: string) => void
   pageId: string
   logoPath: string | null
   websiteUrl: string
@@ -204,6 +213,8 @@ export function AppearancePanel({
         </p>
       </div>
 
+      <CustomThemeBuilder onApply={onApplyBuiltTheme} />
+
       <LogoField pageId={pageId} logoPath={logoPath} />
 
       <div className="space-y-2">
@@ -247,6 +258,97 @@ export function AppearancePanel({
           unescaped by design.
         </p>
       </div>
+    </div>
+  )
+}
+
+const PICK_FIELDS: { key: keyof ThemePicks; label: string }[] = [
+  { key: 'bg', label: 'Canvas background' },
+  { key: 'card', label: 'Card background' },
+  { key: 'fg', label: 'Foreground' },
+  { key: 'mutedFg', label: 'Muted foreground' },
+  { key: 'accent', label: 'Accent' },
+  { key: 'success', label: 'Success' },
+  { key: 'warning', label: 'Warning' },
+  { key: 'destructive', label: 'Destructive' },
+]
+
+/**
+ * "Build your own" theme: eight colour picks drive the dark palette, the
+ * light side is derived automatically, and the generated CSS lands in the
+ * Custom CSS field — the same draft/save path presets use.
+ */
+function CustomThemeBuilder({ onApply }: { onApply: (css: string) => void }) {
+  const [picks, setPicks] = useState<ThemePicks>(DEFAULT_THEME_PICKS)
+
+  const setPick = (key: keyof ThemePicks, value: string) =>
+    setPicks((prev) => ({ ...prev, [key]: value }))
+
+  // The swatch strip and the generated CSS only use complete hex values;
+  // half-typed text falls back to the field's default.
+  const resolved: ThemePicks = { ...picks }
+  for (const { key } of PICK_FIELDS) {
+    if (!isHexColor(resolved[key])) resolved[key] = DEFAULT_THEME_PICKS[key]
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Label>Build your own</Label>
+      <div className="flex flex-col gap-1.5">
+        {PICK_FIELDS.map(({ key, label }) => (
+          <div key={key} className="flex items-center gap-2">
+            <input
+              type="color"
+              value={isHexColor(picks[key]) ? picks[key] : DEFAULT_THEME_PICKS[key]}
+              onChange={(e) => setPick(key, e.target.value)}
+              aria-label={label}
+              className="size-7 shrink-0 cursor-pointer rounded-md border border-border/60 bg-transparent p-0.5"
+            />
+            <Input
+              value={picks[key]}
+              onChange={(e) => {
+                const v = e.target.value.trim()
+                if (/^#[0-9a-fA-F]{0,6}$/.test(v)) setPick(key, v)
+              }}
+              aria-label={`${label} hex`}
+              spellCheck={false}
+              className="h-7 w-24 font-mono text-xs"
+            />
+            <span className="text-xs text-muted-foreground">{label}</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-2">
+        <span
+          className="flex overflow-hidden rounded-sm ring-1 ring-foreground/10"
+          aria-hidden
+        >
+          {[
+            resolved.bg,
+            resolved.card,
+            resolved.fg,
+            resolved.accent,
+            resolved.success,
+            resolved.warning,
+            resolved.destructive,
+          ].map((color, i) => (
+            <span key={i} className="size-4" style={{ backgroundColor: color }} />
+          ))}
+        </span>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => onApply(buildCustomThemeCss(resolved))}
+        >
+          Apply theme
+        </Button>
+      </div>
+      <p className="text-xs/relaxed text-muted-foreground">
+        Your picks drive the dark palette; a light variant is derived
+        automatically. Both are written into Custom CSS below as editable
+        text — tune the light side there. Applies with Save changes.
+      </p>
     </div>
   )
 }
