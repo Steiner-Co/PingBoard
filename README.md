@@ -2,6 +2,12 @@
 
 > Dead-simple, self-hosted uptime monitoring with built-in status pages. One container, one volume, one port.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/status-page-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset=".github/assets/status-page-light.png">
+  <img alt="A PingBoard public status page — live status for Steiner&Co products" src=".github/assets/status-page-dark.png">
+</picture>
+
 ## Quickstart
 
 With Docker Compose — no clone needed, just grab the compose file:
@@ -35,6 +41,43 @@ Open `http://localhost:3000`, create your admin account, add your first monitor.
 - **MCP server** — query and control your monitors from Claude, Cursor or any MCP client
 - **Single binary feel** — one container, one SQLite file under `/data`, no Redis, no queue
 
+## Inside the admin
+
+<table>
+  <tr>
+    <td>
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset=".github/assets/dashboard-dark.png">
+        <source media="(prefers-color-scheme: light)" srcset=".github/assets/dashboard-light.png">
+        <img alt="Monitors dashboard" src=".github/assets/dashboard-dark.png">
+      </picture>
+    </td>
+    <td>
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset=".github/assets/domains-dark.png">
+        <source media="(prefers-color-scheme: light)" srcset=".github/assets/domains-light.png">
+        <img alt="Domain expiry tracking" src=".github/assets/domains-dark.png">
+      </picture>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset=".github/assets/channels-dark.png">
+        <source media="(prefers-color-scheme: light)" srcset=".github/assets/channels-light.png">
+        <img alt="Notification channels" src=".github/assets/channels-dark.png">
+      </picture>
+    </td>
+    <td>
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset=".github/assets/maintenance-dark.png">
+        <source media="(prefers-color-scheme: light)" srcset=".github/assets/maintenance-light.png">
+        <img alt="Maintenance calendar" src=".github/assets/maintenance-dark.png">
+      </picture>
+    </td>
+  </tr>
+</table>
+
 ## Configuration
 
 All optional — no env vars are required to boot.
@@ -51,10 +94,10 @@ All optional — no env vars are required to boot.
 
 ## Status page branding
 
-Every status page can be branded from **Status pages → Edit** — a live editor that renders the real page next to your changes as you make them:
+Every status page can be branded from **Status pages → Edit** — the page itself is the canvas, rendered live as you make changes:
 
 - **Logo** — PNG/JPEG/SVG/WebP up to 512 KB, stored under `/data/assets`
-- **Theme presets** — five prebuilt palettes (Catppuccin, Nord, Gruvbox, Tokyo Night, Rosé Pine) that hold contrast in both light and dark, written into Custom CSS where you can tweak them
+- **Theme presets** — nine prebuilt palettes (Catppuccin, Nord, Gruvbox, Tokyo Night, Rosé Pine, GitHub, Kanagawa, Synthwave, Noir) that hold contrast in both light and dark, written into Custom CSS where you can tweak them
 - **Website URL** — the logo and title link back to your site
 - **Custom CSS** — injected into that page only (≤ 10 KB)
 - **White label** — hide the "Powered by PingBoard" footer, free
@@ -162,17 +205,14 @@ See [`PRD.md`](./PRD.md) for the full product spec and roadmap.
 
 ## Roadmap
 
-v1 (this release):
+Shipped in v1.0:
 - ✅ Core monitor types, channels, status pages, dashboard, public pages
-
-v1.x (shipped):
 - ✅ SSL certificate and domain expiry monitoring
 - ✅ Push/heartbeat monitors
 - ✅ Maintenance windows
 - ✅ API tokens for programmatic access
-
-Next:
 - ✅ MCP server
+- ✅ Full product redesign — admin, status pages, auth, landing
 
 Future (cloud):
 - Multi-region probing
