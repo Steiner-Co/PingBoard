@@ -14,7 +14,8 @@ import { Warning } from "@phosphor-icons/react/dist/icons/Warning"
 import { ALLOWED_INTERVALS_SECONDS } from '@pingboard/shared'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Panel } from '@/components/panel'
+import { ScreenHeader } from '@/components/screen'
 import { QueryError } from '@/components/QueryError'
 import { FieldInput } from '@/components/ui/field'
 import { Label } from '@/components/ui/label'
@@ -33,7 +34,16 @@ import type { MonitorType, NotificationChannel } from '@/types'
 
 const STEPS = ['Target', 'Schedule', 'Notify'] as const
 const STEP_TITLES = ['What to check?', 'How often?', 'Where to alert?'] as const
+const STEP_DESCRIPTIONS = [
+  'Paste a URL, host, or host:port. Type is auto-detected, or pick one.',
+  'Sensible defaults are pre-filled.',
+  'Optional — pick existing channels (or skip).',
+] as const
 const DEFAULT_INTERVAL_SECONDS = 60
+
+// Primary forward action wears the shell's lime, same as the channel dialog.
+const LIME_BUTTON =
+  'border-transparent bg-[var(--lime)] font-semibold text-[var(--lime-ink)] hover:bg-[var(--lime-hover)]'
 
 interface TestResult {
   status: 'up' | 'down' | 'degraded'
@@ -234,12 +244,10 @@ export function MonitorWizardPage() {
 
   return (
     <form onSubmit={handleFormSubmit} className="px-4 lg:px-6 pb-10 max-w-3xl mx-auto w-full flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight">Add monitor</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          A few quick steps and you're tracking uptime.
-        </p>
-      </header>
+      <ScreenHeader
+        title="Add monitor"
+        description="A few quick steps and you're tracking uptime."
+      />
 
       <Stepper current={step} />
 
@@ -249,20 +257,18 @@ export function MonitorWizardPage() {
         Step {step + 1} of {STEPS.length}: {STEP_TITLES[step]}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <h2 ref={headingRef} tabIndex={-1} className="outline-none">
-              {STEP_TITLES[step]}
-            </h2>
-          </CardTitle>
-          <CardDescription>
-            {step === 0 && 'Paste a URL, host, or host:port. Type is auto-detected, or pick one.'}
-            {step === 1 && 'Sensible defaults are pre-filled.'}
-            {step === 2 && 'Optional — pick existing channels (or skip).'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      {/* Section card in the shared screen language — muted header band with
+          the step title, a description row under it, then the body. */}
+      <Panel className="overflow-hidden rounded-2xl">
+        <header className="border-b border-border bg-muted px-4 py-3.5">
+          <h2 ref={headingRef} tabIndex={-1} className="text-base font-medium outline-none">
+            {STEP_TITLES[step]}
+          </h2>
+        </header>
+        <p className="border-b border-border/60 px-4 py-2.5 text-xs text-muted-foreground">
+          {STEP_DESCRIPTIONS[step]}
+        </p>
+        <div className="space-y-4 px-4 py-4 sm:px-5">
           {step === 0 && (
             <>
               <div className="space-y-2">
@@ -286,7 +292,7 @@ export function MonitorWizardPage() {
                 )}
                 {typeOverride === 'auto' && autoDetected.type && (
                   <p className="text-xs text-muted-foreground">
-                    Detected: <span className="font-medium uppercase">{autoDetected.type}</span> check on{' '}
+                    Detected: <span className="font-medium">{autoDetected.type.toUpperCase()}</span> check on{' '}
                     <span className="font-mono">{autoDetected.target}</span>
                   </p>
                 )}
@@ -421,8 +427,10 @@ export function MonitorWizardPage() {
                       <label
                         key={c.id}
                         className={cn(
-                          'flex items-center gap-3 rounded-md border p-3 cursor-pointer transition-colors',
-                          checked ? 'bg-accent border-primary' : 'hover:bg-accent/50',
+                          'flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors',
+                          checked
+                            ? 'border-[var(--lime)] bg-[var(--lime)]/10'
+                            : 'hover:bg-accent/50',
                         )}
                       >
                         <Checkbox
@@ -437,7 +445,7 @@ export function MonitorWizardPage() {
                         />
                         <div className="flex-1">
                           <div className="text-sm font-medium">{c.name}</div>
-                          <div className="text-xs text-muted-foreground uppercase">{c.type}</div>
+                          <div className="text-xs text-muted-foreground">{c.type}</div>
                         </div>
                       </label>
                     )
@@ -451,8 +459,8 @@ export function MonitorWizardPage() {
               {error}
             </p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </Panel>
 
       <div className="flex justify-between">
         <Button
@@ -471,7 +479,7 @@ export function MonitorWizardPage() {
         </Button>
         {/* Stays enabled when fields are missing — clicking it names the
             blocking field instead of leaving the wizard looking stuck. */}
-        <Button type="submit" disabled={createMutation.isPending}>
+        <Button type="submit" disabled={createMutation.isPending} className={LIME_BUTTON}>
           {step < STEPS.length - 1 ? (
             <>
               Continue
@@ -498,12 +506,15 @@ function Stepper({ current }: { current: number }) {
           aria-current={i === current ? 'step' : undefined}
           className="flex items-center gap-2"
         >
+          {/* Same pill language as the screen segment filters: dark pill for
+              done/current, muted for what's ahead. */}
           <span
             className={cn(
-              'flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium',
-              i < current && 'bg-primary text-primary-foreground',
-              i === current && 'bg-primary text-primary-foreground ring-2 ring-primary/30',
-              i > current && 'bg-muted text-muted-foreground',
+              'flex size-6 items-center justify-center rounded-full text-xs font-medium',
+              i <= current
+                ? 'bg-foreground text-background'
+                : 'bg-muted text-muted-foreground',
+              i === current && 'ring-2 ring-foreground/20',
             )}
           >
             {i < current ? <Icon icon={Check} weight="bold" className="h-3.5 w-3.5" /> : i + 1}

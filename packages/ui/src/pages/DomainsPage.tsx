@@ -1048,7 +1048,11 @@ function AddDomainDialog({ open, onClose }: { open: boolean; onClose: () => void
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={create.isPending}>
+            <Button
+              type="submit"
+              disabled={create.isPending}
+              className="border-transparent bg-[var(--lime)] font-semibold text-[var(--lime-ink)] hover:bg-[var(--lime-hover)]"
+            >
               {create.isPending ? 'Adding…' : 'Add domain'}
             </Button>
           </DialogFooter>
