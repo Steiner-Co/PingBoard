@@ -104,8 +104,8 @@ bun install && bun run --filter @pingboard/mcp build
 | `resolve_incident` | Manually close an open incident |
 | `annotate_incident` | Add an explanation; notes appear on the public status page |
 | `schedule_maintenance` | Preferred over pausing for planned downtime — heartbeats keep recording honestly |
-| `create_status_page` | Slug is permanent; attach `monitors` or the page shows nothing |
-| `update_status_page` | Omitted fields are untouched; passing `monitors` replaces the whole list |
+| `create_status_page` | Attach `monitors` or the page shows nothing |
+| `update_status_page` | Omitted fields are untouched; passing `monitors` replaces the whole list. `slug` can change, but the old link breaks |
 | `delete_status_page` | Permanent — marked destructive. Monitors themselves are untouched |
 | `import_config` | Restore an `export_config` backup; creates fresh items, never overwrites |
 

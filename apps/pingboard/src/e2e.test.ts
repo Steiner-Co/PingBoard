@@ -259,6 +259,50 @@ test(
       monitors: [{ monitorId }],
     })
     expect(pageRes.status).toBe(201)
+    const pageId = pageRes.json.page.id as string
+
+    // 4b. Slug updates: same validation as creation, conflict-safe, and the
+    //     public route follows the new slug. Renamed back so the rest of the
+    //     flow keeps using /api/public/e2e-status.
+    const badFormat = await api('PATCH', `/api/admin/pages/${pageId}`, {
+      slug: 'Not A Slug!',
+    })
+    expect(badFormat.status).toBe(400)
+
+    const reserved = await api('PATCH', `/api/admin/pages/${pageId}`, {
+      slug: 'admin',
+    })
+    expect(reserved.status).toBe(400)
+
+    const otherRes = await api('POST', '/api/admin/pages', {
+      slug: 'e2e-other',
+      title: 'E2E Other',
+    })
+    expect(otherRes.status).toBe(201)
+    const conflict = await api('PATCH', `/api/admin/pages/${pageId}`, {
+      slug: 'e2e-other',
+    })
+    expect(conflict.status).toBe(409)
+
+    // Unchanged slug is not a conflict with itself.
+    const sameSlug = await api('PATCH', `/api/admin/pages/${pageId}`, {
+      slug: 'E2E-Status',
+    })
+    expect(sameSlug.status).toBe(200)
+    expect(sameSlug.json.page.slug).toBe('e2e-status')
+
+    const renamed = await api('PATCH', `/api/admin/pages/${pageId}`, {
+      slug: 'e2e-renamed',
+    })
+    expect(renamed.status).toBe(200)
+    expect(renamed.json.page.slug).toBe('e2e-renamed')
+    expect((await api('GET', '/api/public/e2e-renamed')).status).toBe(200)
+    expect((await api('GET', '/api/public/e2e-status')).status).toBe(404)
+
+    const renamedBack = await api('PATCH', `/api/admin/pages/${pageId}`, {
+      slug: 'e2e-status',
+    })
+    expect(renamedBack.status).toBe(200)
 
     const publicMonitorStatus = async (): Promise<string | null> => {
       const res = await api('GET', '/api/public/e2e-status')

@@ -111,6 +111,7 @@ export function StatusPageEditorPage() {
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [slug, setSlug] = useState('')
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [hideBranding, setHideBranding] = useState(false)
   const [customCss, setCustomCss] = useState('')
@@ -150,6 +151,9 @@ export function StatusPageEditorPage() {
     () =>
       JSON.stringify({
         title: title.trim(),
+        // Normalized: the PATCH lowercases the slug too, so case-only
+        // edits don't read as dirty.
+        slug: slug.trim().toLowerCase(),
         // Compare sanitized: the editor's DOM readback adds explicit
         // link attrs (target/rel) that are semantically identical — without
         // this, a focus+blur with zero edits would read as dirty.
@@ -160,7 +164,7 @@ export function StatusPageEditorPage() {
         groups,
         monitors: order.map((mid) => [mid, selected.get(mid)?.trim() || '']),
       }),
-    [title, description, websiteUrl, hideBranding, customCss, groups, order, selected],
+    [title, slug, description, websiteUrl, hideBranding, customCss, groups, order, selected],
   )
 
   useEffect(() => {
@@ -172,6 +176,7 @@ export function StatusPageEditorPage() {
       return
     lastHydrated.current = { at: detail.dataUpdatedAt, add: addMonitorId }
     setTitle(detail.data.page.title)
+    setSlug(detail.data.page.slug)
     // Store sanitized so the baseline matches what the editor DOM reads back.
     setDescription(sanitizeRichText(detail.data.page.description ?? ''))
     setWebsiteUrl(detail.data.page.websiteUrl ?? '')
@@ -301,12 +306,18 @@ export function StatusPageEditorPage() {
       setError('Custom CSS is limited to 10 KB')
       return
     }
+    const nextSlug = slug.trim().toLowerCase()
+    if (!nextSlug || !/^[a-z0-9-]+$/.test(nextSlug)) {
+      setError('Slug must be lowercase letters, digits, and hyphens')
+      return
+    }
     setError(null)
     // The description is edited as HTML — scrub pasted junk down to the
     // supported subset before saving so the column only holds clean markup.
     const cleanDesc = sanitizeRichText(description)
     if (cleanDesc !== description) setDescription(cleanDesc)
     save.mutate({
+      slug: nextSlug,
       title: title.trim() || detail.data.page.slug,
       description: isRichTextBlank(cleanDesc) ? null : cleanDesc,
       websiteUrl: websiteUrl.trim() || null,
@@ -583,7 +594,8 @@ export function StatusPageEditorPage() {
               />
             ) : activeSection === 'access' ? (
               <AccessPanel
-                slug={page.slug}
+                slug={slug}
+                onSlug={setSlug}
                 passwordSet={page.passwordSet}
                 password={password}
                 onPassword={setPassword}

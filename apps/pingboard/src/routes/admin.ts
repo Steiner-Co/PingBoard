@@ -778,6 +778,16 @@ export async function updateStatusPage(
   if (!body) return error(400, 'Invalid JSON body')
 
   const set: Partial<typeof statusPages.$inferInsert> = {}
+  if ('slug' in body) {
+    const slug = String(body.slug ?? '').trim().toLowerCase()
+    if (!slug || !/^[a-z0-9-]+$/.test(slug)) {
+      return error(400, 'Slug must be lowercase letters, digits, and hyphens')
+    }
+    if ((RESERVED_SLUGS as readonly string[]).includes(slug)) {
+      return error(400, `"${slug}" is a reserved slug`)
+    }
+    set.slug = slug
+  }
   if ('title' in body) set.title = String(body.title)
   if ('description' in body) {
     set.description = body.description == null ? null : String(body.description)
@@ -798,7 +808,12 @@ export async function updateStatusPage(
   Object.assign(set, branding)
 
   if (Object.keys(set).length > 0) {
-    await deps.db.update(statusPages).set(set).where(eq(statusPages.id, id))
+    try {
+      await deps.db.update(statusPages).set(set).where(eq(statusPages.id, id))
+    } catch {
+      // The only unique constraint an update can hit is the slug index.
+      return error(409, 'Slug already in use')
+    }
   }
 
   if (Array.isArray(body.monitors)) {

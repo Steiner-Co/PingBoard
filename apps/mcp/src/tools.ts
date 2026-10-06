@@ -730,7 +730,7 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
     {
       title: 'Create a status page',
       description:
-        'Create a public status page at /<slug>. Attach monitors to publish them on it, and set a password to gate the page. Slugs are permanent — they cannot be changed later.',
+        'Create a public status page at /<slug>. Attach monitors to publish them on it, and set a password to gate the page.',
       inputSchema: {
         slug: z
           .string()
@@ -768,9 +768,15 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
     {
       title: 'Update a status page',
       description:
-        "Change a page's title, description, password, branding or published monitors. Fields you omit are left as-is; pass null to clear description/websiteUrl/customCss, or an empty password to remove the gate. Passing monitors replaces the page's whole list — call get_status_page first so nothing is dropped. The slug cannot change.",
+        "Change a page's slug, title, description, password, branding or published monitors. Fields you omit are left as-is; pass null to clear description/websiteUrl/customCss, or an empty password to remove the gate. Passing monitors replaces the page's whole list — call get_status_page first so nothing is dropped. Changing the slug breaks the old public link.",
       inputSchema: {
         pageId: z.string().describe('Status page id from list_status_pages.'),
+        slug: z
+          .string()
+          .optional()
+          .describe(
+            'New URL path segment: lowercase letters, digits, hyphens. The old link stops working.',
+          ),
         title: z.string().optional(),
         description: z.string().nullable().optional(),
         password: z
@@ -787,6 +793,7 @@ export function registerTools(server: McpServer, client: PingBoardClient): void 
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     },
     guard(async ({ pageId, ...rest }: { pageId: string } & Record<string, unknown>) => {
+      if (rest.slug !== undefined) rest.slug = validateSlug(rest.slug)
       const res = await client.patch<{ page: StatusPage }>(
         `/api/admin/pages/${pageId}`,
         rest,

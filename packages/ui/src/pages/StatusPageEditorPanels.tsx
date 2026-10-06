@@ -253,6 +253,7 @@ export function AppearancePanel({
 
 export function AccessPanel({
   slug,
+  onSlug,
   passwordSet,
   password,
   onPassword,
@@ -263,6 +264,7 @@ export function AccessPanel({
   onRemove,
 }: {
   slug: string
+  onSlug: (v: string) => void
   passwordSet: boolean
   password: string
   onPassword: (v: string) => void
@@ -272,9 +274,33 @@ export function AccessPanel({
   onSave: () => void
   onRemove: () => void
 }) {
+  const origin = typeof window === 'undefined' ? '' : window.location.origin
+  const previewSlug = slug.trim().toLowerCase()
   return (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor="editor-password">Password protection</Label>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="editor-slug">Slug</Label>
+        <Input
+          id="editor-slug"
+          name="slug"
+          value={slug}
+          onChange={(e) => onSlug(e.target.value)}
+          placeholder="main"
+          spellCheck={false}
+          autoComplete="off"
+          className="font-mono text-xs"
+        />
+        <p className="text-xs/relaxed text-muted-foreground">
+          Public URL:{' '}
+          <span className="font-mono">
+            {origin}/{previewSlug || 'slug'}
+          </span>
+          . Lowercase letters, digits, hyphens. Changing the slug breaks the
+          old link. Applies with Save changes.
+        </p>
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="editor-password">Password protection</Label>
       {passwordSet && !changingPassword ? (
         <div className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-muted/30 px-3 py-2">
           <span className="flex items-center gap-2 text-xs/relaxed text-muted-foreground">
@@ -337,9 +363,10 @@ export function AccessPanel({
       )}
       <p className="text-xs/relaxed text-muted-foreground">
         Visitors need this password to view{' '}
-        <span className="font-mono">/{slug}</span>. Cookies last 30 days.
-        Applied immediately, not with Save changes.
+        <span className="font-mono">/{previewSlug}</span>. Cookies last 30
+        days. Applied immediately, not with Save changes.
       </p>
+      </div>
     </div>
   )
 }
