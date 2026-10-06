@@ -1,4 +1,3 @@
-import { Fragment } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -16,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useConfirm } from '@/components/confirm-provider'
 import { api } from '@/lib/api'
 import { useNow } from '@/hooks/use-now'
-import { cn, formatDateTime, formatDateTimeRange, formatDuration } from '@/lib/utils'
+import { cn, formatDateTimeRange, formatDuration, formatTime } from '@/lib/utils'
 
 interface MaintenanceWindow {
   id: string
@@ -29,7 +28,6 @@ interface MaintenanceWindow {
 }
 
 const DAY_MS = 86_400_000
-const TIMELINE_DAYS = 14
 
 const INTRO =
   "Suppress alerts during scheduled downtime. Windows still record real heartbeats — they just don't page you."
@@ -89,15 +87,6 @@ export function MaintenancePage() {
     return (
       <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
         <ScreenHeader title="Maintenance" description={INTRO} />
-        <Panel className="grid grid-cols-2 overflow-hidden rounded-2xl lg:grid-cols-4 lg:divide-x divide-border/60">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="flex flex-col gap-2.5 p-4 sm:p-5">
-              <Skeleton className="h-3 w-24" />
-              <Skeleton className="h-8 w-16" />
-              <Skeleton className="h-3 w-32" />
-            </div>
-          ))}
-        </Panel>
         <Panel className="overflow-hidden rounded-2xl">
           <div className="p-4">
             <Skeleton className="h-24 w-full" />
@@ -125,66 +114,11 @@ export function MaintenancePage() {
     )
   }
 
-  // Total downtime already planned inside the timeline horizon — the number
-  // that answers "how much am I signing up for this fortnight?".
-  const t0 = startOfDay(now)
-  const t1 = t0 + TIMELINE_DAYS * DAY_MS
-  const plannedMs = windows.reduce((sum, w) => {
-    const s = Math.max(new Date(w.startsAt).getTime(), t0)
-    const e = Math.min(new Date(w.endsAt).getTime(), t1)
-    return sum + Math.max(0, e - s)
-  }, 0)
-
-  const nextUp = upcoming[0]
-
   return (
     <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
       <ScreenHeader title="Maintenance" description={INTRO} />
 
-      <Panel className="grid grid-cols-2 overflow-hidden rounded-2xl lg:grid-cols-4 lg:divide-x divide-border/60">
-        <StatCell
-          label="Active now"
-          value={String(active.length)}
-          tone={active.length > 0 ? 'warn' : 'muted'}
-          sub={
-            active.length === 0
-              ? 'No alerts suppressed'
-              : active.length === 1
-                ? `${active[0]!.monitorName} — alerts muted`
-                : 'Alerts muted on these monitors'
-          }
-          className="border-b border-border/60 lg:border-b-0 border-r lg:border-r-0"
-        />
-        <StatCell
-          label="Scheduled ahead"
-          value={String(upcoming.length)}
-          sub={
-            nextUp
-              ? `Next: ${formatDateTime(nextUp.startsAt)}`
-              : 'Nothing on the calendar'
-          }
-          className="border-b border-border/60 lg:border-b-0"
-        />
-        <StatCell
-          label="Planned downtime"
-          value={plannedMs === 0 ? '—' : formatDuration(plannedMs)}
-          tone={plannedMs === 0 ? 'muted' : 'default'}
-          sub={`Across the next ${TIMELINE_DAYS} days`}
-          className="border-r border-border/60 lg:border-r-0"
-        />
-        <StatCell
-          label="Completed"
-          value={String(past.length)}
-          tone="muted"
-          sub={
-            past.length === 0
-              ? 'None on record yet'
-              : `Last ended ${formatDateTime(past[0]!.endsAt)}`
-          }
-        />
-      </Panel>
-
-      <Timeline windows={windows} now={now} />
+      <Calendar windows={windows} now={now} />
 
       {active.length > 0 && (
         <WindowList
@@ -261,201 +195,143 @@ function startOfDay(t: number): number {
   return d.getTime()
 }
 
-interface Bar {
-  window: MaintenanceWindow
-  lane: number
-  leftPct: number
-  widthPct: number
-  active: boolean
+// Monday of the week containing t — the calendar aligns to the real week,
+// not a rolling 7-day window, so it reads like the calendar on the wall.
+function mondayOf(t: number): number {
+  const d = new Date(t)
+  d.setHours(0, 0, 0, 0)
+  const dow = (d.getDay() + 6) % 7
+  return d.getTime() - dow * DAY_MS
 }
 
-// Places each window on the 14-day track and packs overlapping ones into
-// stacked lanes, so two windows on the same afternoon stay readable.
-function buildBars(
-  windows: MaintenanceWindow[],
-  t0: number,
-  t1: number,
-  now: number,
-): { bars: Bar[]; lanes: number } {
-  const span = t1 - t0
-  const items = windows
-    .map((w) => ({
-      window: w,
-      start: Math.max(new Date(w.startsAt).getTime(), t0),
-      end: Math.min(new Date(w.endsAt).getTime(), t1),
-      rawStart: new Date(w.startsAt).getTime(),
-      rawEnd: new Date(w.endsAt).getTime(),
-    }))
-    .filter((x) => x.rawEnd > t0 && x.rawStart < t1)
-    .sort((a, b) => a.start - b.start)
-
-  // A 30-minute window is a sliver; reserve a minimum slot when packing so a
-  // neighbouring window doesn't get placed visually on top of it.
-  const minSlotMs = span * 0.03
-  const laneEnds: number[] = []
-  const bars: Bar[] = items.map((item) => {
-    const slotEnd = Math.max(item.end, item.start + minSlotMs)
-    let lane = laneEnds.findIndex((end) => end <= item.start)
-    if (lane === -1) {
-      lane = laneEnds.length
-      laneEnds.push(slotEnd)
-    } else {
-      laneEnds[lane] = slotEnd
-    }
-    return {
-      window: item.window,
-      lane,
-      leftPct: ((item.start - t0) / span) * 100,
-      widthPct: Math.max(((item.end - item.start) / span) * 100, 1.5),
-      active: item.rawStart <= now && item.rawEnd >= now,
-    }
-  })
-
-  return { bars, lanes: Math.max(laneEnds.length, 1) }
-}
-
-function Timeline({
+function Calendar({
   windows,
   now,
 }: {
   windows: MaintenanceWindow[]
   now: number
 }) {
-  const t0 = startOfDay(now)
-  const t1 = t0 + TIMELINE_DAYS * DAY_MS
-  const { bars, lanes } = buildBars(windows, t0, t1, now)
-  const days = Array.from({ length: TIMELINE_DAYS }, (_, i) => new Date(t0 + i * DAY_MS))
-  const nowPct = ((now - t0) / (t1 - t0)) * 100
-  const laneH = 22
-  // Floor the track height so a single window doesn't leave the band looking
-  // like a collapsed strip.
-  const trackH = Math.max(lanes * laneH + 6, 56)
+  const weekStart = mondayOf(now)
+  const weekEnd = weekStart + 7 * DAY_MS
+  const days = Array.from({ length: 7 }, (_, i) => weekStart + i * DAY_MS)
+  const todayStart = startOfDay(now)
+
+  const shown = windows.filter((w) => {
+    const s = new Date(w.startsAt).getTime()
+    const e = new Date(w.endsAt).getTime()
+    return e > weekStart && s < weekEnd
+  })
 
   return (
     <Panel className="overflow-hidden rounded-2xl">
       <header className="flex items-baseline justify-between gap-4 border-b border-border bg-muted px-4 py-3.5">
-        <h2 className="text-base font-medium">Next {TIMELINE_DAYS} days</h2>
-        <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground tabular-nums">
-          {bars.length === 0
+        <h2 className="text-base font-medium">This week</h2>
+        <span className="font-mono text-[10px] text-muted-foreground tabular-nums">
+          {shown.length === 0
             ? 'Clear'
-            : `${bars.length} ${bars.length === 1 ? 'window' : 'windows'}`}
+            : `${shown.length} ${shown.length === 1 ? 'window' : 'windows'}`}
         </span>
       </header>
 
-      <div className="p-4">
-        <div className="relative" style={{ height: trackH }}>
-          {/* Day gridlines — the calendar the bars are read against. */}
-          <div
-            className="absolute inset-0 grid"
-            style={{ gridTemplateColumns: `repeat(${TIMELINE_DAYS}, minmax(0, 1fr))` }}
-            aria-hidden
-          >
-            {days.map((d, i) => (
-              <div
-                key={i}
-                className={cn(
-                  'border-l border-border/40 first:border-l-0',
-                  // Weekends read as slightly recessed, which makes "is this
-                  // downtime on a Saturday?" answerable without counting.
-                  (d.getDay() === 0 || d.getDay() === 6) && 'bg-muted/30',
-                )}
-              />
-            ))}
-          </div>
-
-          {bars.map((b) => {
-            // A 2h window inside a 14-day span is under 1% wide — far too
-            // narrow for text. Those get the label set beside the bar
-            // instead, flipped to the left half once the bar sits late in
-            // the fortnight so it never runs off the track.
-            const labelInside = b.widthPct >= 9
-            const flip = b.leftPct > 55
-            const tooltip = `${b.window.title} · ${b.window.monitorName} · ${formatDateTimeRange(
-              b.window.startsAt,
-              b.window.endsAt,
-            )}`
-            return (
-              <Fragment key={b.window.id}>
-                <div
-                  title={tooltip}
-                  className={cn(
-                    'absolute overflow-hidden border',
-                    b.active
-                      ? 'border-warning/70 bg-warning/35'
-                      : 'border-warning/50 bg-warning/15',
-                  )}
-                  style={{
-                    left: `${b.leftPct}%`,
-                    width: `${b.widthPct}%`,
-                    minWidth: 6,
-                    top: b.lane * laneH + 3,
-                    height: 18,
-                  }}
-                >
-                  {labelInside && (
-                    <span className="block truncate px-1.5 text-[10px] font-medium leading-[16px] text-warning">
-                      {b.window.title}
-                    </span>
-                  )}
-                </div>
-                {!labelInside && (
-                  <span
-                    title={tooltip}
-                    className="pointer-events-none absolute max-w-[60%] truncate text-[10px] leading-[18px] text-muted-foreground"
-                    style={{
-                      top: b.lane * laneH + 3,
-                      ...(flip
-                        ? { right: `calc(${100 - b.leftPct}% + 6px)` }
-                        : { left: `calc(${b.leftPct + b.widthPct}% + 6px)` }),
-                    }}
-                  >
-                    {b.window.title}
-                  </span>
-                )}
-              </Fragment>
+      <div className="grid grid-cols-2 gap-px bg-border/60 sm:grid-cols-7">
+        {days.map((dayStart) => {
+          const d = new Date(dayStart)
+          const isToday = dayStart === todayStart
+          const weekend = d.getDay() === 0 || d.getDay() === 6
+          const dayEnd = dayStart + DAY_MS
+          const dayWindows = shown
+            .filter((w) => {
+              const s = new Date(w.startsAt).getTime()
+              const e = new Date(w.endsAt).getTime()
+              return e > dayStart && s < dayEnd
+            })
+            .sort(
+              (a, b) =>
+                new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
             )
-          })}
+          const chips = dayWindows.slice(0, 3)
+          const overflow = dayWindows.length - chips.length
 
-          {/* "Now" hairline. */}
-          {nowPct >= 0 && nowPct <= 100 && (
+          return (
             <div
-              className="pointer-events-none absolute -top-1 bottom-0 w-px bg-primary"
-              style={{ left: `${nowPct}%` }}
-              aria-hidden
-            >
-              <div className="absolute -left-[2px] -top-[3px] h-[5px] w-[5px] rounded-full bg-primary" />
-            </div>
-          )}
-
-          {bars.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="bg-card px-2 text-xs text-muted-foreground">
-                No downtime scheduled in the next {TIMELINE_DAYS} days.
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div
-          className="mt-2 grid border-t border-border/40 pt-1.5"
-          style={{ gridTemplateColumns: `repeat(${TIMELINE_DAYS}, minmax(0, 1fr))` }}
-        >
-          {days.map((d, i) => (
-            <div
-              key={i}
+              key={dayStart}
               className={cn(
-                'text-center font-mono text-[10px] tabular-nums',
-                i === 0 ? 'font-semibold text-foreground' : 'text-muted-foreground',
+                'flex min-h-[120px] flex-col gap-1 bg-card p-2',
+                weekend && 'bg-muted/30',
               )}
             >
-              <span className="hidden sm:inline">
-                {d.toLocaleDateString(undefined, { weekday: 'narrow' })}
-              </span>
-              <span className="sm:ml-1">{d.getDate()}</span>
+              <div
+                className={cn(
+                  'flex items-baseline gap-1 font-mono text-[10px]',
+                  isToday ? 'font-semibold text-primary' : 'text-muted-foreground',
+                )}
+              >
+                <span>{d.toLocaleDateString(undefined, { weekday: 'short' })}</span>
+                <span className="tabular-nums">{d.getDate()}</span>
+                {isToday && (
+                  <span aria-hidden className="ml-auto size-1.5 rounded-full bg-primary" />
+                )}
+              </div>
+
+              {chips.map((w) => {
+                const s = new Date(w.startsAt).getTime()
+                const e = new Date(w.endsAt).getTime()
+                const liveNow = s <= now && e >= now
+                const segStart = Math.max(s, dayStart)
+                const segEnd = Math.min(e, dayEnd)
+                const timing =
+                  segStart === dayStart && segEnd === dayEnd
+                    ? 'all day'
+                    : segStart === dayStart
+                      ? `until ${formatTime(w.endsAt)}`
+                      : segEnd === dayEnd
+                        ? `from ${formatTime(w.startsAt)}`
+                        : `${formatTime(w.startsAt)}–${formatTime(w.endsAt)}`
+                const tooltip = `${w.title} · ${w.monitorName} · ${formatDateTimeRange(
+                  w.startsAt,
+                  w.endsAt,
+                )}`
+                return (
+                  <Link
+                    key={w.id}
+                    to={`/admin/monitors/${w.monitorId}`}
+                    title={tooltip}
+                    className={cn(
+                      'flex flex-col gap-px rounded-md border px-1.5 py-1 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/30',
+                      liveNow
+                        ? 'border-transparent bg-[var(--nav-active)] text-white'
+                        : 'border-border/70 bg-muted/60 text-foreground hover:bg-accent',
+                    )}
+                  >
+                    <span className="truncate text-[11px] font-medium leading-tight">
+                      {w.title}
+                    </span>
+                    <span
+                      className={cn(
+                        'font-mono text-[9px] tabular-nums',
+                        liveNow ? 'text-white/70' : 'text-muted-foreground',
+                      )}
+                    >
+                      {timing}
+                    </span>
+                  </Link>
+                )
+              })}
+              {overflow > 0 && (
+                <span className="px-1.5 text-[10px] tabular-nums text-muted-foreground">
+                  +{overflow} more
+                </span>
+              )}
             </div>
-          ))}
-        </div>
+          )
+        })}
       </div>
+
+      {shown.length === 0 && (
+        <p className="border-t border-border/60 px-4 py-2.5 text-xs text-muted-foreground">
+          No downtime scheduled this week.
+        </p>
+      )}
     </Panel>
   )
 }
@@ -479,7 +355,7 @@ function WindowList({
     <Panel className="overflow-hidden rounded-2xl">
       <header className="flex items-baseline justify-between gap-4 border-b border-border bg-muted px-4 py-3.5">
         <h2 className="text-base font-medium">{label}</h2>
-        <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground tabular-nums">
+        <span className="font-mono text-[10px] text-muted-foreground tabular-nums">
           {count}
         </span>
       </header>
@@ -532,7 +408,7 @@ function WindowRow({
           {active && <Badge variant="warning">In progress</Badge>}
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] text-muted-foreground">
           <span className="tabular-nums">
             {formatDateTimeRange(w.startsAt, w.endsAt)}
           </span>
@@ -573,50 +449,6 @@ function WindowRow({
       >
         <Icon icon={Trash} className="h-3.5 w-3.5" />
       </Button>
-    </div>
-  )
-}
-
-function StatCell({
-  label,
-  value,
-  sub,
-  tone = 'default',
-  className,
-}: {
-  label: string
-  value: string
-  sub: string
-  tone?: 'default' | 'success' | 'destructive' | 'warn' | 'muted'
-  className?: string
-}) {
-  const valueTone =
-    tone === 'success'
-      ? 'text-success-text'
-      : tone === 'destructive'
-        ? 'text-destructive'
-        : tone === 'warn'
-          ? 'text-warning'
-          : tone === 'muted'
-            ? 'text-muted-foreground'
-            : 'text-foreground'
-
-  return (
-    <div className={cn('flex flex-col gap-2.5 p-4 sm:p-5', className)}>
-      <div className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-        {label}
-      </div>
-      <div className="flex items-baseline gap-1.5">
-        <span
-          className={cn(
-            'text-2xl font-semibold tracking-tight tabular-nums',
-            valueTone,
-          )}
-        >
-          {value}
-        </span>
-      </div>
-      <div className="text-xs text-muted-foreground line-clamp-1">{sub}</div>
     </div>
   )
 }
