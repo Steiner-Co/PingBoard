@@ -46,6 +46,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { ScreenHeader } from '@/components/screen'
+import { usePrimaryAction } from '@/contexts/primary-action'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import type { Monitor, MonitorWithLatest, StatusPage, Theme } from '@/types'
@@ -74,6 +76,12 @@ export function StatusPagesPage() {
   const confirm = useConfirm()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
+
+  const { setAction: setPrimaryAction } = usePrimaryAction()
+  useEffect(() => {
+    setPrimaryAction({ label: 'Create page', onClick: () => setOpen(true) })
+    return () => setPrimaryAction(null)
+  }, [setPrimaryAction])
 
   const pages = useQuery({
     queryKey: ['pages'],
@@ -132,8 +140,6 @@ export function StatusPagesPage() {
         .sort((a, b) => Number(a.paused) - Number(b.paused))
     : []
 
-  const protectedCount = pageList.filter((p) => p.passwordSet).length
-
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/api/admin/pages/${id}`),
     onSuccess: () => {
@@ -144,26 +150,39 @@ export function StatusPagesPage() {
       toast.error(err instanceof Error ? err.message : 'Failed to delete'),
   })
 
-  return (
-    <div className="px-4 lg:px-6 flex flex-col gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Status pages</h1>
-          <p className="text-sm text-muted-foreground">
-            Public dashboards you can share with users
-          </p>
-        </div>
-        <Button onClick={() => setOpen(true)} className="gap-2 self-start sm:self-auto">
-          <Icon icon={PlusCircle} className="h-4 w-4" />
-          Create page
-        </Button>
-      </div>
+  const header = (
+    <ScreenHeader
+      title="Status pages"
+      description="Public dashboards you can share with users"
+    />
+  )
 
-      {pages.isError ? (
+  const dialogs = <PageDialog open={open} onClose={() => setOpen(false)} />
+
+  if (pages.isError) {
+    return (
+      <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
+        {header}
         <QueryError subject="status pages" onRetry={() => void pages.refetch()} />
-      ) : pages.isLoading ? (
+        {dialogs}
+      </div>
+    )
+  }
+
+  if (pages.isLoading) {
+    return (
+      <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
+        {header}
         <PagesSkeleton />
-      ) : pageList.length === 0 ? (
+        {dialogs}
+      </div>
+    )
+  }
+
+  if (pageList.length === 0) {
+    return (
+      <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
+        {header}
         <EmptyState
           icon={Globe}
           title="No status pages yet"
@@ -175,45 +194,45 @@ export function StatusPagesPage() {
             </Button>
           }
         />
-      ) : (
-        <>
-          <Panel className="grid grid-cols-2 lg:divide-x divide-border/60">
-            <StatCell
-              label="Status pages"
-              value={String(pageList.length)}
-              sub={
-                protectedCount === 0
-                  ? 'All publicly reachable'
-                  : `${pageList.length - protectedCount} public · ${protectedCount} protected`
-              }
-              className="border-r border-border/60 lg:border-r-0"
-            />
-            <StatCell
-              label="Monitors published"
-              value={coverageReady ? String(publishedIds.size) : '—'}
-              valueSuffix={coverageReady ? `/ ${allMonitors.length}` : undefined}
-              sub="Listed on at least one page"
-            />
-          </Panel>
+        {dialogs}
+      </div>
+    )
+  }
 
-          {coverageReady && unpublished.length > 0 && (
-            <CoverageBanner
-              unpublished={unpublished}
-              pages={pageList}
-              onAddToPage={(page, monitorId) =>
-                navigate(`/admin/pages/${page.id}/edit?add=${monitorId}`)
-              }
-            />
-          )}
+  return (
+    <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
+      {header}
 
-          <Panel>
-            <header className="flex items-baseline justify-between gap-4 border-b border-border/60 px-4 py-2.5">
-              <h2 className="text-sm font-medium">Pages</h2>
-              <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground tabular-nums">
-                {pageList.length} total
-              </span>
-            </header>
-            <div className="divide-y divide-border/60">
+      {coverageReady && unpublished.length > 0 && (
+        <CoverageBanner
+          unpublished={unpublished}
+          pages={pageList}
+          onAddToPage={(page, monitorId) =>
+            navigate(`/admin/pages/${page.id}/edit?add=${monitorId}`)
+          }
+        />
+      )}
+
+      <Panel className="overflow-hidden rounded-2xl">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] table-fixed border-collapse">
+            <thead>
+              <tr className="border-b border-border bg-muted">
+                <th scope="col" className="px-6 py-4 text-left text-base font-medium">
+                  Page
+                </th>
+                <th scope="col" className="w-[12%] px-6 py-4 text-left text-base font-medium">
+                  Monitors
+                </th>
+                <th scope="col" className="w-[24%] px-6 py-4 text-left text-base font-medium">
+                  Health
+                </th>
+                <th scope="col" className="w-12 px-2 py-4">
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
               {pageList.map((p) => (
                 <PageRow
                   key={p.id}
@@ -231,92 +250,33 @@ export function StatusPagesPage() {
                   }}
                 />
               ))}
-            </div>
-          </Panel>
+            </tbody>
+          </table>
+        </div>
+      </Panel>
 
-        </>
-      )}
-
-      <PageDialog open={open} onClose={() => setOpen(false)} />
-    </div>
-  )
-}
-
-function StatCell({
-  label,
-  value,
-  valueSuffix,
-  sub,
-  tone = 'default',
-  className,
-}: {
-  label: string
-  value: string
-  valueSuffix?: string
-  sub: string
-  tone?: 'default' | 'success' | 'destructive' | 'warn' | 'muted'
-  className?: string
-}) {
-  const valueTone =
-    tone === 'success'
-      ? 'text-success-text'
-      : tone === 'destructive'
-        ? 'text-destructive'
-        : tone === 'warn'
-          ? 'text-warning'
-          : tone === 'muted'
-            ? 'text-muted-foreground'
-            : 'text-foreground'
-
-  return (
-    <div className={cn('flex flex-col gap-2.5 p-4 sm:p-5', className)}>
-      <div className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-        {label}
-      </div>
-      <div className="flex items-baseline gap-1.5">
-        <span
-          className={cn(
-            'text-2xl font-semibold tracking-tight tabular-nums',
-            valueTone,
-          )}
-        >
-          {value}
-        </span>
-        {valueSuffix && (
-          <span className="text-sm font-medium text-muted-foreground tabular-nums">
-            {valueSuffix}
-          </span>
-        )}
-      </div>
-      <div className="text-xs text-muted-foreground line-clamp-1">{sub}</div>
+      {dialogs}
     </div>
   )
 }
 
 function PagesSkeleton() {
   return (
-    <>
-      <Panel className="grid grid-cols-2 lg:divide-x divide-border/60">
-        {[0, 1].map((i) => (
-          <div key={i} className="flex flex-col gap-2.5 p-4 sm:p-5">
-            <Skeleton className="h-3 w-24" />
-            <Skeleton className="h-8 w-16" />
-            <Skeleton className="h-3 w-32" />
+    <Panel className="overflow-hidden rounded-2xl">
+      {[0, 1, 2].map((i) => (
+        <div
+          key={i}
+          className="flex items-center gap-4 border-b border-border/60 p-6 last:border-b-0"
+        >
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-6 w-64 max-w-full" />
           </div>
-        ))}
-      </Panel>
-      <Panel>
-        <div className="divide-y divide-border/60">
-          {[0, 1].map((i) => (
-            <div key={i} className="space-y-2 p-4">
-              <Skeleton className="h-4 w-40" />
-              <Skeleton className="h-6 w-64" />
-              <Skeleton className="h-3 w-48" />
-            </div>
-          ))}
+          <Skeleton className="h-5 w-10" />
+          <Skeleton className="h-5 w-24" />
         </div>
-      </Panel>
-    </>
+      ))}
+    </Panel>
   )
 }
 
@@ -332,35 +292,40 @@ function PageRow({
   const count = page.monitorCount ?? 0
 
   return (
-    <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-      <div className="min-w-0 flex-1 space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-medium truncate">{page.title}</span>
+    <tr className="relative border-b border-border transition-colors last:border-b-0 hover:bg-muted/40">
+      <td className="px-6 py-5">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+          <Link
+            to={`/admin/pages/${page.id}/edit`}
+            className="inline-block max-w-full truncate text-lg font-medium tracking-tight outline-none after:absolute after:inset-0 after:content-[''] focus-visible:ring-2 focus-visible:ring-ring/30"
+          >
+            {page.title}
+          </Link>
           {page.passwordSet && (
-            <Badge variant="warning" className="gap-1">
-              <Icon
-                icon={LockKey}
-                className="h-3.5 w-3.5"
-              />
+            // Above the row's stretched title link.
+            <Badge variant="warning" className="relative z-10 gap-1">
+              <Icon icon={LockKey} className="h-3.5 w-3.5" />
               Password
             </Badge>
           )}
         </div>
-
-        <PublicUrl slug={page.slug} />
-
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-          <span className={cn('tabular-nums', count === 0 && 'text-warning')}>
-            {count === 0 ? 'No monitors' : `${count} ${count === 1 ? 'monitor' : 'monitors'}`}
-          </span>
-          <span aria-hidden>·</span>
-          <span>Theme {page.theme}</span>
-          <span aria-hidden>·</span>
-          <span>{page.passwordSet ? 'Protected' : 'Public'}</span>
+        <div className="mt-1.5">
+          <PublicUrl slug={page.slug} />
         </div>
-
-        {health && count > 0 && (
-          <div className="flex items-center gap-2 text-xs">
+      </td>
+      <td className="px-6 py-5">
+        <span
+          className={cn(
+            'text-lg font-medium tabular-nums',
+            count === 0 && 'text-warning',
+          )}
+        >
+          {count}
+        </span>
+      </td>
+      <td className="px-6 py-5">
+        {health && count > 0 ? (
+          <span className="inline-flex items-center gap-2 text-sm tabular-nums text-muted-foreground">
             <span
               aria-hidden
               className={cn(
@@ -374,56 +339,68 @@ function PageRow({
                       : 'bg-muted-foreground/50',
               )}
             />
-            <span className="tabular-nums text-muted-foreground">
-              {health.up} up
-              {health.down > 0 && (
-                <span className="text-destructive"> · {health.down} down</span>
-              )}
-            </span>
-          </div>
+            {health.up} up
+            {health.down > 0 && (
+              <span className="text-destructive">· {health.down} down</span>
+            )}
+          </span>
+        ) : (
+          <span className="text-lg text-muted-foreground">—</span>
         )}
-      </div>
+      </td>
+      <td className="w-12 px-2 py-5 text-right">
+        <RowActions page={page} onDelete={onDelete} />
+      </td>
+    </tr>
+  )
+}
 
-      <div className="flex shrink-0 items-center gap-2">
-        <Button size="sm" variant="outline" asChild>
-          <a href={`/${page.slug}`} target="_blank" rel="noreferrer">
-            <Icon icon={ArrowCircleUpRight} className="h-3.5 w-3.5" />
-            View
-          </a>
-        </Button>
-        <Button size="sm" variant="outline" asChild>
-          <Link to={`/admin/pages/${page.id}/edit`}>
-            <Icon icon={PencilSimple} className="h-3.5 w-3.5" />
-            Edit
-          </Link>
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              size="sm"
-              variant="ghost"
-              aria-label={`More actions for ${page.title}`}
-            >
-              <Icon
-                icon={DotsThreeOutlineVertical}
-                className="h-3.5 w-3.5"
-              />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem variant="destructive" onSelect={onDelete}>
-              <Icon icon={Trash} className="h-3.5 w-3.5" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </div>
+function RowActions({
+  page,
+  onDelete,
+}: {
+  page: StatusPage
+  onDelete: () => void
+}) {
+  const navigate = useNavigate()
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label={`Actions for ${page.title}`}
+          // Above the row's stretched title link.
+          className="relative z-10 inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none transition-[color,background-color] duration-150 ease-out hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30 data-[state=open]:bg-muted"
+        >
+          <Icon icon={DotsThreeOutlineVertical} className="size-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuItem
+          onSelect={() => window.open(`/${page.slug}`, '_blank', 'noopener')}
+        >
+          <Icon icon={ArrowCircleUpRight} className="size-3.5" />
+          View public page
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => navigate(`/admin/pages/${page.id}/edit`)}
+        >
+          <Icon icon={PencilSimple} className="size-3.5" />
+          Edit
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+          <Icon icon={Trash} className="size-3.5" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
 // The public URL is the whole point of a status page, so it's shown in full
-// and copies on click rather than hiding behind a "View" button.
+// and copies on click. `z-10` lifts it above the row's stretched title link.
 function PublicUrl({ slug }: { slug: string }) {
   const [copied, setCopied] = useState(false)
   const origin = typeof window === 'undefined' ? '' : window.location.origin
@@ -438,7 +415,7 @@ function PublicUrl({ slug }: { slug: string }) {
         setTimeout(() => setCopied(false), 1500)
       }}
       aria-label={`Copy public URL for /${slug}`}
-      className="group inline-flex max-w-full items-center gap-2 rounded-md border border-border/70 bg-muted/40 px-2 py-1 font-mono text-xs transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      className="group relative z-10 inline-flex max-w-full items-center gap-2 rounded-md border border-border/70 bg-muted/40 px-2 py-1 font-mono text-xs transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
       <span className="truncate text-muted-foreground">{origin}</span>
       <span className="-ml-2 truncate font-medium text-foreground">/{slug}</span>
@@ -464,13 +441,13 @@ function CoverageBanner({
   onAddToPage: (page: StatusPage, monitorId: string) => void
 }) {
   return (
-    <Panel className="border-warning/40">
-      <header className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2.5">
-        <h2 className="flex items-center gap-2 text-sm font-medium text-warning">
-          <Icon icon={Warning} className="size-3.5 shrink-0" />
+    <Panel className="overflow-hidden rounded-2xl border-warning/40">
+      <header className="flex items-baseline justify-between gap-3 border-b border-border bg-muted px-4 py-3.5">
+        <h2 className="flex items-center gap-2 text-base font-medium">
+          <Icon icon={Warning} className="size-4 shrink-0 text-warning" />
           Hidden monitors
         </h2>
-        <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-warning tabular-nums">
+        <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground whitespace-nowrap tabular-nums">
           {unpublished.length} not on any page
         </span>
       </header>
