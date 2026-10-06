@@ -323,13 +323,15 @@ export function IncidentsPage() {
             <Panel className="flex flex-col overflow-hidden rounded-2xl lg:col-span-3">
               <header className="flex items-baseline justify-between gap-3 border-b border-border bg-muted px-4 py-3.5">
                 <h2 className="text-base font-medium">Incident frequency</h2>
-                <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground whitespace-nowrap">
+                <span className="font-mono text-[10px] text-muted-foreground whitespace-nowrap">
                   {chartWindowLabel}
                 </span>
               </header>
-              {/* Grows to match the breakdown beside it, so a tall offender
-                  list can't leave a dead void under a fixed-height chart. */}
-              <div className="min-h-[170px] flex-1 px-2 pt-3 pb-1">
+              {/* Both panels share the row height; the chart drops its fixed
+                  aspect and fills whatever the offenders list needs, so the
+                  pair stays level with no void above the bars. The offenders
+                  list itself is height-capped with scroll. */}
+              <div className="flex-1 px-2 pt-3 pb-1">
                 {stats.windowCount === 0 ? (
                   <div className="flex h-full min-h-[160px] items-center justify-center px-4 text-center text-xs text-muted-foreground">
                     No incidents in this window — nothing to plot.
@@ -338,8 +340,8 @@ export function IncidentsPage() {
                   <BarChart
                     data={stats.buckets}
                     xDataKey="label"
-                    aspectRatio="3 / 1"
-                    className="min-h-[160px]"
+                    aspectRatio=""
+                    className="h-full min-h-[160px]"
                   >
                     <Grid horizontal />
                     <Bar dataKey="count" fill="var(--destructive)" />
@@ -362,11 +364,11 @@ export function IncidentsPage() {
             <Panel className="overflow-hidden rounded-2xl lg:col-span-2">
               <header className="flex items-baseline justify-between gap-3 border-b border-border bg-muted px-4 py-3.5">
                 <h2 className="text-base font-medium">Most affected</h2>
-                <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground whitespace-nowrap">
+                <span className="font-mono text-[10px] text-muted-foreground whitespace-nowrap">
                   By incidents
                 </span>
               </header>
-              <div className="divide-y divide-border/60">
+              <div className="max-h-[340px] divide-y divide-border/60 overflow-y-auto">
                 {stats.offenders.map((o) => (
                   <OffenderRow key={o.monitorId} offender={o} max={stats.maxOffenderCount} />
                 ))}
@@ -432,8 +434,8 @@ function OffenderRow({ offender, max }: { offender: Offender; max: number }) {
         />
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-        <span>{offender.monitorType}</span>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] text-muted-foreground">
+        <span>{offender.monitorType.toUpperCase()}</span>
         <span aria-hidden>·</span>
         <span className="tabular-nums normal-case">
           {formatDuration(offender.downtimeMs)} down
@@ -509,8 +511,8 @@ function Row({ incident }: { incident: IncidentRow }) {
         >
           {incident.monitorName}
         </Link>
-        <div className="mt-0.5 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-          {incident.monitorType}
+        <div className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+          {incident.monitorType.toUpperCase()}
         </div>
       </TableCell>
       <TableCell className="px-4 py-4">
