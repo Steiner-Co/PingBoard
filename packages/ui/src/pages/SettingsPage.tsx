@@ -6,9 +6,17 @@ import { ALLOWED_RETENTION_DAYS } from '@pingboard/shared'
 import { Button } from '@/components/ui/button'
 import { Icon } from '@/components/ui/icon'
 import { SignOut } from "@phosphor-icons/react/dist/icons/SignOut"
+import { Info } from "@phosphor-icons/react/dist/icons/Info"
 import { FieldInput } from '@/components/ui/field'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -19,6 +27,7 @@ import {
 import { useConfirm } from '@/components/confirm-provider'
 import { Panel } from '@/components/panel'
 import { QueryError } from '@/components/QueryError'
+import { ScreenHeader } from '@/components/screen'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api } from '@/lib/api'
 import { useAuth } from '@/contexts/auth'
@@ -45,29 +54,67 @@ const PASSWORD_SENTINEL = '__set__'
 
 export function SettingsPage() {
   const { user } = useAuth()
+  const [instanceOpen, setInstanceOpen] = useState(false)
 
   return (
     <div className="px-4 lg:px-6 pb-10 flex flex-col gap-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Instance-wide preferences
-        </p>
-      </header>
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="flex min-w-0 flex-col gap-6">
-          <AccountCard email={user?.email ?? ''} />
-          <RetentionCard />
-          <ApiTokensCard />
-          <SmtpCard />
-        </div>
-        <aside className="flex min-w-0 flex-col gap-4">
-          <InstanceCard />
-        </aside>
+      <ScreenHeader
+        title="Settings"
+        description="Instance-wide preferences"
+        actions={
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setInstanceOpen(true)}
+          >
+            <Icon icon={Info} className="size-4" />
+            Instance
+          </Button>
+        }
+      />
+      <div className="flex min-w-0 flex-col gap-6">
+        <AccountCard email={user?.email ?? ''} />
+        <RetentionCard />
+        <ApiTokensCard />
+        <SmtpCard />
       </div>
+      <InstanceDialog open={instanceOpen} onClose={() => setInstanceOpen(false)} />
     </div>
   )
 }
+
+/**
+ * Section card in the shared screen language — muted header band with the
+ * title, a description row under it, then the body. Same shape as the
+ * warning panels on Status pages / Channels.
+ */
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: string
+  description?: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <Panel className="overflow-hidden rounded-2xl">
+      <header className="border-b border-border bg-muted px-4 py-3.5">
+        <h2 className="text-base font-medium">{title}</h2>
+      </header>
+      {description && (
+        <p className="border-b border-border/60 px-4 py-2.5 text-xs text-muted-foreground">
+          {description}
+        </p>
+      )}
+      <div className="px-4 py-4 sm:px-5">{children}</div>
+    </Panel>
+  )
+}
+
+// Primary in-page actions wear the shell's lime, same as the channel dialog.
+const LIME_BUTTON =
+  'border-transparent bg-[var(--lime)] font-semibold text-[var(--lime-ink)] hover:bg-[var(--lime-hover)]'
 
 interface InstanceInfo {
   version: string
@@ -103,9 +150,11 @@ function formatBytes(bytes: number): string {
 
 /**
  * "How big is this getting?" is the question a self-hoster has next to the
- * retention setting, and nothing else in the UI answers it.
+ * retention setting, and nothing else in the UI answers it. Rarely needed,
+ * so it lives in a modal behind the header's Instance button rather than a
+ * permanent rail.
  */
-function InstanceCard() {
+function InstanceDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const query = useQuery({
     queryKey: ['instance'],
     queryFn: () => api.get<InstanceInfo>('/api/admin/instance'),
@@ -138,48 +187,53 @@ function InstanceCard() {
     : []
 
   return (
-    <Panel>
-      <header className="border-b border-border/60 px-4 py-2.5">
-        <h2 className="text-sm font-medium">Instance</h2>
-      </header>
-      {query.isError ? (
-        <p className="px-4 py-5 text-xs text-muted-foreground">
-          Couldn't load instance details.
-        </p>
-      ) : !info ? (
-        <div className="space-y-2 p-4">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-4 w-full" />
-          ))}
-        </div>
-      ) : (
-        <dl className="divide-y divide-border/60">
-          {rows.map(([label, value]) => (
-            <div
-              key={label}
-              className="flex items-baseline justify-between gap-3 px-4 py-2"
-            >
-              <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-                {label}
-              </dt>
-              <dd className="truncate text-xs tabular-nums" title={value}>
-                {value}
-                {label === 'Version' && updateLink ? (
-                  <a
-                    href={updateLink.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="ml-1.5 text-primary-text hover:underline"
-                  >
-                    v{updateLink.latest} available →
-                  </a>
-                ) : null}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      )}
-    </Panel>
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Instance</DialogTitle>
+          <DialogDescription>
+            Version, storage and scale of this PingBoard install.
+          </DialogDescription>
+        </DialogHeader>
+        {query.isError ? (
+          <p className="py-1 text-xs text-muted-foreground">
+            Couldn't load instance details.
+          </p>
+        ) : !info ? (
+          <div className="space-y-2 py-1">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-4 w-full" />
+            ))}
+          </div>
+        ) : (
+          <dl className="divide-y divide-border/60">
+            {rows.map(([label, value]) => (
+              <div
+                key={label}
+                className="flex items-baseline justify-between gap-3 py-2"
+              >
+                <dt className="shrink-0 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                  {label}
+                </dt>
+                <dd className="truncate text-xs tabular-nums" title={value}>
+                  {value}
+                  {label === 'Version' && updateLink ? (
+                    <a
+                      href={updateLink.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="ml-1.5 text-primary-text hover:underline"
+                    >
+                      v{updateLink.latest} available →
+                    </a>
+                  ) : null}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -220,88 +274,81 @@ function AccountCard({ email }: { email: string }) {
   }
 
   return (
-    <Panel>
-      <header className="space-y-0.5 border-b border-border/60 px-4 py-2.5">
-        <h2 className="text-sm font-medium">Account</h2>
-        <p className="text-xs text-muted-foreground">
-          You're signed in as the admin.
-        </p>
-      </header>
-      <div className="px-4 py-4">
-        <div className="text-sm mb-6">
-          <span className="text-muted-foreground">Email:</span>{' '}
-          <span className="font-mono">{email}</span>
-        </div>
-
-        <form onSubmit={submit} className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="current-password">Current password</Label>
-              <FieldInput
-                id="current-password"
-                type="password"
-                autoComplete="current-password"
-                value={current}
-                onChange={(e) => setCurrent(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-password">New password</Label>
-              <FieldInput
-                id="new-password"
-                type="password"
-                autoComplete="new-password"
-                value={next}
-                onChange={(e) => setNext(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirm</Label>
-              <FieldInput
-                id="confirm-password"
-                type="password"
-                autoComplete="new-password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-              />
-            </div>
-          </div>
-          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-          {success && (
-            <p className="text-sm text-success-text">Password updated.</p>
-          )}
-          <div className="flex items-center gap-3">
-            <Button
-              type="submit"
-              disabled={change.isPending || !current || !next || !confirm}
-            >
-              {change.isPending ? 'Updating…' : 'Change password'}
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              Forgot it? Run{' '}
-              <code className="px-1 py-0.5 bg-muted rounded text-foreground">
-                docker exec pingboard pingboard reset-password {email}
-              </code>{' '}
-              from the host.
-            </p>
-          </div>
-        </form>
-        <div className="mt-4 border-t border-border/60 pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={async () => {
-              await logout()
-              navigate('/login')
-            }}
-            className="gap-2"
-          >
-            <Icon icon={SignOut} className="size-4" />
-            Sign out
-          </Button>
-        </div>
+    <Section title="Account" description="You're signed in as the admin.">
+      <div className="mb-6 text-sm">
+        <span className="text-muted-foreground">Email:</span>{' '}
+        <span className="font-mono">{email}</span>
       </div>
-    </Panel>
+
+      <form onSubmit={submit} className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="space-y-2">
+            <Label htmlFor="current-password">Current password</Label>
+            <FieldInput
+              id="current-password"
+              type="password"
+              autoComplete="current-password"
+              value={current}
+              onChange={(e) => setCurrent(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="new-password">New password</Label>
+            <FieldInput
+              id="new-password"
+              type="password"
+              autoComplete="new-password"
+              value={next}
+              onChange={(e) => setNext(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirm-password">Confirm</Label>
+            <FieldInput
+              id="confirm-password"
+              type="password"
+              autoComplete="new-password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+            />
+          </div>
+        </div>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+        {success && (
+          <p className="text-sm text-success-text">Password updated.</p>
+        )}
+        <div className="flex items-center gap-3">
+          <Button
+            type="submit"
+            disabled={change.isPending || !current || !next || !confirm}
+            className={LIME_BUTTON}
+          >
+            {change.isPending ? 'Updating…' : 'Change password'}
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Forgot it? Run{' '}
+            <code className="px-1 py-0.5 bg-muted rounded text-foreground">
+              docker exec pingboard pingboard reset-password {email}
+            </code>{' '}
+            from the host.
+          </p>
+        </div>
+      </form>
+      <div className="mt-4 border-t border-border/60 pt-4">
+        <Button
+          type="button"
+          variant="destructive"
+          onClick={async () => {
+            await logout()
+            navigate('/login')
+          }}
+          className="gap-2"
+        >
+          <Icon icon={SignOut} className="size-4" />
+          Sign out
+        </Button>
+      </div>
+    </Section>
   )
 }
 
@@ -345,53 +392,47 @@ function RetentionCard() {
   }
 
   return (
-    <Panel>
-      <header className="space-y-0.5 border-b border-border/60 px-4 py-2.5">
-        <h2 className="text-sm font-medium">Retention</h2>
-        <p className="text-xs text-muted-foreground">
-          Heartbeats older than this are aggregated into daily stats; raw rows
-          are deleted. Aggregated history is kept forever.
-        </p>
-      </header>
-      <div className="px-4 py-4">
-        <div className="flex items-center gap-3">
-          <Label htmlFor="retention-days" className="shrink-0">
-            Keep raw heartbeats for
-          </Label>
-          <Select
-            value={days != null ? String(days) : undefined}
-            onValueChange={(v) => void change(Number(v))}
-            disabled={query.isLoading || query.isError || update.isPending}
-          >
-            <SelectTrigger id="retention-days" className="w-[180px]">
-              <SelectValue placeholder={query.isError ? 'Unavailable' : 'Loading…'} />
-            </SelectTrigger>
-            <SelectContent>
-              {ALLOWED_RETENTION_DAYS.map((d) => (
-                <SelectItem key={d} value={String(d)}>
-                  {d} days
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {update.isPending && (
-            <span className="text-xs text-muted-foreground">Saving…</span>
-          )}
-        </div>
-        {query.isError && (
-          <p className="mt-3 text-xs text-muted-foreground">
-            Couldn't load the current retention.{' '}
-            <button
-              type="button"
-              onClick={() => query.refetch()}
-              className="text-foreground underline underline-offset-4"
-            >
-              Try again
-            </button>
-          </p>
+    <Section
+      title="Retention"
+      description="Heartbeats older than this are aggregated into daily stats; raw rows are deleted. Aggregated history is kept forever."
+    >
+      <div className="flex items-center gap-3">
+        <Label htmlFor="retention-days" className="shrink-0">
+          Keep raw heartbeats for
+        </Label>
+        <Select
+          value={days != null ? String(days) : undefined}
+          onValueChange={(v) => void change(Number(v))}
+          disabled={query.isLoading || query.isError || update.isPending}
+        >
+          <SelectTrigger id="retention-days" className="w-[180px]">
+            <SelectValue placeholder={query.isError ? 'Unavailable' : 'Loading…'} />
+          </SelectTrigger>
+          <SelectContent>
+            {ALLOWED_RETENTION_DAYS.map((d) => (
+              <SelectItem key={d} value={String(d)}>
+                {d} days
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {update.isPending && (
+          <span className="text-xs text-muted-foreground">Saving…</span>
         )}
       </div>
-    </Panel>
+      {query.isError && (
+        <p className="mt-3 text-xs text-muted-foreground">
+          Couldn't load the current retention.{' '}
+          <button
+            type="button"
+            onClick={() => query.refetch()}
+            className="text-foreground underline underline-offset-4"
+          >
+            Try again
+          </button>
+        </p>
+      )}
+    </Section>
   )
 }
 
@@ -442,14 +483,9 @@ function SmtpCard() {
 
   if (query.isError) {
     return (
-      <Panel>
-        <header className="border-b border-border/60 px-4 py-2.5">
-          <h2 className="text-sm font-medium">Email defaults (SMTP)</h2>
-        </header>
-        <div className="px-4 py-4">
-          <QueryError subject="SMTP settings" onRetry={() => query.refetch()} />
-        </div>
-      </Panel>
+      <Section title="Email defaults (SMTP)">
+        <QueryError subject="SMTP settings" onRetry={() => query.refetch()} />
+      </Section>
     )
   }
 
@@ -497,143 +533,141 @@ function SmtpCard() {
   }
 
   return (
-    <Panel>
-      <header className="space-y-0.5 border-b border-border/60 px-4 py-2.5">
-        <h2 className="text-sm font-medium">Email defaults (SMTP)</h2>
-        <p className="text-xs text-muted-foreground">
-          Used when an email channel doesn't specify its own SMTP credentials.
-          Leaving a field blank clears it.
-        </p>
-      </header>
-      <div className="px-4 py-4">
-        <form onSubmit={submit} className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="smtp-host">Host</Label>
-              <FieldInput
-                id="smtp-host"
-                value={form.host}
-                onChange={(e) => set('host')(e.target.value)}
-                placeholder="smtp.example.com"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="smtp-port">Port</Label>
-              <FieldInput
-                id="smtp-port"
-                type="number"
-                value={form.port}
-                onChange={(e) => set('port')(e.target.value)}
-                placeholder="587"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="smtp-user">Username</Label>
-              <FieldInput
-                id="smtp-user"
-                value={form.user}
-                onChange={(e) => set('user')(e.target.value)}
-                autoComplete="off"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="smtp-pass">Password</Label>
-              {revealPassword ? (
-                <div className="space-y-1.5">
-                  <FieldInput
-                    id="smtp-pass"
-                    type="password"
-                    value={form.pass}
-                    onChange={(e) => set('pass')(e.target.value)}
-                    autoComplete="new-password"
-                    autoFocus={query.data?.smtp.passwordSet}
-                  />
-                  {hadPassword && (
-                    <div className="flex flex-wrap items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRevealPassword(false)
-                          setForm((f) => ({ ...f, pass: '' }))
-                          setTouched(true)
-                        }}
-                        className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-3"
-                      >
-                        Cancel password change
-                      </button>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const ok = await confirm({
-                            title: 'Remove the saved SMTP password?',
-                            description:
-                              'Email channels that fall back to these defaults will fail to authenticate until you set a new password.',
-                            confirmLabel: 'Remove password',
-                            destructive: true,
-                          })
-                          if (!ok) return
-                          setForm((f) => ({ ...f, pass: '' }))
-                          update.mutate(payloadWith(''))
-                        }}
-                        className="text-xs text-destructive underline underline-offset-3 hover:text-destructive/80"
-                      >
-                        Remove saved password
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <FieldInput
-                    value="•••••••• (saved)"
-                    readOnly
-                    className="font-mono text-xs"
-                    aria-label="Password is set"
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setRevealPassword(true)
-                      setTouched(true)
-                    }}
-                  >
-                    Change
-                  </Button>
-                </div>
-              )}
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="smtp-from">From address</Label>
-              <FieldInput
-                id="smtp-from"
-                type="email"
-                value={form.from}
-                onChange={(e) => set('from')(e.target.value)}
-                placeholder="alerts@your.org"
-              />
-            </div>
-          </div>
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox
-              checked={form.secure}
-              onCheckedChange={(checked) => set('secure')(checked === true)}
+    <Section
+      title="Email defaults (SMTP)"
+      description="Used when an email channel doesn't specify its own SMTP credentials. Leaving a field blank clears it."
+    >
+      <form onSubmit={submit} className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="smtp-host">Host</Label>
+            <FieldInput
+              id="smtp-host"
+              value={form.host}
+              onChange={(e) => set('host')(e.target.value)}
+              placeholder="smtp.example.com"
             />
-            Use TLS (auto-enabled for port 465)
-          </label>
-          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-          {success && (
-            <p className="text-sm text-success-text">SMTP defaults saved.</p>
-          )}
-          <div>
-            <Button type="submit" disabled={!touched || update.isPending}>
-              {update.isPending ? 'Saving…' : 'Save defaults'}
-            </Button>
           </div>
-        </form>
-      </div>
-    </Panel>
+          <div className="space-y-2">
+            <Label htmlFor="smtp-port">Port</Label>
+            <FieldInput
+              id="smtp-port"
+              type="number"
+              value={form.port}
+              onChange={(e) => set('port')(e.target.value)}
+              placeholder="587"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="smtp-user">Username</Label>
+            <FieldInput
+              id="smtp-user"
+              value={form.user}
+              onChange={(e) => set('user')(e.target.value)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="smtp-pass">Password</Label>
+            {revealPassword ? (
+              <div className="space-y-1.5">
+                <FieldInput
+                  id="smtp-pass"
+                  type="password"
+                  value={form.pass}
+                  onChange={(e) => set('pass')(e.target.value)}
+                  autoComplete="new-password"
+                  autoFocus={query.data?.smtp.passwordSet}
+                />
+                {hadPassword && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRevealPassword(false)
+                        setForm((f) => ({ ...f, pass: '' }))
+                        setTouched(true)
+                      }}
+                      className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-3"
+                    >
+                      Cancel password change
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: 'Remove the saved SMTP password?',
+                          description:
+                            'Email channels that fall back to these defaults will fail to authenticate until you set a new password.',
+                          confirmLabel: 'Remove password',
+                          destructive: true,
+                        })
+                        if (!ok) return
+                        setForm((f) => ({ ...f, pass: '' }))
+                        update.mutate(payloadWith(''))
+                      }}
+                      className="text-xs text-destructive underline underline-offset-3 hover:text-destructive/80"
+                    >
+                      Remove saved password
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <FieldInput
+                  value="•••••••• (saved)"
+                  readOnly
+                  className="font-mono text-xs"
+                  aria-label="Password is set"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setRevealPassword(true)
+                    setTouched(true)
+                  }}
+                >
+                  Change
+                </Button>
+              </div>
+            )}
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="smtp-from">From address</Label>
+            <FieldInput
+              id="smtp-from"
+              type="email"
+              value={form.from}
+              onChange={(e) => set('from')(e.target.value)}
+              placeholder="alerts@your.org"
+            />
+          </div>
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox
+            checked={form.secure}
+            onCheckedChange={(checked) => set('secure')(checked === true)}
+          />
+          Use TLS (auto-enabled for port 465)
+        </label>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+        {success && (
+          <p className="text-sm text-success-text">SMTP defaults saved.</p>
+        )}
+        <div>
+          <Button
+            type="submit"
+            disabled={!touched || update.isPending}
+            className={LIME_BUTTON}
+          >
+            {update.isPending ? 'Saving…' : 'Save defaults'}
+          </Button>
+        </div>
+      </form>
+    </Section>
   )
 }
 
@@ -697,20 +731,21 @@ function ApiTokensCard() {
   }
 
   return (
-    <Panel>
-      <header className="space-y-0.5 border-b border-border/60 px-4 py-2.5">
-        <h2 className="text-sm font-medium">API tokens</h2>
-        <p className="text-xs text-muted-foreground">
+    <Section
+      title="API tokens"
+      description={
+        <>
           Authenticate scripts and integrations with{' '}
           <code className="rounded bg-muted px-1 py-0.5 text-foreground">
             Authorization: Bearer &lt;token&gt;
           </code>
           . A token has the same access as this admin account.
-        </p>
-      </header>
-      <div className="space-y-4 px-4 py-4">
+        </>
+      }
+    >
+      <div className="space-y-4">
         {freshSecret && (
-          <div className="space-y-2 border border-success/40 bg-success/5 p-3" role="status">
+          <div className="space-y-2 rounded-lg border border-success/40 bg-success/5 p-3" role="status">
             <p className="text-xs font-medium text-success-text">
               Copy this now — it can't be shown again.
             </p>
@@ -758,7 +793,7 @@ function ApiTokensCard() {
               }}
             />
           </div>
-          <Button type="submit" disabled={create.isPending}>
+          <Button type="submit" disabled={create.isPending} className={LIME_BUTTON}>
             {create.isPending ? 'Creating…' : 'Create token'}
           </Button>
         </form>
@@ -815,6 +850,6 @@ function ApiTokensCard() {
           </ul>
         )}
       </div>
-    </Panel>
+    </Section>
   )
 }
